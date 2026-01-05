@@ -7,7 +7,7 @@
     It provides the core functionality needed for a Cmder replacement using Windows Terminal.
 
 .PARAMETER Profile
-    Windows Terminal profile to launch (default: PowerShell)
+    Windows Terminal profile to launch (default: uses DefaultProfile from config)
 
 .PARAMETER Task
     Legacy Cmder task name for compatibility
@@ -26,7 +26,7 @@
 
 .EXAMPLE
     .\Launch-Naner.ps1
-    Launch with default PowerShell profile
+    Launch with default profile from config
 
 .EXAMPLE
     .\Launch-Naner.ps1 -Profile "Command Prompt"
@@ -34,13 +34,13 @@
 
 .EXAMPLE
     .\Launch-Naner.ps1 -StartDir "C:\Projects"
-    Launch in specific directory
+    Launch in specific directory with default profile
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$Profile = "PowerShell",
+    [string]$Profile = "",
     
     [Parameter()]
     [string]$Task,
@@ -456,13 +456,13 @@ function Start-WindowsTerminal {
         Write-Verbose "Mapped task '$Task' to profile '$targetProfile'"
     }
     
-    # Use default profile if none specified
-    if (-not $targetProfile) {
+    # Use default profile if none specified (handle empty string or null)
+    if ([string]::IsNullOrWhiteSpace($targetProfile)) {
         $targetProfile = $Config.DefaultProfile
-        Write-Verbose "No profile specified, using default: '$targetProfile'"
+        Write-Verbose "No profile specified, using default from config: '$targetProfile'"
     }
     else {
-        Write-Verbose "Target profile: '$targetProfile'"
+        Write-Verbose "Using specified profile: '$targetProfile'"
     }
     
     # Check if this is a custom profile
