@@ -1,555 +1,491 @@
-#Requires -Version 5.1
 <#
 .SYNOPSIS
-    Naner Windows Terminal Launcher - PowerShell Edition
-    
+    Naner launcher for Windows Terminal - PowerShell implementation
+
 .DESCRIPTION
-    A launcher that mimics Naner.exe functionality but uses Windows Terminal instead of ConEmu.
-    This is the rapid prototype version - will be ported to C# for production.
-    
-.PARAMETER StartDir
-    Directory to start the terminal in. Defaults to current directory.
-    
+    This script launches Windows Terminal with Cmder-like environment setup.
+    It provides the core functionality needed for a Cmder replacement using Windows Terminal.
+
 .PARAMETER Profile
-    Windows Terminal profile to use. Defaults to "Naner".
-    
+    Windows Terminal profile to launch (default: PowerShell)
+
 .PARAMETER Task
-    Alias for Profile parameter (for Naner compatibility).
-    
+    Legacy Cmder task name for compatibility
+
 .PARAMETER Config
-    Path to custom Naner configuration root.
-    
-.PARAMETER Icon
-    Path to custom icon (for future GUI implementation).
-    
-.PARAMETER Single
-    Open in existing Windows Terminal window if possible.
-    
+    Path to Naner configuration directory (default: %NANER_ROOT%\config)
+
 .PARAMETER Register
-    Register Naner in Windows Explorer context menu. Values: USER, ALL
-    
+    Register Naner integration (context menu, etc.)
+
 .PARAMETER Unregister
-    Unregister Naner from Windows Explorer context menu. Values: USER, ALL
-    
-.PARAMETER New
-    Force new Windows Terminal window.
-    
-.PARAMETER Verbose
-    Show detailed logging information.
-    
+    Unregister Naner integration
+
+.PARAMETER StartDir
+    Starting directory for the terminal
+
 .EXAMPLE
     .\Launch-Naner.ps1
-    Launches Windows Terminal with Naner profile in current directory.
-    
+    Launch with default PowerShell profile
+
+.EXAMPLE
+    .\Launch-Naner.ps1 -Profile "Command Prompt"
+    Launch with Command Prompt profile
+
 .EXAMPLE
     .\Launch-Naner.ps1 -StartDir "C:\Projects"
-    Launches in C:\Projects directory.
-    
-.EXAMPLE
-    .\Launch-Naner.ps1 -Profile "PowerShell" -Single
-    Opens PowerShell profile in existing window.
-    
-.EXAMPLE
-    .\Launch-Naner.ps1 -Register USER
-    Registers "Naner Here" in Windows Explorer context menu.
-    
-.NOTES
-    Version: 1.0.0-prototype
-    Author: Hybrid Development Approach
-    Purpose: Rapid prototype for feature validation
+    Launch in specific directory
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [string]$StartDir,
-    
-    [Parameter()]
-    [string]$Profile = "Naner",
+    [string]$Profile = "PowerShell",
     
     [Parameter()]
     [string]$Task,
     
     [Parameter()]
-    [Alias("c")]
     [string]$Config,
     
     [Parameter()]
-    [string]$Icon,
+    [string]$StartDir,
     
     [Parameter()]
-    [switch]$Single,
+    [switch]$Register,
     
     [Parameter()]
-    [switch]$New,
-    
-    [Parameter()]
-    [ValidateSet("USER", "ALL")]
-    [string]$Register,
-    
-    [Parameter()]
-    [ValidateSet("USER", "ALL")]
-    [string]$Unregister
+    [switch]$Unregister
 )
 
-# ==============================================================================
-# CONFIGURATION
-# ==============================================================================
+# Script metadata
+$Script:Version = "1.0.0"
+$Script:Name = "Naner Launcher"
 
-$ErrorActionPreference = "Stop"
-$Script:Version = "1.0.0-prototype"
+#region Configuration Management
 
-# Determine Naner root directory
-$Script:NanerRoot = if ($Config) {
-    $Config
-} else {
-    # Assume script is in launcher/powershell subdirectory
-    $scriptPath = $PSScriptRoot
-    if ($scriptPath -match 'src[\\/]powershell$') {
-        Split-Path (Split-Path $scriptPath -Parent) -Parent
-    } else {
-        $scriptPath
+function Get-NanerRoot {
+    <#
+    .SYNOPSIS
+        Get the Naner root directory
+    #>
+    
+    # Check if NANER_ROOT is set
+    if ($env:NANER_ROOT) {
+        return $env:NANER_ROOT
     }
+    
+    # Search up the directory tree for config folder
+    $currentPath = Split-Path -Parent $PSCommandPath
+    $maxLevels = 5  # Don't search too far up
+    
+    for ($i = 0; $i -lt $maxLevels; $i++) {
+        $configPath = Join-Path $currentPath "config"
+        
+        if (Test-Path $configPath) {
+            Write-Verbose "Found Naner root at: $currentPath"
+            return $currentPath
+        }
+        
+        # Move up one level
+        $parentPath = Split-Path -Parent $currentPath
+        
+        # Stop if we've reached the root or can't go further
+        if (-not $parentPath -or $parentPath -eq $currentPath) {
+            break
+        }
+        
+        $currentPath = $parentPath
+    }
+    
+    Write-Error "Could not determine Naner root directory. Please set NANER_ROOT environment variable."
+    return $null
 }
 
-# ==============================================================================
-# LOGGING
-# ==============================================================================
-
-function Write-Log {
+function Get-NanerConfig {
+    <#
+    .SYNOPSIS
+        Load Naner configuration
+    #>
     param(
-        [string]$Message,
-        [ValidateSet("Info", "Success", "Warning", "Error")]
-        [string]$Level = "Info"
+        [string]$ConfigPath
     )
     
-    if (-not $VerbosePreference -and $Level -eq "Info") { return }
-    
-    $colors = @{
-        Info    = "Cyan"
-        Success = "Green"
-        Warning = "Yellow"
-        Error   = "Red"
+    $nanerRoot = Get-NanerRoot
+    if (-not $nanerRoot) {
+        return $null
     }
     
-    $prefix = @{
-        Info    = "[INFO]"
-        Success = "[OK]"
-        Warning = "[WARN]"
-        Error   = "[ERROR]"
+    # Determine config path
+    if (-not $ConfigPath) {
+        $ConfigPath = Join-Path $nanerRoot "config"
     }
     
-    Write-Host "$($prefix[$Level]) $Message" -ForegroundColor $colors[$Level]
-}
-
-# ==============================================================================
-# ENVIRONMENT SETUP
-# ==============================================================================
-
-function Initialize-NanerEnvironment {
-    Write-Log "Initializing Naner environment..."
+    # Load user-settings.json if it exists
+    $settingsFile = Join-Path $ConfigPath "user-settings.json"
+    $settings = @{
+        NanerRoot = $nanerRoot
+        ConfigPath = $ConfigPath
+        DefaultProfile = "PowerShell"
+        StartupDir = $null
+    }
     
-    # Set Naner environment variables
-    $env:Naner_ROOT = $Script:NanerRoot
-    $env:Naner_USER_CONFIG = Join-Path $Script:NanerRoot "config"
-    $env:Naner_USER_BIN = Join-Path $Script:NanerRoot "bin"
-    
-    Write-Log "Naner_ROOT: $env:Naner_ROOT"
-    Write-Log "Naner_USER_CONFIG: $env:Naner_USER_CONFIG"
-    Write-Log "Naner_USER_BIN: $env:Naner_USER_BIN"
-    
-    # Create directories if they don't exist
-    @($env:Naner_USER_CONFIG, $env:Naner_USER_BIN) | ForEach-Object {
-        if (-not (Test-Path $_)) {
-            New-Item -ItemType Directory -Path $_ -Force | Out-Null
-            Write-Log "Created directory: $_"
+    if (Test-Path $settingsFile) {
+        try {
+            $userSettings = Get-Content $settingsFile -Raw | ConvertFrom-Json
+            
+            # Merge user settings
+            if ($userSettings.DefaultProfile) {
+                $settings.DefaultProfile = $userSettings.DefaultProfile
+            }
+            if ($userSettings.StartupDir) {
+                $settings.StartupDir = $userSettings.StartupDir
+            }
+        }
+        catch {
+            Write-Warning "Failed to load user settings: $_"
         }
     }
+    
+    return $settings
 }
 
-# ==============================================================================
-# WINDOWS TERMINAL DETECTION
-# ==============================================================================
+#endregion
 
-function Find-WindowsTerminal {
-    Write-Log "Searching for Windows Terminal..."
+#region Windows Terminal Detection
+
+function Get-WindowsTerminalPath {
+    <#
+    .SYNOPSIS
+        Find Windows Terminal executable
+    #>
     
-    # Common installation paths
-    $searchPaths = @(
-        # Windows Store version
-        "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe",
-        
-        # Direct install
-        "$env:PROGRAMFILES\WindowsApps\Microsoft.WindowsTerminal_*\wt.exe",
-        
-        # Preview version
-        "$env:LOCALAPPDATA\Microsoft\WindowsApps\wtd.exe",
-        
-        # Portable version
-        "$env:PROGRAMFILES\WindowsTerminal\wt.exe"
+    # Check common locations
+    $locations = @(
+        "${env:LOCALAPPDATA}\Microsoft\WindowsApps\wt.exe",
+        "${env:ProgramFiles}\WindowsApps\Microsoft.WindowsTerminal_*\wt.exe"
     )
     
-    foreach ($path in $searchPaths) {
-        # Handle wildcards
-        if ($path -like "*`**") {
-            $resolved = Get-Item $path -ErrorAction SilentlyContinue | 
-                        Sort-Object LastWriteTime -Descending | 
-                        Select-Object -First 1
-            if ($resolved) {
-                Write-Log "Found Windows Terminal at: $($resolved.FullName)" -Level Success
-                return $resolved.FullName
-            }
-        } else {
-            if (Test-Path $path) {
-                Write-Log "Found Windows Terminal at: $path" -Level Success
-                return $path
-            }
+    foreach ($location in $locations) {
+        $resolved = Resolve-Path $location -ErrorAction SilentlyContinue
+        if ($resolved) {
+            return $resolved.Path | Select-Object -First 1
         }
     }
     
     # Try PATH
     $wtPath = Get-Command wt.exe -ErrorAction SilentlyContinue
     if ($wtPath) {
-        Write-Log "Found Windows Terminal in PATH: $($wtPath.Source)" -Level Success
         return $wtPath.Source
     }
     
     return $null
 }
 
-# ==============================================================================
-# WINDOWS TERMINAL CONFIGURATION
-# ==============================================================================
-
-function Get-WindowsTerminalSettingsPath {
-    # Windows Terminal stores settings in LocalState
-    $basePath = "$env:LOCALAPPDATA\Packages"
+function Test-WindowsTerminalInstalled {
+    <#
+    .SYNOPSIS
+        Check if Windows Terminal is installed
+    #>
     
-    $wtPackages = @(
-        "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
-        "Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe"
-    )
-    
-    foreach ($package in $wtPackages) {
-        $settingsPath = Join-Path $basePath "$package\LocalState\settings.json"
-        if (Test-Path $settingsPath) {
-            return $settingsPath
-        }
-    }
-    
-    return $null
-}
-
-function Test-NanerProfile {
-    $settingsPath = Get-WindowsTerminalSettingsPath
-    if (-not $settingsPath) {
-        Write-Log "Windows Terminal settings not found" -Level Warning
-        return $false
-    }
-    
-    Write-Log "Checking for Naner profile in: $settingsPath"
-    
-    try {
-        $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-        
-        $hasNanerProfile = $settings.profiles.list | 
-                          Where-Object { $_.name -eq "Naner" } | 
-                          Measure-Object | 
-                          Select-Object -ExpandProperty Count
-        
-        return $hasNanerProfile -gt 0
-    } catch {
-        Write-Log "Failed to parse settings.json: $_" -Level Warning
-        return $false
-    }
-}
-
-function Add-NanerProfile {
-    Write-Log "Adding Naner profile to Windows Terminal..." -Level Info
-    
-    $settingsPath = Get-WindowsTerminalSettingsPath
-    if (-not $settingsPath) {
-        Write-Log "Cannot add profile: Windows Terminal settings not found" -Level Error
-        return $false
-    }
-    
-    try {
-        # Backup original settings
-        $backupPath = "$settingsPath.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        Copy-Item $settingsPath $backupPath
-        Write-Log "Created backup: $backupPath"
-        
-        # Read and parse settings
-        $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
-        
-        # Create Naner profile
-        $NanerProfile = @{
-            name              = "Naner"
-            commandline       = "cmd.exe /k $env:Naner_ROOT\vendor\init.bat"
-            startingDirectory = "%USERPROFILE%"
-            icon              = "$env:Naner_ROOT\icons\Naner.ico"
-            colorScheme       = "Campbell"
-            hidden            = $false
-        }
-        
-        # Add to profiles list
-        $profilesList = @($settings.profiles.list)
-        $profilesList += $NanerProfile
-        $settings.profiles.list = $profilesList
-        
-        # Save settings
-        $settings | ConvertTo-Json -Depth 10 | Set-Content $settingsPath -Encoding UTF8
-        
-        Write-Log "Naner profile added successfully!" -Level Success
+    $wtPath = Get-WindowsTerminalPath
+    if ($wtPath) {
+        Write-Verbose "Windows Terminal found at: $wtPath"
         return $true
-        
-    } catch {
-        Write-Log "Failed to add Naner profile: $_" -Level Error
-        return $false
     }
+    
+    Write-Error "Windows Terminal is not installed. Please install it from the Microsoft Store."
+    return $false
 }
 
-# ==============================================================================
-# SHELL INTEGRATION (CONTEXT MENU)
-# ==============================================================================
+#endregion
 
-function Register-NanerShellIntegration {
+#region Environment Setup
+
+function Initialize-NanerEnvironment {
+    <#
+    .SYNOPSIS
+        Set up Naner environment variables
+    #>
     param(
-        [ValidateSet("USER", "ALL")]
-        [string]$Scope = "USER"
+        [hashtable]$Config
     )
     
-    $hive = if ($Scope -eq "ALL") { "HKLM" } else { "HKCU" }
-    $basePath = if ($Scope -eq "ALL") {
-        "HKEY_LOCAL_MACHINE\SOFTWARE\Classes"
-    } else {
-        "HKEY_CURRENT_USER\SOFTWARE\Classes"
-    }
+    # Set core environment variables
+    $env:NANER_ROOT = $Config.NanerRoot
+    $env:NANER_VERSION = $Script:Version
     
-    Write-Log "Registering Naner shell integration ($Scope)..."
-    
-    # Check admin rights if installing for ALL
-    if ($Scope -eq "ALL") {
-        $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-        if (-not $isAdmin) {
-            Write-Log "Administrator rights required for ALL scope" -Level Error
-            return $false
+    # Add Naner bin to PATH if it exists
+    $binPath = Join-Path $Config.NanerRoot "bin"
+    if (Test-Path $binPath) {
+        if ($env:PATH -notlike "*$binPath*") {
+            $env:PATH = "$binPath;$env:PATH"
         }
     }
     
-    $launcherPath = Join-Path $Script:NanerRoot "Naner.exe"
-    $iconPath = Join-Path $Script:NanerRoot "icons\Naner.ico"
-    
-    # Registry entries to create
-    $entries = @(
-        @{
-            Path    = "$basePath\Directory\Background\shell\Naner"
-            Name    = "(Default)"
-            Value   = "Naner Here"
-            Type    = "String"
-        },
-        @{
-            Path    = "$basePath\Directory\Background\shell\Naner"
-            Name    = "Icon"
-            Value   = $iconPath
-            Type    = "String"
-        },
-        @{
-            Path    = "$basePath\Directory\Background\shell\Naner\command"
-            Name    = "(Default)"
-            Value   = "`"$launcherPath`" `"%V`""
-            Type    = "String"
-        },
-        @{
-            Path    = "$basePath\Directory\shell\Naner"
-            Name    = "(Default)"
-            Value   = "Naner Here"
-            Type    = "String"
-        },
-        @{
-            Path    = "$basePath\Directory\shell\Naner\command"
-            Name    = "(Default)"
-            Value   = "`"$launcherPath`" `"%1`""
-            Type    = "String"
+    # Add vendor bin to PATH if it exists
+    $vendorBinPath = Join-Path $Config.NanerRoot "vendor\bin"
+    if (Test-Path $vendorBinPath) {
+        if ($env:PATH -notlike "*$vendorBinPath*") {
+            $env:PATH = "$vendorBinPath;$env:PATH"
         }
-    )
-    
-    try {
-        foreach ($entry in $entries) {
-            # Create path if it doesn't exist
-            if (-not (Test-Path "Registry::$($entry.Path)")) {
-                New-Item -Path "Registry::$($entry.Path)" -Force | Out-Null
-            }
-            
-            # Set value
-            Set-ItemProperty -Path "Registry::$($entry.Path)" -Name $entry.Name -Value $entry.Value -Type $entry.Type
-            Write-Log "Created: $($entry.Path)\$($entry.Name)"
-        }
-        
-        Write-Log "Shell integration registered successfully!" -Level Success
-        return $true
-        
-    } catch {
-        Write-Log "Failed to register shell integration: $_" -Level Error
-        return $false
     }
+    
+    Write-Verbose "Naner environment initialized"
 }
 
-function Unregister-NanerShellIntegration {
+#endregion
+
+#region Profile Management
+
+function Get-ProfileMapping {
+    <#
+    .SYNOPSIS
+        Map legacy Cmder task names to Windows Terminal profiles
+    #>
     param(
-        [ValidateSet("USER", "ALL")]
-        [string]$Scope = "USER"
+        [string]$TaskName
     )
     
-    $basePath = if ($Scope -eq "ALL") {
-        "HKEY_LOCAL_MACHINE\SOFTWARE\Classes"
-    } else {
-        "HKEY_CURRENT_USER\SOFTWARE\Classes"
+    $mappings = @{
+        "PowerShell" = "PowerShell"
+        "cmd" = "Command Prompt"
+        "bash" = "Git Bash"
+        "wsl" = "Ubuntu"
+        "ubuntu" = "Ubuntu"
     }
     
-    Write-Log "Unregistering Naner shell integration ($Scope)..."
-    
-    $pathsToRemove = @(
-        "$basePath\Directory\Background\shell\Naner",
-        "$basePath\Directory\shell\Naner"
-    )
-    
-    try {
-        foreach ($path in $pathsToRemove) {
-            if (Test-Path "Registry::$path") {
-                Remove-Item -Path "Registry::$path" -Recurse -Force
-                Write-Log "Removed: $path"
-            }
-        }
-        
-        Write-Log "Shell integration unregistered successfully!" -Level Success
-        return $true
-        
-    } catch {
-        Write-Log "Failed to unregister shell integration: $_" -Level Error
-        return $false
+    if ($mappings.ContainsKey($TaskName)) {
+        return $mappings[$TaskName]
     }
+    
+    return $TaskName
 }
 
-# ==============================================================================
-# LAUNCHER
-# ==============================================================================
+function Build-WindowsTerminalArgs {
+    <#
+    .SYNOPSIS
+        Build Windows Terminal command line arguments
+    #>
+    param(
+        [string]$Profile,
+        [string]$StartDirectory,
+        [hashtable]$Config
+    )
+    
+    $args = @()
+    
+    # Add profile argument
+    if ($Profile) {
+        $args += "-p"
+        $args += "`"$Profile`""
+    }
+    
+    # Add starting directory
+    if ($StartDirectory) {
+        $args += "-d"
+        $args += "`"$StartDirectory`""
+    }
+    elseif ($Config.StartupDir) {
+        $args += "-d"
+        $args += "`"$($Config.StartupDir)`""
+    }
+    
+    return $args -join " "
+}
+
+#endregion
+
+#region Launch Logic
 
 function Start-WindowsTerminal {
+    <#
+    .SYNOPSIS
+        Launch Windows Terminal with specified configuration
+    #>
     param(
-        [string]$WindowsTerminalPath,
-        [string]$ProfileName,
-        [string]$Directory,
-        [bool]$OpenInExisting
+        [string]$Profile,
+        [string]$Task,
+        [string]$StartDir,
+        [hashtable]$Config
     )
     
-    Write-Log "Launching Windows Terminal..."
-    Write-Log "Profile: $ProfileName"
-    Write-Log "Directory: $Directory"
-    
-    # Build command arguments
-    $wtArgs = @()
-    
-    # Window handling
-    if ($OpenInExisting) {
-        $wtArgs += "-w", "0"  # Use existing window
-    } else {
-        $wtArgs += "new-tab"  # Or use 'new-tab' for new window
-    }
-    
-    # Profile
-    $wtArgs += "-p", "`"$ProfileName`""
-    
-    # Starting directory
-    if ($Directory) {
-        $wtArgs += "-d", "`"$Directory`""
-    }
-    
-    Write-Log "Arguments: $($wtArgs -join ' ')"
-    
-    try {
-        Start-Process -FilePath $WindowsTerminalPath -ArgumentList $wtArgs
-        Write-Log "Windows Terminal launched successfully!" -Level Success
-        return $true
-    } catch {
-        Write-Log "Failed to launch Windows Terminal: $_" -Level Error
+    # Verify Windows Terminal is installed
+    if (-not (Test-WindowsTerminalInstalled)) {
         return $false
     }
-}
-
-# ==============================================================================
-# MAIN
-# ==============================================================================
-
-function Main {
-    Write-Host ""
-    Write-Host "Naner Windows Terminal Launcher v$Script:Version" -ForegroundColor Cyan
-    Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host ""
     
-    # Handle registration/unregistration
-    if ($Register) {
-        Initialize-NanerEnvironment
-        $success = Register-NanerShellIntegration -Scope $Register
-        exit ($success ? 0 : 1)
+    # Determine profile to use
+    $targetProfile = $Profile
+    if ($Task) {
+        $targetProfile = Get-ProfileMapping -TaskName $Task
+        Write-Verbose "Mapped task '$Task' to profile '$targetProfile'"
     }
     
-    if ($Unregister) {
-        $success = Unregister-NanerShellIntegration -Scope $Unregister
-        exit ($success ? 0 : 1)
-    }
-    
-    # Normal launch flow
-    Initialize-NanerEnvironment
-    
-    # Find Windows Terminal
-    $wtPath = Find-WindowsTerminal
-    if (-not $wtPath) {
-        Write-Host ""
-        Write-Host "ERROR: Windows Terminal not found!" -ForegroundColor Red
-        Write-Host ""
-        Write-Host "Please install Windows Terminal from:" -ForegroundColor Yellow
-        Write-Host "  - Microsoft Store: https://aka.ms/terminal" -ForegroundColor Yellow
-        Write-Host "  - GitHub: https://github.com/microsoft/terminal/releases" -ForegroundColor Yellow
-        Write-Host ""
-        exit 1
-    }
-    
-    # Check for Naner profile
-    if (-not (Test-NanerProfile)) {
-        Write-Log "Naner profile not found in Windows Terminal" -Level Warning
-        Write-Host ""
-        $response = Read-Host "Would you like to create a Naner profile? (Y/N)"
-        if ($response -eq 'Y' -or $response -eq 'y') {
-            Add-NanerProfile
-        }
+    # Use default profile if none specified
+    if (-not $targetProfile) {
+        $targetProfile = $Config.DefaultProfile
     }
     
     # Determine starting directory
-    $targetDir = if ($StartDir) {
-        $StartDir
-    } else {
-        $PWD.Path
+    $startDirectory = $StartDir
+    if (-not $startDirectory -and $Config.StartupDir) {
+        $startDirectory = $Config.StartupDir
     }
     
-    # Use Task parameter if provided (Naner compatibility)
-    $targetProfile = if ($Task) { $Task } else { $Profile }
+    # Build arguments
+    $wtArgs = Build-WindowsTerminalArgs -Profile $targetProfile -StartDirectory $startDirectory -Config $Config
+    
+    # Get Windows Terminal path
+    $wtPath = Get-WindowsTerminalPath
     
     # Launch Windows Terminal
-    $success = Start-WindowsTerminal `
-        -WindowsTerminalPath $wtPath `
-        -ProfileName $targetProfile `
-        -Directory $targetDir `
-        -OpenInExisting $Single
+    Write-Verbose "Launching: $wtPath $wtArgs"
     
-    if ($success) {
-        Write-Host ""
-        Write-Host "✓ Launched successfully!" -ForegroundColor Green
-        Write-Host ""
+    $success = $false
+    try {
+        Start-Process -FilePath $wtPath -ArgumentList $wtArgs
+        $success = $true
+    }
+    catch {
+        Write-Error "Failed to launch Windows Terminal: $_"
+        $success = $false
     }
     
-    exit ($success ? 0 : 1)
+    return $success
 }
 
-# Run main function
+#endregion
+
+#region Registration
+
+function Register-NanerProfile {
+    <#
+    .SYNOPSIS
+        Register Naner with Windows (context menu integration, etc.)
+    #>
+    
+    Write-Host "Registering Naner integration..."
+    
+    # Get script path
+    $scriptPath = $PSCommandPath
+    $nanerRoot = Get-NanerRoot
+    
+    if (-not $nanerRoot) {
+        Write-Error "Cannot register: Naner root not found"
+        return $false
+    }
+    
+    # Registry path for context menu
+    $registryPath = "HKCU:\Software\Classes\Directory\Background\shell\Naner"
+    
+    $success = $false
+    try {
+        # Create registry keys
+        if (-not (Test-Path $registryPath)) {
+            New-Item -Path $registryPath -Force | Out-Null
+        }
+        
+        Set-ItemProperty -Path $registryPath -Name "(Default)" -Value "Open Naner here"
+        Set-ItemProperty -Path $registryPath -Name "Icon" -Value "$nanerRoot\icons\naner.ico"
+        
+        # Create command subkey
+        $commandPath = "$registryPath\command"
+        if (-not (Test-Path $commandPath)) {
+            New-Item -Path $commandPath -Force | Out-Null
+        }
+        
+        $commandValue = "powershell.exe -ExecutionPolicy Bypass -File `"$scriptPath`" -StartDir `"%V`""
+        Set-ItemProperty -Path $commandPath -Name "(Default)" -Value $commandValue
+        
+        Write-Host "[OK] Naner registered successfully" -ForegroundColor Green
+        Write-Host "  Right-click in any folder and select 'Open Naner here'"
+        
+        $success = $true
+    }
+    catch {
+        Write-Error "Failed to register Naner: $_"
+        $success = $false
+    }
+    
+    return $success
+}
+
+function Unregister-NanerProfile {
+    <#
+    .SYNOPSIS
+        Unregister Naner integration
+    #>
+    
+    Write-Host "Unregistering Naner integration..."
+    
+    $registryPath = "HKCU:\Software\Classes\Directory\Background\shell\Naner"
+    
+    $success = $false
+    try {
+        if (Test-Path $registryPath) {
+            Remove-Item -Path $registryPath -Recurse -Force
+            Write-Host "[OK] Naner unregistered successfully" -ForegroundColor Green
+            $success = $true
+        }
+        else {
+            Write-Host "Naner was not registered" -ForegroundColor Yellow
+            $success = $true
+        }
+    }
+    catch {
+        Write-Error "Failed to unregister Naner: $_"
+        $success = $false
+    }
+    
+    return $success
+}
+
+#endregion
+
+#region Main Entry Point
+
+function Main {
+    <#
+    .SYNOPSIS
+        Main entry point
+    #>
+    
+    Write-Verbose "Naner Launcher v$($Script:Version)"
+    
+    # Handle registration commands
+    if ($Register) {
+        $success = Register-NanerProfile
+        if ($success) { exit 0 } else { exit 1 }
+    }
+    
+    if ($Unregister) {
+        $success = Unregister-NanerProfile
+        if ($success) { exit 0 } else { exit 1 }
+    }
+    
+    # Load configuration
+    $config = Get-NanerConfig -ConfigPath $Config
+    if (-not $config) {
+        Write-Error "Failed to load configuration"
+        exit 1
+    }
+    
+    # Initialize environment
+    Initialize-NanerEnvironment -Config $config
+    
+    # Launch Windows Terminal
+    $success = Start-WindowsTerminal -Profile $Profile -Task $Task -StartDir $StartDir -Config $config
+    
+    if ($success) {
+        exit 0
+    }
+    else {
+        exit 1
+    }
+}
+
+#endregion
+
+# Execute main function
 Main
