@@ -101,6 +101,9 @@ See `user-settings-examples.md` for more detailed configuration examples.
 # Test with specific profile
 .\Launch-Naner.ps1 -Profile "Command Prompt"
 
+# Test with custom profile (if configured)
+.\Launch-Naner.ps1 -Profile "PowerShell7"
+
 # Test with specific directory
 .\Launch-Naner.ps1 -StartDir "C:\Projects"
 
@@ -111,10 +114,33 @@ See `user-settings-examples.md` for more detailed configuration examples.
 .\Launch-Naner.ps1 -Unregister
 ```
 
+## Helper Scripts
+
+### Find-WindowsTerminal.ps1
+Automatically finds your Windows Terminal installation:
+```powershell
+.\Find-WindowsTerminal.ps1
+```
+
+### Find-PowerShellInstallations.ps1
+Finds all PowerShell installations and generates config for you:
+```powershell
+.\Find-PowerShellInstallations.ps1
+```
+
+This will show you all PowerShell versions on your system and output the exact JSON configuration to add to your `user-settings.json`!
+
+### Test-EnvironmentVariables.ps1
+Test how environment variables expand:
+```powershell
+.\Test-EnvironmentVariables.ps1
+```
+
 ## Customizing user-settings.json
 
 Edit `config/user-settings.json` to customize. **Environment variables are fully supported!**
 
+### Basic Configuration
 ```json
 {
   "DefaultProfile": "PowerShell",
@@ -123,16 +149,37 @@ Edit `config/user-settings.json` to customize. **Environment variables are fully
 }
 ```
 
+### With Custom PowerShell Installation
+```json
+{
+  "DefaultProfile": "PowerShell7",
+  "StartupDir": "%USERPROFILE%\\Projects",
+  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
+  "CustomProfiles": {
+    "PowerShell7": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PowerShell 7"
+    }
+  }
+}
+```
+
 **Supported Environment Variable Formats:**
 - Windows style: `%USERPROFILE%`, `%LOCALAPPDATA%`, `%ProgramFiles%`
 - PowerShell style: `$env:USERPROFILE`, `$env:LOCALAPPDATA`, `$env:ProgramFiles`
 - Both formats work and can be mixed!
 
-**Available profiles** (depends on your Windows Terminal settings):
+**Available default profiles** (depends on your Windows Terminal settings):
 - "PowerShell"
 - "Command Prompt"  
 - "Git Bash"
 - "Ubuntu" (if WSL is installed)
+
+**Custom profiles** let you specify:
+- Exact shell executable path (for custom PowerShell, Python, etc.)
+- Command-line arguments
+- Window title
 
 **Common Environment Variables:**
 - `%USERPROFILE%` → Your user folder (`C:\Users\YourName`)

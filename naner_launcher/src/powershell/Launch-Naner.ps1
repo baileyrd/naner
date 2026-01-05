@@ -129,6 +129,7 @@ function Get-NanerConfig {
         DefaultProfile = "PowerShell"
         StartupDir = $null
         WindowsTerminalPath = $null
+        CustomProfiles = @{}
     }
     
     if (Test-Path $settingsFile) {
@@ -144,6 +145,42 @@ function Get-NanerConfig {
             }
             if ($userSettings.WindowsTerminalPath) {
                 $settings.WindowsTerminalPath = Expand-EnvironmentVariables $userSettings.WindowsTerminalPath
+            }
+            if ($userSettings.CustomProfiles) {
+                # Process custom profiles
+                $customProfiles = @{}
+                Write-Verbose "Loading custom profiles from configuration..."
+                
+                foreach ($prop in $userSettings.CustomProfiles.PSObject.Properties) {
+                    $profileName = $prop.Name
+                    $profileConfig = $prop.Value
+                    
+                    Write-Verbose "  Loading profile: $profileName"
+                    
+                    $customProfiles[$profileName] = @{
+                        ShellPath = if ($profileConfig.ShellPath) { 
+                            $expandedPath = Expand-EnvironmentVariables $profileConfig.ShellPath
+                            Write-Verbose "    ShellPath: $expandedPath"
+                            $expandedPath
+                        } else { 
+                            $null 
+                        }
+                        Arguments = if ($profileConfig.Arguments) { 
+                            Write-Verbose "    Arguments: $($profileConfig.Arguments)"
+                            $profileConfig.Arguments 
+                        } else { 
+                            $null 
+                        }
+                        Title = if ($profileConfig.Title) { 
+                            Write-Verbose "    Title: $($profileConfig.Title)"
+                            $profileConfig.Title 
+                        } else { 
+                            $profileName 
+                        }
+                    }
+                }
+                $settings.CustomProfiles = $customProfiles
+                Write-Verbose "Loaded $($customProfiles.Count) custom profile(s)"
             }
         }
         catch {
@@ -326,29 +363,65 @@ function Build-WindowsTerminalArgs {
     param(
         [string]$Profile,
         [string]$StartDirectory,
-        [hashtable]$Config
+        [hashtable]$Config,
+        [hashtable]$CustomProfileConfig
     )
     
     $args = @()
     
-    # Add profile argument
-    if ($Profile) {
-        $args += "-p"
-        $args += "`"$Profile`""
+    # Check if using a custom profile with custom shell
+    if ($CustomProfileConfig -and $CustomProfileConfig.ShellPath) {
+        # Use custom shell path with proper Windows Terminal syntax
+        # Format: wt.exe [options] -- command args
+        
+        # Add title if specified
+        if ($CustomProfileConfig.Title) {
+            $args += "--title"
+            $args += "`"$($CustomProfileConfig.Title)`""
+        }
+        
+        # Add starting directory
+        if ($StartDirectory) {
+            $args += "-d"
+            $args += "`"$StartDirectory`""
+        }
+        elseif ($Config.StartupDir) {
+            $args += "-d"
+            $args += "`"$($Config.StartupDir)`""
+        }
+        
+        # Add the separator to indicate start of command
+        $args += "--"
+        
+        # Add the custom shell command
+        $args += "`"$($CustomProfileConfig.ShellPath)`""
+        
+        # Add shell arguments if specified
+        if ($CustomProfileConfig.Arguments) {
+            $args += $CustomProfileConfig.Arguments
+        }
     }
-    
-    # Add starting directory
-    if ($StartDirectory) {
-        $args += "-d"
-        $args += "`"$StartDirectory`""
-    }
-    elseif ($Config.StartupDir) {
-        $args += "-d"
-        $args += "`"$($Config.StartupDir)`""
+    else {
+        # Use standard profile
+        if ($Profile) {
+            $args += "-p"
+            $args += "`"$Profile`""
+        }
+        
+        # Add starting directory
+        if ($StartDirectory) {
+            $args += "-d"
+            $args += "`"$StartDirectory`""
+        }
+        elseif ($Config.StartupDir) {
+            $args += "-d"
+            $args += "`"$($Config.StartupDir)`""
+        }
     }
     
     return $args -join " "
 }
+
 
 #endregion
 
@@ -366,6 +439,11 @@ function Start-WindowsTerminal {
         [hashtable]$Config
     )
     
+    Write-Verbose "=== Start-WindowsTerminal ==="
+    Write-Verbose "Profile parameter: '$Profile'"
+    Write-Verbose "Task parameter: '$Task'"
+    Write-Verbose "StartDir parameter: '$StartDir'"
+    
     # Verify Windows Terminal is installed
     if (-not (Test-WindowsTerminalInstalled -CustomPath $Config.WindowsTerminalPath)) {
         return $false
@@ -381,6 +459,34 @@ function Start-WindowsTerminal {
     # Use default profile if none specified
     if (-not $targetProfile) {
         $targetProfile = $Config.DefaultProfile
+        Write-Verbose "No profile specified, using default: '$targetProfile'"
+    }
+    else {
+        Write-Verbose "Target profile: '$targetProfile'"
+    }
+    
+    # Check if this is a custom profile
+    $customProfileConfig = $null
+    if ($Config.CustomProfiles) {
+        Write-Verbose "Custom profiles available: $($Config.CustomProfiles.Keys -join ', ')"
+        
+        if ($Config.CustomProfiles.ContainsKey($targetProfile)) {
+            $customProfileConfig = $Config.CustomProfiles[$targetProfile]
+            Write-Verbose "*** Using custom profile configuration for '$targetProfile' ***"
+            Write-Verbose "  Shell: $($customProfileConfig.ShellPath)"
+            if ($customProfileConfig.Arguments) {
+                Write-Verbose "  Args: $($customProfileConfig.Arguments)"
+            }
+            if ($customProfileConfig.Title) {
+                Write-Verbose "  Title: $($customProfileConfig.Title)"
+            }
+        }
+        else {
+            Write-Verbose "Profile '$targetProfile' not found in custom profiles, using as standard profile"
+        }
+    }
+    else {
+        Write-Verbose "No custom profiles defined"
     }
     
     # Determine starting directory
@@ -388,20 +494,25 @@ function Start-WindowsTerminal {
     if (-not $startDirectory -and $Config.StartupDir) {
         $startDirectory = $Config.StartupDir
     }
+    if ($startDirectory) {
+        Write-Verbose "Starting directory: $startDirectory"
+    }
     
     # Build arguments
-    $wtArgs = Build-WindowsTerminalArgs -Profile $targetProfile -StartDirectory $startDirectory -Config $Config
+    $wtArgs = Build-WindowsTerminalArgs -Profile $targetProfile -StartDirectory $startDirectory -Config $Config -CustomProfileConfig $customProfileConfig
     
     # Get Windows Terminal path
     $wtPath = Get-WindowsTerminalPath -CustomPath $Config.WindowsTerminalPath
     
     # Launch Windows Terminal
-    Write-Verbose "Launching: $wtPath $wtArgs"
+    Write-Verbose "=== Launching Windows Terminal ==="
+    Write-Verbose "Command: $wtPath $wtArgs"
     
     $success = $false
     try {
         Start-Process -FilePath $wtPath -ArgumentList $wtArgs
         $success = $true
+        Write-Verbose "Successfully launched Windows Terminal"
     }
     catch {
         Write-Error "Failed to launch Windows Terminal: $_"

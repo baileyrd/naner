@@ -102,6 +102,176 @@ Works on any Windows machine regardless of username:
 }
 ```
 
+## Custom Shell Profiles
+
+You can define custom profiles that use specific shell executables. This is perfect for:
+- Custom PowerShell installations (PowerShell 7+, preview versions, portable versions)
+- Different Python versions
+- Custom command prompts
+- Portable applications
+
+### Custom Profile Structure
+```json
+{
+  "CustomProfiles": {
+    "ProfileName": {
+      "ShellPath": "path/to/executable.exe",
+      "Arguments": "command line arguments",
+      "Title": "Window Title"
+    }
+  }
+}
+```
+
+### Example: Custom PowerShell 7
+```json
+{
+  "DefaultProfile": "PowerShell",
+  "StartupDir": null,
+  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
+  "CustomProfiles": {
+    "PowerShell7": {
+      "ShellPath": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PowerShell 7"
+    }
+  }
+}
+```
+
+**Launch it:**
+```powershell
+.\Launch-Naner.ps1 -Profile "PowerShell7"
+```
+
+### Example: Multiple PowerShell Versions
+```json
+{
+  "DefaultProfile": "PowerShell7",
+  "StartupDir": "%USERPROFILE%\\Projects",
+  "WindowsTerminalPath": null,
+  "CustomProfiles": {
+    "PowerShell7": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PowerShell 7"
+    },
+    "PowerShell7Preview": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7-preview\\pwsh.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PS7 Preview"
+    },
+    "PowerShell5": {
+      "ShellPath": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PowerShell 5.1"
+    }
+  }
+}
+```
+
+### Example: Portable PowerShell
+```json
+{
+  "DefaultProfile": "PortablePwsh",
+  "StartupDir": null,
+  "WindowsTerminalPath": null,
+  "CustomProfiles": {
+    "PortablePwsh": {
+      "ShellPath": "%USERPROFILE%\\PortableApps\\PowerShell\\pwsh.exe",
+      "Arguments": "-NoLogo -NoProfile",
+      "Title": "Portable PowerShell"
+    }
+  }
+}
+```
+
+### Example: PowerShell with Custom Startup Script
+```json
+{
+  "CustomProfiles": {
+    "DevPowerShell": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo -NoExit -File \"%USERPROFILE%\\Scripts\\dev-init.ps1\"",
+      "Title": "Dev Environment"
+    }
+  }
+}
+```
+
+### Example: Python REPL as a Profile
+```json
+{
+  "CustomProfiles": {
+    "Python": {
+      "ShellPath": "%LOCALAPPDATA%\\Programs\\Python\\Python312\\python.exe",
+      "Arguments": "-i",
+      "Title": "Python 3.12"
+    }
+  }
+}
+```
+
+### Custom Profile Arguments Explained
+
+**PowerShell Common Arguments:**
+- `-NoLogo` - Skip the copyright banner
+- `-NoProfile` - Don't load profile scripts
+- `-NoExit` - Don't exit after running commands
+- `-File "path"` - Run a specific script file
+- `-Command "code"` - Execute PowerShell code
+
+**Example with Multiple Arguments:**
+```json
+{
+  "ShellPath": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+  "Arguments": "-NoLogo -NoProfile -ExecutionPolicy Bypass -File \"%USERPROFILE%\\init.ps1\""
+}
+```
+
+### Using Custom Profiles
+
+Once defined, use your custom profiles like this:
+
+```powershell
+# Launch with default profile
+.\Launch-Naner.ps1
+
+# Launch with specific custom profile
+.\Launch-Naner.ps1 -Profile "PowerShell7"
+.\Launch-Naner.ps1 -Profile "PowerShell7Preview"
+.\Launch-Naner.ps1 -Profile "PortablePwsh"
+
+# Launch with custom profile in specific directory
+.\Launch-Naner.ps1 -Profile "DevPowerShell" -StartDir "C:\Projects\MyApp"
+```
+
+### Full Example Configuration
+```json
+{
+  "DefaultProfile": "PowerShell7",
+  "StartupDir": "%USERPROFILE%\\Projects",
+  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
+  "CustomProfiles": {
+    "PowerShell7": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo",
+      "Title": "PowerShell 7"
+    },
+    "PowerShell7Dev": {
+      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
+      "Arguments": "-NoLogo -NoExit -Command \"Set-Location '%USERPROFILE%\\dev'; Write-Host 'Dev Environment Ready' -ForegroundColor Green\"",
+      "Title": "PS7 Dev"
+    },
+    "PowerShellPortable": {
+      "ShellPath": "D:\\PortableApps\\PowerShell\\pwsh.exe",
+      "Arguments": "-NoLogo -NoProfile",
+      "Title": "Portable PS"
+    }
+  }
+}
+```
+
 ## Common Windows Terminal Locations
 
 ### Standard Installation (Microsoft Store)

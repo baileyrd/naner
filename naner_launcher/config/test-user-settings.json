@@ -1,0 +1,11 @@
+{
+    "DefaultProfile": "MyPowerShell",
+    "WindowsTerminalPath": "%CMDLINE%\\terminal2\\wt.exe",
+    "CustomProfiles": {
+        "MyPowerShell": {
+            "ShellPath": "%PS%\\pwsh.exe",
+            "Arguments": "-NoLogo",
+            "Title": "My Custom PowerShell"
+        }
+    }
+}
