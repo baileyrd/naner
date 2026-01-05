@@ -62,8 +62,36 @@ If you want to set it permanently:
 - Run with `-Verbose` to see what paths are being checked
 
 ### Error: "Windows Terminal is not installed"
-Install Windows Terminal from the Microsoft Store:
-https://aka.ms/terminal
+Windows Terminal might be installed in a non-standard location. Find and configure the path:
+
+**Step 1: Find your Windows Terminal executable**
+```powershell
+# Option 1: Use Get-Command
+Get-Command wt.exe | Select-Object -ExpandProperty Source
+
+# Option 2: Search in common locations
+Get-ChildItem -Path "$env:LOCALAPPDATA\Microsoft\WindowsApps" -Filter "wt.exe"
+```
+
+**Step 2: Add the path to your user-settings.json (with environment variables!)**
+```json
+{
+  "DefaultProfile": "PowerShell",
+  "StartupDir": null,
+  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe"
+}
+```
+
+**Common Windows Terminal Locations (with environment variables):**
+- Microsoft Store: `%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe`
+- Preview Version: `%ProgramFiles%\\WindowsApps\\Microsoft.WindowsTerminalPreview_*\\wt.exe`
+- Regular Version: `%ProgramFiles%\\WindowsApps\\Microsoft.WindowsTerminal_*\\wt.exe`
+
+**Using environment variables makes your config portable!** Same config works for:
+- BAILEYRD: `C:\Users\BAILEYRD\AppData\Local\Microsoft\WindowsApps\wt.exe`
+- JohnDoe: `C:\Users\JohnDoe\AppData\Local\Microsoft\WindowsApps\wt.exe`
+
+See `user-settings-examples.md` for more detailed configuration examples.
 
 ### Testing the script works
 ```powershell
@@ -85,20 +113,36 @@ https://aka.ms/terminal
 
 ## Customizing user-settings.json
 
-Edit `config/user-settings.json` to customize:
+Edit `config/user-settings.json` to customize. **Environment variables are fully supported!**
 
 ```json
 {
-  "DefaultProfile": "PowerShell",     // Default profile to launch
-  "StartupDir": "C:\\Projects"        // Default starting directory (optional)
+  "DefaultProfile": "PowerShell",
+  "StartupDir": "%USERPROFILE%\\Projects",
+  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe"
 }
 ```
 
-Available profiles (depends on your Windows Terminal settings):
+**Supported Environment Variable Formats:**
+- Windows style: `%USERPROFILE%`, `%LOCALAPPDATA%`, `%ProgramFiles%`
+- PowerShell style: `$env:USERPROFILE`, `$env:LOCALAPPDATA`, `$env:ProgramFiles`
+- Both formats work and can be mixed!
+
+**Available profiles** (depends on your Windows Terminal settings):
 - "PowerShell"
 - "Command Prompt"  
 - "Git Bash"
 - "Ubuntu" (if WSL is installed)
+
+**Common Environment Variables:**
+- `%USERPROFILE%` → Your user folder (`C:\Users\YourName`)
+- `%LOCALAPPDATA%` → Local AppData (`C:\Users\YourName\AppData\Local`)
+- `%ProgramFiles%` → Program Files folder
+- `%USERNAME%` → Your username
+
+**Note:** Use double backslashes (`\\`) in JSON paths. Environment variables make your config portable across different machines!
+
+See `user-settings-examples.md` for more detailed examples.
 
 ## Next Steps
 

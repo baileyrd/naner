@@ -1,4 +1,5 @@
 {
     "DefaultProfile": "PowerShell",
-    "StartupDir": null
+    "StartupDir": null,
+    "WindowsTerminalPath": "%CMDLINE%\\terminal\\wt.exe"
 }

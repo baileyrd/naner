@@ -128,18 +128,22 @@ function Get-NanerConfig {
         ConfigPath = $ConfigPath
         DefaultProfile = "PowerShell"
         StartupDir = $null
+        WindowsTerminalPath = $null
     }
     
     if (Test-Path $settingsFile) {
         try {
             $userSettings = Get-Content $settingsFile -Raw | ConvertFrom-Json
             
-            # Merge user settings
+            # Merge user settings with environment variable expansion
             if ($userSettings.DefaultProfile) {
                 $settings.DefaultProfile = $userSettings.DefaultProfile
             }
             if ($userSettings.StartupDir) {
-                $settings.StartupDir = $userSettings.StartupDir
+                $settings.StartupDir = Expand-EnvironmentVariables $userSettings.StartupDir
+            }
+            if ($userSettings.WindowsTerminalPath) {
+                $settings.WindowsTerminalPath = Expand-EnvironmentVariables $userSettings.WindowsTerminalPath
             }
         }
         catch {
@@ -148,6 +152,40 @@ function Get-NanerConfig {
     }
     
     return $settings
+}
+
+function Expand-EnvironmentVariables {
+    <#
+    .SYNOPSIS
+        Expand environment variables in a string
+    .DESCRIPTION
+        Supports both Windows (%VAR%) and PowerShell ($env:VAR) style variables
+    #>
+    param(
+        [string]$InputString
+    )
+    
+    if ([string]::IsNullOrEmpty($InputString)) {
+        return $InputString
+    }
+    
+    # Expand Windows-style variables (%VAR%)
+    $expanded = [System.Environment]::ExpandEnvironmentVariables($InputString)
+    
+    # Also support PowerShell-style variables ($env:VAR)
+    # Match $env:VARIABLENAME pattern
+    $pattern = '\$env:([A-Za-z_][A-Za-z0-9_]*)'
+    $matches = [regex]::Matches($expanded, $pattern)
+    
+    foreach ($match in $matches) {
+        $varName = $match.Groups[1].Value
+        $varValue = [System.Environment]::GetEnvironmentVariable($varName)
+        if ($varValue) {
+            $expanded = $expanded -replace [regex]::Escape($match.Value), $varValue
+        }
+    }
+    
+    return $expanded
 }
 
 #endregion
@@ -159,11 +197,26 @@ function Get-WindowsTerminalPath {
     .SYNOPSIS
         Find Windows Terminal executable
     #>
+    param(
+        [string]$CustomPath
+    )
+    
+    # Check custom path first if provided
+    if ($CustomPath) {
+        if (Test-Path $CustomPath) {
+            Write-Verbose "Using custom Windows Terminal path: $CustomPath"
+            return $CustomPath
+        }
+        else {
+            Write-Warning "Custom Windows Terminal path not found: $CustomPath"
+        }
+    }
     
     # Check common locations
     $locations = @(
         "${env:LOCALAPPDATA}\Microsoft\WindowsApps\wt.exe",
-        "${env:ProgramFiles}\WindowsApps\Microsoft.WindowsTerminal_*\wt.exe"
+        "${env:ProgramFiles}\WindowsApps\Microsoft.WindowsTerminal_*\wt.exe",
+        "${env:ProgramFiles}\WindowsApps\Microsoft.WindowsTerminalPreview_*\wt.exe"
     )
     
     foreach ($location in $locations) {
@@ -187,14 +240,17 @@ function Test-WindowsTerminalInstalled {
     .SYNOPSIS
         Check if Windows Terminal is installed
     #>
+    param(
+        [string]$CustomPath
+    )
     
-    $wtPath = Get-WindowsTerminalPath
+    $wtPath = Get-WindowsTerminalPath -CustomPath $CustomPath
     if ($wtPath) {
         Write-Verbose "Windows Terminal found at: $wtPath"
         return $true
     }
     
-    Write-Error "Windows Terminal is not installed. Please install it from the Microsoft Store."
+    Write-Error "Windows Terminal is not installed. Please install it from the Microsoft Store or specify WindowsTerminalPath in config/user-settings.json"
     return $false
 }
 
@@ -311,7 +367,7 @@ function Start-WindowsTerminal {
     )
     
     # Verify Windows Terminal is installed
-    if (-not (Test-WindowsTerminalInstalled)) {
+    if (-not (Test-WindowsTerminalInstalled -CustomPath $Config.WindowsTerminalPath)) {
         return $false
     }
     
@@ -337,7 +393,7 @@ function Start-WindowsTerminal {
     $wtArgs = Build-WindowsTerminalArgs -Profile $targetProfile -StartDirectory $startDirectory -Config $Config
     
     # Get Windows Terminal path
-    $wtPath = Get-WindowsTerminalPath
+    $wtPath = Get-WindowsTerminalPath -CustomPath $Config.WindowsTerminalPath
     
     # Launch Windows Terminal
     Write-Verbose "Launching: $wtPath $wtArgs"
