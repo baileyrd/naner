@@ -4,6 +4,7 @@
   "description": "Configuration for Naner terminal launcher",
   
   "VendorPaths": {
+    "SevenZip": "%NANER_ROOT%\\vendor\\7zip\\7z.exe",
     "PowerShell": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
     "WindowsTerminal": "%NANER_ROOT%\\vendor\\terminal\\wt.exe",
     "GitBash": "%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe",
@@ -17,6 +18,7 @@
       "%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin",
       "%NANER_ROOT%\\vendor\\msys64\\usr\\bin",
       "%NANER_ROOT%\\vendor\\powershell",
+      "%NANER_ROOT%\\vendor\\7zip",
       "%NANER_ROOT%\\opt"
     ],
     "EnvironmentVariables": {

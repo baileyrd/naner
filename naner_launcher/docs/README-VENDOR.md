@@ -25,6 +25,11 @@ naner/
 
 ## Bundled Dependencies
 
+### 7-Zip
+- **Size**: ~2MB
+- **Purpose**: Archive extraction utility (required for extracting other dependencies)
+- **Path**: `vendor/7zip/7z.exe`
+
 ### PowerShell 7.x
 - **Size**: ~100MB
 - **Purpose**: Modern PowerShell with cross-platform features

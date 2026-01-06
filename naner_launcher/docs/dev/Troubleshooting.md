@@ -1,254 +1,338 @@
-# Troubleshooting Custom Profiles
+# Naner Vendor Setup - Troubleshooting Quick Reference
 
-If your custom profiles aren't working, follow these diagnostic steps:
+## Quick Fixes for Common Issues
 
-## Step 1: Run the Diagnostic Script
+### 🔴 "Cannot extract .tar.xz files without 7-Zip"
+
+**What happened**: MSYS2 extraction failed - this shouldn't happen anymore as 7-Zip is bundled.
+
+**Quick Fix**:
+```powershell
+# Check if 7-Zip was extracted
+Test-Path vendor\7zip\7z.exe
+
+# If missing, re-run setup from scratch
+Remove-Item vendor -Recurse -Force
+.\Setup-NanerVendor.ps1
+```
+
+**Why**: 7-Zip is now bundled and extracted first. If you see this error, the 7-Zip extraction may have failed.
+
+---
+
+### 🔴 "tar: Cannot connect to C: resolve failed"
+
+**What happened**: This error shouldn't occur anymore as setup uses bundled 7-Zip.
+
+**Quick Fix**: Re-run setup to ensure 7-Zip is properly extracted:
+```powershell
+.\Setup-NanerVendor.ps1 -ForceDownload
+```
+
+---
+
+### 🔴 "MSYS2 shell script not found"
+
+**What happened**: MSYS2 extraction failed or was incomplete.
+
+**Check**:
+```powershell
+# See if files were extracted
+Get-ChildItem vendor\msys64
+```
+
+**Quick Fix**:
+```powershell
+# Delete incomplete extraction
+Remove-Item vendor\msys64 -Recurse -Force
+
+# Re-run setup
+.\Setup-NanerVendor.ps1 -ForceDownload
+```
+
+**Note**: 7-Zip is bundled, so this should work without any external dependencies.
+
+---
+
+### 🟡 GitHub API Rate Limit
+
+**What happened**: Too many API requests in one hour.
+
+**Message**: `API rate limit exceeded`
+
+**Quick Fix**: 
+- Wait an hour, OR
+- Script automatically uses fallback URLs - just continue
+
+**Check your rate limit**:
+```powershell
+Invoke-RestMethod https://api.github.com/rate_limit | 
+    Select-Object -ExpandProperty rate
+```
+
+---
+
+### 🔴 Download Failed
+
+**What happened**: Network issue or URL changed.
+
+**Quick Fix**:
+```powershell
+# Delete partial download
+Remove-Item vendor\.downloads\* -Force
+
+# Retry
+.\Setup-NanerVendor.ps1
+```
+
+**Still failing?**:
+- Check internet connection
+- Try with `-ForceDownload` flag
+- Check firewall/proxy settings
+
+---
+
+### 🔴 PowerShell Execution Policy
+
+**What happened**: Can't run scripts.
+
+**Message**: `cannot be loaded because running scripts is disabled`
+
+**Quick Fix**:
+```powershell
+# Allow scripts for current session (safest)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# Then run setup
+.\Setup-NanerVendor.ps1
+```
+
+**Permanent fix** (admin required):
+```powershell
+# As Administrator
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+---
+
+### 🟡 "Already installed. Re-download?"
+
+**What happened**: Setup detected existing vendor files.
+
+**Options**:
+- Press `n` to keep existing installation
+- Press `y` to re-download (useful if installation was corrupted)
+
+**Force re-download without prompts**:
+```powershell
+.\Setup-NanerVendor.ps1 -ForceDownload
+```
+
+---
+
+### 🔴 Windows Terminal Extraction Issues
+
+**What happened**: MSIX bundle extraction failed.
+
+**Quick Fix**:
+```powershell
+# Clear and retry
+Remove-Item vendor\terminal -Recurse -Force
+Remove-Item vendor\.downloads\*.msixbundle -Force
+.\Setup-NanerVendor.ps1 -ForceDownload
+```
+
+---
+
+### 🔴 MSYS2 Package Installation Failed
+
+**What happened**: `pacman` couldn't install packages.
+
+**Quick Fix**:
+```powershell
+# Manual package installation
+cd vendor\msys64
+.\msys2_shell.cmd -defterm -no-start -c "pacman -Sy"
+.\msys2_shell.cmd -defterm -no-start -c "pacman -S --noconfirm git make mingw-w64-x86_64-gcc"
+```
+
+---
+
+### 🔴 Disk Space Issues
+
+**What happened**: Not enough space for downloads.
+
+**Space Required**:
+- Downloads: ~550MB
+- Extracted: ~600MB
+- Total: ~1.2GB (temp)
+- Final: ~600MB (after cleanup)
+
+**Quick Fix**:
+```powershell
+# Check available space
+Get-PSDrive C | Select-Object Used,Free
+
+# Clean up download cache after successful setup
+Remove-Item vendor\.downloads -Recurse -Force
+```
+
+---
+
+## Verification Commands
+
+### Check if Setup Succeeded
+```powershell
+# Run validation tests
+.\Test-NanerInstallation.ps1
+
+# Should show:
+# [✓] All tests passed!
+```
+
+### Check Installed Versions
+```powershell
+# View manifest
+Get-Content vendor\vendor-manifest.json | ConvertFrom-Json
+
+# Or use management tool
+.\Manage-NanerVendor.ps1 -ListVersions
+```
+
+### Check Individual Components
+```powershell
+# PowerShell
+vendor\powershell\pwsh.exe --version
+
+# Windows Terminal
+Test-Path vendor\terminal\wt.exe
+
+# MSYS2
+Test-Path vendor\msys64\msys2_shell.cmd
+
+# Git (via MSYS2)
+vendor\msys64\usr\bin\git.exe --version
+```
+
+---
+
+## Emergency Recovery
+
+### Complete Reset
+```powershell
+# Delete everything and start over
+Remove-Item vendor -Recurse -Force
+New-Item -Path vendor -ItemType Directory
+
+# Re-run setup
+.\Setup-NanerVendor.ps1
+```
+
+### Minimal Installation (Skip MSYS2)
+If MSYS2 keeps failing, you can manually install just PowerShell and Terminal:
 
 ```powershell
-.\Test-NanerConfig.ps1 -Profile "YourProfileName"
+# Download manually:
+# PowerShell: https://github.com/PowerShell/PowerShell/releases
+# Terminal: https://github.com/microsoft/terminal/releases
+
+# Extract to:
+vendor\powershell\
+vendor\terminal\
+
+# Then continue with your system Git/tools
 ```
 
-This will show you:
-- If the config file is being found and loaded
-- If your custom profiles are being parsed correctly
-- If the shell paths exist
-- What the exact configuration looks like
-
-## Step 2: Run with Verbose Output
-
-```powershell
-.\Launch-Naner.ps1 -Profile "YourProfileName" -Verbose
-```
-
-This will show you:
-- What profile is being selected
-- Whether it's recognized as a custom profile
-- The exact command being executed
-- Any errors that occur
-
-## Common Issues and Solutions
-
-### Issue 1: "Profile not found in custom profiles"
-
-**Symptom:** Verbose output shows "Profile 'X' not found in custom profiles"
-
-**Cause:** The profile name doesn't match exactly (case-sensitive!)
-
-**Solution:**
-```powershell
-# Run diagnostic to see exact profile names
-.\Test-NanerConfig.ps1
-
-# Make sure profile name matches exactly, including case
-.\Launch-Naner.ps1 -Profile "PowerShell7"  # ✓ Correct
-.\Launch-Naner.ps1 -Profile "powershell7"  # ✗ Wrong case
-```
-
-### Issue 2: "Shell NOT FOUND"
-
-**Symptom:** Diagnostic shows "Shell NOT FOUND ✗"
-
-**Cause:** The ShellPath doesn't exist or environment variable didn't expand
-
-**Solutions:**
-
-**A. Check the path exists:**
-```powershell
-Test-Path "C:\Program Files\PowerShell\7\pwsh.exe"
-```
-
-**B. Try with full path first (no env vars):**
-```json
-{
-  "CustomProfiles": {
-    "PowerShell7": {
-      "ShellPath": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
-      "Arguments": "-NoLogo",
-      "Title": "PowerShell 7"
-    }
-  }
-}
-```
-
-**C. Check environment variable expansion:**
-```powershell
-.\Test-EnvironmentVariables.ps1
-```
-
-### Issue 3: Configuration file not loading
-
-**Symptom:** Diagnostic shows "Configuration file not found!"
-
-**Cause:** The config/user-settings.json file is missing or in wrong location
-
-**Solution:**
-```powershell
-# Check if config directory exists
-Test-Path "C:\Users\BAILEYRD\dev\naner\naner_launcher\config"
-
-# Check if user-settings.json exists
-Test-Path "C:\Users\BAILEYRD\dev\naner\naner_launcher\config\user-settings.json"
-
-# Create directory if needed
-mkdir "C:\Users\BAILEYRD\dev\naner\naner_launcher\config" -Force
-
-# Copy example file
-cp user-settings-with-custom-profiles.json "C:\Users\BAILEYRD\dev\naner\naner_launcher\config\user-settings.json"
-```
-
-### Issue 4: JSON syntax error
-
-**Symptom:** Script shows "Failed to load user settings"
-
-**Cause:** Invalid JSON syntax in user-settings.json
-
-**Common JSON mistakes:**
-1. Missing comma between items
-2. Extra comma after last item
-3. Single backslash instead of double (`\` vs `\\`)
-4. Missing quotes around strings
-5. Comments (JSON doesn't support comments!)
-
-**Solution:**
-```powershell
-# Validate your JSON
-Get-Content config\user-settings.json -Raw | ConvertFrom-Json
-
-# If error, check:
-# - All strings in double quotes
-# - Double backslashes in paths: "C:\\Path\\To\\File"
-# - Commas between items (but not after last item)
-# - No comments (remove any // or /* */ comments)
-```
-
-**Valid JSON example:**
-```json
-{
-  "DefaultProfile": "PowerShell7",
-  "StartupDir": null,
-  "WindowsTerminalPath": "%LOCALAPPDATA%\\Microsoft\\WindowsApps\\wt.exe",
-  "CustomProfiles": {
-    "PowerShell7": {
-      "ShellPath": "%ProgramFiles%\\PowerShell\\7\\pwsh.exe",
-      "Arguments": "-NoLogo",
-      "Title": "PowerShell 7"
-    }
-  }
-}
-```
-
-### Issue 5: Windows Terminal doesn't launch custom shell
-
-**Symptom:** Windows Terminal opens but uses wrong shell
-
-**Cause:** Windows Terminal command syntax issue (fixed in latest version)
-
-**Solution:** Make sure you're using the latest Launch-Naner.ps1 which includes the `--` separator
-
-The command should look like:
-```
-wt.exe --title "PowerShell 7" -d "C:\Projects" -- "C:\Program Files\PowerShell\7\pwsh.exe" -NoLogo
-```
-
-### Issue 6: Profile names with spaces
-
-**Symptom:** Profile with spaces in name doesn't work
-
-**Solution:** Use quotes when calling:
-```powershell
-.\Launch-Naner.ps1 -Profile "My Custom PowerShell"
-```
-
-In JSON, no special handling needed:
-```json
-{
-  "CustomProfiles": {
-    "My Custom PowerShell": {
-      "ShellPath": "C:\\Path\\To\\pwsh.exe",
-      "Arguments": "-NoLogo",
-      "Title": "My Custom PowerShell"
-    }
-  }
-}
-```
-
-## Complete Diagnostic Workflow
-
-1. **Verify config file exists and is valid JSON:**
-   ```powershell
-   Get-Content config\user-settings.json -Raw | ConvertFrom-Json
-   ```
-
-2. **Run diagnostic script:**
-   ```powershell
-   .\Test-NanerConfig.ps1 -Profile "PowerShell7"
-   ```
-
-3. **Check if shell path exists:**
-   ```powershell
-   Test-Path "C:\Program Files\PowerShell\7\pwsh.exe"
-   ```
-
-4. **Test launch with verbose:**
-   ```powershell
-   .\Launch-Naner.ps1 -Profile "PowerShell7" -Verbose
-   ```
-
-5. **If still not working, try minimal config:**
-   ```json
-   {
-     "DefaultProfile": "PowerShell",
-     "CustomProfiles": {
-       "Test": {
-         "ShellPath": "C:\\Windows\\System32\\cmd.exe",
-         "Arguments": "",
-         "Title": "Test"
-       }
-     }
-   }
-   ```
-   
-   Then test:
-   ```powershell
-   .\Launch-Naner.ps1 -Profile "Test" -Verbose
-   ```
+---
 
 ## Getting Help
 
-If you're still having issues, run these commands and share the output:
-
+### Collect Diagnostic Info
 ```powershell
-# Diagnostic output
-.\Test-NanerConfig.ps1 -Profile "YourProfileName"
+# Run full diagnostics
+.\Test-NanerInstallation.ps1 -Full > diagnostic.txt
 
-# Config file contents
-Get-Content config\user-settings.json
-
-# Verbose launch attempt
-.\Launch-Naner.ps1 -Profile "YourProfileName" -Verbose
+# Check system info
+$PSVersionTable
+Get-ComputerInfo | Select-Object WindowsVersion, OsArchitecture
 ```
 
-## Quick Test
+### Check Logs
+Setup logs appear in console. To save:
+```powershell
+.\Setup-NanerVendor.ps1 *> setup-log.txt
+```
 
-To quickly test if custom profiles work at all:
+### Before Asking for Help, Include:
+1. Error message (exact text)
+2. PowerShell version: `$PSVersionTable.PSVersion`
+3. Windows version: `[System.Environment]::OSVersion`
+4. Output of: `.\Test-NanerInstallation.ps1`
+5. Have you installed 7-Zip?
 
-1. Create this minimal config:
-   ```json
-   {
-     "DefaultProfile": "PowerShell",
-     "CustomProfiles": {
-       "CMD": {
-         "ShellPath": "C:\\Windows\\System32\\cmd.exe",
-         "Arguments": "",
-         "Title": "Command Prompt"
-       }
-     }
-   }
-   ```
+---
 
-2. Test it:
-   ```powershell
-   .\Launch-Naner.ps1 -Profile "CMD" -Verbose
-   ```
+## Prevention Tips
 
-If this works, the issue is with your specific profile configuration, not the feature itself.
+✅ **Do this**:
+- Run from PowerShell (not Command Prompt)
+- Ensure stable internet connection
+- Have at least 2GB free disk space
+- Close any running terminal instances
+
+❌ **Don't do this**:
+- Don't run from OneDrive/DropBox synced folders
+- Don't run multiple setups simultaneously
+- Don't interrupt downloads (let retries work)
+- Don't modify vendor files during setup
+
+---
+
+## Known Issues
+
+### 1. Antivirus False Positives
+Some antivirus software flags MSYS2 tools as suspicious.
+
+**Solution**: Add vendor directory to exclusions temporarily during setup.
+
+### 2. Corporate Proxy
+Downloads may fail behind corporate proxies.
+
+**Solution**: Configure proxy for PowerShell:
+```powershell
+$proxy = "http://proxy.company.com:8080"
+[System.Net.WebRequest]::DefaultWebProxy = New-Object System.Net.WebProxy($proxy)
+```
+
+### 3. Network Drives
+Setup may fail on network drives due to permission issues.
+
+**Solution**: Run setup from local drive (C:, D:, etc.)
+
+---
+
+## Success Checklist
+
+After setup completes, verify:
+
+- [ ] `vendor\powershell\pwsh.exe` exists and runs
+- [ ] `vendor\terminal\wt.exe` exists
+- [ ] `vendor\msys64\msys2_shell.cmd` exists
+- [ ] `vendor\msys64\usr\bin\git.exe` exists and runs
+- [ ] `vendor\vendor-manifest.json` exists
+- [ ] `.\Test-NanerInstallation.ps1` passes
+- [ ] `.\Invoke-Naner.ps1 -Debug` launches terminal
+
+If all ✓, you're good to go! 🎉
+
+---
+
+## Still Stuck?
+
+1. Try the complete reset procedure above
+2. Check all verification commands
+3. Ensure 7-Zip is installed
+4. Review IMPLEMENTATION-GUIDE.md for detailed steps
+5. Check DYNAMIC-URLS.md for download issues
+
+Most issues are resolved by re-running setup with `-ForceDownload`. All dependencies including 7-Zip are bundled.

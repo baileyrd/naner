@@ -221,6 +221,25 @@ else {
     Write-TestResult -TestName "Vendor manifest" -Passed $false -IsWarning $true -Message "Run Setup-NanerVendor.ps1 to create"
 }
 
+# Check 7-Zip
+$sevenZipPath = Join-Path $vendorDir "7zip\7z.exe"
+if (Test-Path $sevenZipPath) {
+    Write-TestResult -TestName "7-Zip installed" -Passed $true
+    
+    try {
+        $sevenZipVersion = & $sevenZipPath 2>&1 | Select-String "7-Zip" | Select-Object -First 1
+        if ($sevenZipVersion) {
+            Write-TestResult -TestName "7-Zip executable" -Passed $true -Message "Available: $($sevenZipVersion.Line.Trim())"
+        }
+    }
+    catch {
+        Write-TestResult -TestName "7-Zip executable" -Passed $false -Message "Cannot execute"
+    }
+}
+else {
+    Write-TestResult -TestName "7-Zip installed" -Passed $false
+}
+
 # Check PowerShell
 $pwshPath = Join-Path $vendorDir "powershell\pwsh.exe"
 if (Test-Path $pwshPath) {

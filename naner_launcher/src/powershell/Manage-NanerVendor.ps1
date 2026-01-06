@@ -118,6 +118,33 @@ function Get-MSYS2LatestRelease {
 
 # Version sources
 $versionSources = @{
+    SevenZip = @{
+        Type = "Direct"
+        GetLatestUrl = {
+            try {
+                $downloadPage = "https://www.7-zip.org/download.html"
+                $response = Invoke-WebRequest -Uri $downloadPage -UseBasicParsing
+                
+                $pattern = 'href="([^"]*7z(\d+)-x64\.msi)"'
+                $match = [regex]::Match($response.Content, $pattern)
+                
+                if ($match.Success) {
+                    $fileName = $match.Groups[1].Value
+                    $version = $match.Groups[2].Value
+                    $versionFormatted = "$($version.Substring(0,2)).$($version.Substring(2))"
+                    
+                    return @{
+                        Version = $versionFormatted
+                        Url = "https://www.7-zip.org/$fileName"
+                        FileName = [System.IO.Path]::GetFileName($fileName)
+                    }
+                }
+            }
+            catch { }
+            return $null
+        }
+    }
+    
     PowerShell = @{
         Type = "GitHub"
         Repo = "PowerShell/PowerShell"

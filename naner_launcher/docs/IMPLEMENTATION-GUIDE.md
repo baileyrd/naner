@@ -111,12 +111,16 @@ cd src/powershell
 .\Setup-NanerVendor.ps1
 
 # This will:
+# - Download 7-Zip (~2MB) - for extracting other dependencies
 # - Download PowerShell 7.x (~100MB)
 # - Download Windows Terminal (~50MB)
 # - Download MSYS2 (~400MB)
 # - Initialize MSYS2
 # - Install essential packages (git, make, gcc, etc.)
 # - Create vendor manifest
+
+# Total download: ~552MB
+# No external dependencies required!
 ```
 
 ### Phase 4: Test Installation
@@ -232,21 +236,46 @@ Remove or update any references to:
 ## 📊 Expected Sizes
 
 ### Before Optimization
+- 7-Zip: ~2MB
 - PowerShell: ~100MB
 - Windows Terminal: ~50MB
 - MSYS2: ~400MB
-- **Total**: ~550MB
+- **Total**: ~552MB
 
 ### After Optimization
 - Removed caches: -100MB
 - Removed docs: -80MB
-- **Optimized**: ~370MB
+- **Optimized**: ~372MB
 
 ### Compressed Distribution
 - 7z compression: ~150MB
 - ZIP compression: ~200MB
 
 ## 🐛 Common Issues & Solutions
+
+### Issue: MSYS2 Extraction Fails
+
+**Symptoms**:
+```
+[✗] Cannot extract .tar.xz files without 7-Zip
+```
+
+**Solution**:
+This shouldn't happen as 7-Zip is now bundled. If it does:
+
+```powershell
+# Verify 7-Zip was extracted
+Test-Path vendor\7zip\7z.exe
+
+# If false, re-run setup
+Remove-Item vendor -Recurse -Force
+.\Setup-NanerVendor.ps1
+```
+
+**Why this happens**:
+- 7-Zip is extracted first automatically
+- If extraction chain fails, re-running setup resolves it
+- No manual installation needed
 
 ### Issue: Download Fails
 

@@ -225,8 +225,66 @@ function Get-LatestMSYS2Release {
     }
 }
 
-# Vendor configuration
-$vendorConfig = @{
+# Vendor configuration - ORDER MATTERS: 7-Zip must be first!
+$vendorConfig = [ordered]@{
+    SevenZip = @{
+        Name = "7-Zip"
+        ExtractDir = "7zip"
+        GetLatestRelease = {
+            # 7-Zip doesn't use GitHub releases API, scrape from official site
+            try {
+                $downloadPage = "https://www.7-zip.org/download.html"
+                Write-Info "Fetching latest 7-Zip version..."
+                
+                $response = Invoke-WebRequest -Uri $downloadPage -UseBasicParsing -TimeoutSec 30
+                
+                # Find the x64 MSI download link
+                $pattern = 'href="([^"]*7z(\d+)-x64\.msi)"'
+                $match = [regex]::Match($response.Content, $pattern)
+                
+                if ($match.Success) {
+                    $fileName = $match.Groups[1].Value
+                    $version = $match.Groups[2].Value
+                    
+                    # Version format: 2408 = 24.08
+                    $versionFormatted = "$($version.Substring(0,2)).$($version.Substring(2))"
+                    
+                    return @{
+                        Version = $versionFormatted
+                        Url = "https://www.7-zip.org/$fileName"
+                        FileName = [System.IO.Path]::GetFileName($fileName)
+                        Size = "~2"
+                    }
+                }
+                
+                throw "Could not parse 7-Zip version from download page"
+            }
+            catch {
+                Write-Warning "Failed to fetch 7-Zip release info: $_"
+                # Fallback to a recent stable version
+                $fallbackUrl = "https://www.7-zip.org/a/7z2408-x64.msi"
+                return @{
+                    Version = "24.08"
+                    Url = $fallbackUrl
+                    FileName = "7z2408-x64.msi"
+                    Size = "~2"
+                }
+            }
+        }
+        PostInstall = {
+            param($extractPath)
+            Write-Info "7-Zip extraction completed"
+            
+            # Verify 7z.exe exists
+            $sevenZipExe = Join-Path $extractPath "7z.exe"
+            if (Test-Path $sevenZipExe) {
+                Write-Success "7-Zip ready: $sevenZipExe"
+            } else {
+                Write-Warning "7z.exe not found at expected location"
+            }
+        }
+    }
+    
     PowerShell = @{
         Name = "PowerShell"
         ExtractDir = "powershell"
@@ -259,6 +317,9 @@ $vendorConfig = @{
             param($extractPath)
             Write-Status "Extracting Windows Terminal from MSIX bundle..."
             
+            # Use vendored 7-Zip
+            $sevenZip = Join-Path $vendorDir "7zip\7z.exe"
+            
             # Extract the msixbundle (it's a zip file)
             $bundlePath = Join-Path $downloadDir $releaseInfo.FileName
             $tempExtract = Join-Path $downloadDir "wt_temp"
@@ -267,7 +328,10 @@ $vendorConfig = @{
                 Remove-Item $tempExtract -Recurse -Force
             }
             
-            Expand-Archive -Path $bundlePath -DestinationPath $tempExtract -Force
+            New-Item -Path $tempExtract -ItemType Directory -Force | Out-Null
+            
+            # Extract bundle
+            & $sevenZip x "$bundlePath" -o"$tempExtract" -y | Out-Null
             
             # Find the x64 msix package
             $x64Package = Get-ChildItem $tempExtract -Filter "*x64*.msix" | Select-Object -First 1
@@ -277,7 +341,9 @@ $vendorConfig = @{
                 
                 # Extract the x64 msix package
                 $msixExtract = Join-Path $tempExtract "msix_contents"
-                Expand-Archive -Path $x64Package.FullName -DestinationPath $msixExtract -Force
+                New-Item -Path $msixExtract -ItemType Directory -Force | Out-Null
+                
+                & $sevenZip x "$($x64Package.FullName)" -o"$msixExtract" -y | Out-Null
                 
                 # Copy necessary files to vendor directory
                 $filesToCopy = @("wt.exe", "WindowsTerminal.exe", "OpenConsole.exe", "*.dll")
@@ -420,7 +486,8 @@ function Download-FileWithProgress {
 function Extract-Archive {
     param(
         [string]$ArchivePath,
-        [string]$DestinationPath
+        [string]$DestinationPath,
+        [string]$VendorDir = ""
     )
     
     $extension = [System.IO.Path]::GetExtension($ArchivePath).ToLower()
@@ -428,14 +495,141 @@ function Extract-Archive {
     if ($extension -eq ".zip") {
         Expand-Archive -Path $ArchivePath -DestinationPath $DestinationPath -Force
     }
-    elseif ($extension -eq ".xz") {
-        # For .tar.xz files, we need 7-zip or tar
-        if (Get-Command tar -ErrorAction SilentlyContinue) {
-            & tar -xf $ArchivePath -C $DestinationPath
+    elseif ($extension -eq ".msi") {
+        # Extract MSI using msiexec (Windows built-in)
+        Write-Info "Extracting MSI using msiexec..."
+        
+        # Create temp directory for extraction
+        $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_msi_$([Guid]::NewGuid())"
+        New-Item -Path $tempExtract -ItemType Directory -Force | Out-Null
+        
+        # Use msiexec to extract files (administrative install)
+        $msiArgs = @(
+            "/a",
+            "`"$ArchivePath`"",
+            "/qn",
+            "TARGETDIR=`"$tempExtract`""
+        )
+        
+        $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru -NoNewWindow
+        
+        if ($process.ExitCode -eq 0) {
+            # Find the Files directory (MSI extracts to Files/ProgramFiles/7-Zip)
+            $filesDir = Get-ChildItem $tempExtract -Recurse -Directory | 
+                Where-Object { $_.Name -eq "7-Zip" } | 
+                Select-Object -First 1
+            
+            if ($filesDir) {
+                # Copy extracted files to destination
+                Copy-Item "$($filesDir.FullName)\*" -Destination $DestinationPath -Recurse -Force
+            }
+            else {
+                # Fallback: copy everything from temp
+                Copy-Item "$tempExtract\*" -Destination $DestinationPath -Recurse -Force
+            }
+            
+            # Cleanup temp directory
+            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
         }
         else {
-            Write-Failure "tar command not found. Please install 7-Zip or ensure tar is in PATH."
+            Write-Failure "MSI extraction failed with exit code: $($process.ExitCode)"
+            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
             return $false
+        }
+    }
+    elseif ($extension -eq ".xz") {
+        # For .tar.xz files, we need special handling on Windows
+        
+        # First, check if we have vendored 7-Zip
+        $vendoredSevenZip = if ($VendorDir) { Join-Path $VendorDir "7zip\7z.exe" } else { "" }
+        
+        if ($vendoredSevenZip -and (Test-Path $vendoredSevenZip)) {
+            Write-Info "Using vendored 7-Zip for extraction..."
+            
+            # Extract .xz to get .tar
+            $tarPath = $ArchivePath -replace '\.xz$', ''
+            & $vendoredSevenZip x "$ArchivePath" -o"$(Split-Path $ArchivePath)" -y | Out-Null
+            
+            if ($LASTEXITCODE -ne 0) {
+                Write-Failure "Failed to decompress .xz file"
+                return $false
+            }
+            
+            # Extract .tar to destination
+            & $vendoredSevenZip x "$tarPath" -o"$DestinationPath" -y | Out-Null
+            
+            if ($LASTEXITCODE -ne 0) {
+                Write-Failure "Failed to extract .tar file"
+                Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
+                return $false
+            }
+            
+            # Cleanup intermediate .tar file
+            Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
+        }
+        # Try system 7-Zip
+        else {
+            $sevenZipPaths = @(
+                "${env:ProgramFiles}\7-Zip\7z.exe",
+                "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
+                "$env:ProgramData\chocolatey\bin\7z.exe"
+            )
+            
+            $sevenZip = $sevenZipPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+            
+            if ($sevenZip) {
+                Write-Info "Using system 7-Zip for extraction..."
+                
+                # Extract .xz to get .tar
+                $tarPath = $ArchivePath -replace '\.xz$', ''
+                & $sevenZip x "$ArchivePath" -o"$(Split-Path $ArchivePath)" -y | Out-Null
+                
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Failure "Failed to decompress .xz file"
+                    return $false
+                }
+                
+                # Extract .tar to destination
+                & $sevenZip x "$tarPath" -o"$DestinationPath" -y | Out-Null
+                
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Failure "Failed to extract .tar file"
+                    Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
+                    return $false
+                }
+                
+                # Cleanup intermediate .tar file
+                Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
+            }
+            # Try tar with Unix-style path (last resort)
+            elseif (Get-Command tar -ErrorAction SilentlyContinue) {
+                Write-Info "Using tar for extraction..."
+                Write-Warning "This may fail on some systems. Consider letting setup complete 7-Zip installation first."
+                
+                # Create destination directory first
+                New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
+                
+                # Change to destination directory and extract
+                $currentDir = Get-Location
+                Set-Location $DestinationPath
+                
+                & tar -xf "$ArchivePath" 2>&1 | Out-Null
+                $tarExitCode = $LASTEXITCODE
+                
+                Set-Location $currentDir
+                
+                if ($tarExitCode -ne 0) {
+                    Write-Failure "tar extraction failed"
+                    return $false
+                }
+            }
+            else {
+                Write-Failure "Cannot extract .tar.xz files - 7-Zip not available"
+                Write-Host ""
+                Write-Host "This shouldn't happen as 7-Zip is downloaded first." -ForegroundColor Yellow
+                Write-Host "Try re-running the setup script." -ForegroundColor Yellow
+                return $false
+            }
         }
     }
     elseif ($extension -eq ".msixbundle" -or $extension -eq ".msix") {
@@ -514,7 +708,7 @@ foreach ($key in $vendorConfig.Keys) {
     
     New-Item -Path $extractPath -ItemType Directory -Force | Out-Null
     
-    $extractSuccess = Extract-Archive -ArchivePath $downloadPath -DestinationPath $extractPath
+    $extractSuccess = Extract-Archive -ArchivePath $downloadPath -DestinationPath $extractPath -VendorDir $vendorDir
     
     if (-not $extractSuccess) {
         Write-Failure "Failed to extract $($config.Name)"
@@ -525,9 +719,20 @@ foreach ($key in $vendorConfig.Keys) {
     if ($key -eq "MSYS2") {
         $nestedMsys64 = Join-Path $extractPath "msys64"
         if (Test-Path $nestedMsys64) {
+            Write-Info "Moving MSYS2 files from nested directory..."
             # Move contents up one level
             Get-ChildItem $nestedMsys64 | Move-Item -Destination $extractPath -Force
             Remove-Item $nestedMsys64 -Force
+        }
+        
+        # Verify critical files exist
+        $msys2Shell = Join-Path $extractPath "msys2_shell.cmd"
+        if (-not (Test-Path $msys2Shell)) {
+            Write-Failure "MSYS2 extraction appears incomplete - msys2_shell.cmd not found"
+            Write-Info "Expected location: $msys2Shell"
+            Write-Info "Contents of $extractPath :"
+            Get-ChildItem $extractPath -Name | ForEach-Object { Write-Info "  $_" }
+            continue
         }
     }
     
