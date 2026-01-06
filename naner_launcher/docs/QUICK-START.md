@@ -432,7 +432,7 @@ alias gs='git status'
 ### Commands
 ```powershell
 # Check configuration
-.\Invoke-Naner.ps1 -Debug
+.\Invoke-Naner.ps1 -DebugMode
 
 # List installed versions
 .\Manage-NanerVendor.ps1 -ListVersions

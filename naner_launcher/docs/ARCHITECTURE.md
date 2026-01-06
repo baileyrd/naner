@@ -177,7 +177,7 @@ User gets: `opt\custom-git\git.exe`
 3. Runtime Arguments            # Command-line overrides
    ├── -Profile                 # Profile selection
    ├── -StartingDirectory       # Working directory
-   └── -Debug                   # Verbose output
+   └── -DebugMode               # Verbose output
 ```
 
 ### Path Expansion

@@ -15,7 +15,7 @@
 .PARAMETER ConfigPath
     Path to naner.json configuration file.
 
-.PARAMETER Debug
+.PARAMETER DebugMode
     Enable debug output.
 
 .EXAMPLE
@@ -23,6 +23,9 @@
     
 .EXAMPLE
     .\Invoke-Naner.ps1 -Profile Bash -StartingDirectory "C:\Projects"
+    
+.EXAMPLE
+    .\Invoke-Naner.ps1 -DebugMode
 #>
 
 [CmdletBinding()]
@@ -37,7 +40,7 @@ param(
     [string]$ConfigPath,
     
     [Parameter()]
-    [switch]$Debug
+    [switch]$DebugMode
 )
 
 $ErrorActionPreference = "Stop"
@@ -46,7 +49,7 @@ $ErrorActionPreference = "Stop"
 
 function Write-DebugInfo {
     param([string]$Message)
-    if ($Debug) {
+    if ($DebugMode) {
         Write-Host "[DEBUG] $Message" -ForegroundColor Yellow
     }
 }
@@ -384,33 +387,54 @@ try {
     Write-DebugInfo "Arguments: $($wtArgs -join ' ')"
     Write-DebugInfo "Environment: $($envVars.Keys -join ', ')"
     
-    # Set environment variables for the process
-    foreach ($key in $envVars.Keys) {
-        [System.Environment]::SetEnvironmentVariable($key, $envVars[$key], "Process")
-    }
-    
     # Launch Windows Terminal
     Write-Host "Launching Windows Terminal..." -ForegroundColor Cyan
     
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $wtPath
-    $psi.Arguments = $wtArgs -join ' '
-    $psi.UseShellExecute = $false
-    
-    # Apply environment variables
-    foreach ($key in $envVars.Keys) {
-        $psi.EnvironmentVariables[$key] = $envVars[$key]
+    try {
+        # Use Start-Process with environment variables
+        $startArgs = @{
+            FilePath = $wtPath
+            ArgumentList = $wtArgs
+            PassThru = $true
+        }
+        
+        # Set environment variables for this process (inherited by child)
+        foreach ($key in $envVars.Keys) {
+            [System.Environment]::SetEnvironmentVariable($key, $envVars[$key], "Process")
+        }
+        
+        $process = Start-Process @startArgs
+        
+        # Give it a moment to start
+        Start-Sleep -Milliseconds 500
+        
+        # Check if process started successfully
+        if ($process -and -not $process.HasExited) {
+            Write-Host "✓ Launched successfully! (PID: $($process.Id))" -ForegroundColor Green
+        }
+        elseif ($process -and $process.HasExited) {
+            Write-Host "⚠ Process started but exited immediately (Exit Code: $($process.ExitCode))" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "Troubleshooting:" -ForegroundColor Cyan
+            Write-Host "  1. Run: .\Test-WindowsTerminalLaunch.ps1" -ForegroundColor Gray
+            Write-Host "  2. Try: .\Invoke-Naner.ps1 -DebugMode" -ForegroundColor Gray
+            Write-Host "  3. Check Task Manager for WindowsTerminal.exe" -ForegroundColor Gray
+        }
+        else {
+            Write-Host "✓ Launched successfully!" -ForegroundColor Green
+        }
     }
-    
-    $process = [System.Diagnostics.Process]::Start($psi)
-    
-    Write-Host "✓ Launched successfully!" -ForegroundColor Green
+    catch {
+        Write-Host "✗ Failed to launch Windows Terminal" -ForegroundColor Red
+        Write-Host "Error: $_" -ForegroundColor Red
+        throw
+    }
 }
 catch {
     Write-Host ""
     Write-Host "Error: $_" -ForegroundColor Red
     
-    if ($Debug) {
+    if ($DebugMode) {
         Write-Host ""
         Write-Host "Stack Trace:" -ForegroundColor Yellow
         Write-Host $_.ScriptStackTrace -ForegroundColor Gray

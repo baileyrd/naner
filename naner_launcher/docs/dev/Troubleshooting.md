@@ -321,7 +321,7 @@ After setup completes, verify:
 - [ ] `vendor\msys64\usr\bin\git.exe` exists and runs
 - [ ] `vendor\vendor-manifest.json` exists
 - [ ] `.\Test-NanerInstallation.ps1` passes
-- [ ] `.\Invoke-Naner.ps1 -Debug` launches terminal
+- [ ] `.\Invoke-Naner.ps1 -DebugMode` launches terminal
 
 If all ✓, you're good to go! 🎉
 

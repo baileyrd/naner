@@ -531,7 +531,7 @@ if ($testResults.Failed -eq 0) {
     Write-Host ""
     Write-Host "Next steps:" -ForegroundColor Cyan
     Write-Host "  • Run: .\Invoke-Naner.ps1" -ForegroundColor Gray
-    Write-Host "  • Or:  .\Invoke-Naner.ps1 -Debug" -ForegroundColor Gray
+    Write-Host "  • Or:  .\Invoke-Naner.ps1 -DebugMode" -ForegroundColor Gray
     
     exit 0
 }

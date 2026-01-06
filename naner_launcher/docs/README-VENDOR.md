@@ -80,7 +80,7 @@ This ensures:
 
 3. **Test the launcher**:
    ```powershell
-   .\Invoke-Naner.ps1 -Debug
+   .\Invoke-Naner.ps1 -DebugMode
    ```
 
 ### Setup Options
@@ -333,7 +333,7 @@ cd vendor\msys64
 **Problem**: Wrong version of tool is used
 ```powershell
 # Check PATH order
-.\Invoke-Naner.ps1 -Debug
+.\Invoke-Naner.ps1 -DebugMode
 
 # Adjust PathPrecedence in naner.json
 ```
@@ -355,10 +355,10 @@ ls vendor\terminal\wt.exe
 
 ```powershell
 # Test with debug output
-.\Invoke-Naner.ps1 -Debug
+.\Invoke-Naner.ps1 -DebugMode
 
 # Test specific profile
-.\Invoke-Naner.ps1 -Profile Bash -Debug
+.\Invoke-Naner.ps1 -Profile Bash -DebugMode
 ```
 
 ### Adding New Vendor Dependencies

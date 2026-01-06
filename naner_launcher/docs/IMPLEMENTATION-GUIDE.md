@@ -141,7 +141,7 @@ cd src/powershell
 
 ```powershell
 # Test with debug output
-.\Invoke-Naner.ps1 -Debug
+.\Invoke-Naner.ps1 -DebugMode
 
 # Test specific profile
 .\Invoke-Naner.ps1 -Profile Bash -Debug
@@ -306,7 +306,7 @@ Get-Process msys* | Stop-Process -Force
 **Solution**:
 ```powershell
 # Check PATH in debug mode
-.\Invoke-Naner.ps1 -Debug
+.\Invoke-Naner.ps1 -DebugMode
 
 # Verify config PathPrecedence order
 # Ensure vendor directories exist
@@ -374,7 +374,7 @@ docs/
 ## 💡 Tips
 
 ### Development
-- Use `-Debug` flag for troubleshooting
+- Use `-DebugMode` flag for troubleshooting
 - Test on clean Windows installations
 - Validate on Windows 10 and 11
 
