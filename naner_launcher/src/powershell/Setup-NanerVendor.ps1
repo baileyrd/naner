@@ -354,7 +354,7 @@ $vendorConfig = [ordered]@{
                 Write-Info "Extracting MSIX package..."
                 & $sevenZip x "$($x64Package.FullName)" -o"$msixExtract" -y | Out-Null
                 
-                # Now copy EVERYTHING with folder structure preserved
+                # Copy EVERYTHING with folder structure preserved using Copy-Item -Recurse
                 Write-Info "Copying with folder structure preserved..."
                 
                 # Ensure destination is clean
@@ -363,65 +363,51 @@ $vendorConfig = [ordered]@{
                 }
                 New-Item -Path $extractPath -ItemType Directory -Force | Out-Null
                 
-                # Copy all items recursively, excluding MSIX metadata
-                $excludeFiles = @(
+                # Use Copy-Item -Recurse to copy everything (this handles enumeration properly)
+                Copy-Item -Path "$msixExtract\*" -Destination $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+                
+                Write-Info "Initial copy complete"
+                
+                # Now remove MSIX metadata files
+                $metadataFiles = @(
                     "AppxManifest.xml",
                     "AppxSignature.p7x",
                     "AppxBlockMap.xml",
-                    "[Content_Types].xml"
+                    "[Content_Types].xml",
+                    "resources.pri"
                 )
                 
-                # Get all items (files and directories)
-                $allItems = Get-ChildItem $msixExtract -Recurse
-                
-                foreach ($item in $allItems) {
-                    # Skip metadata files
-                    if ($excludeFiles -contains $item.Name) {
-                        continue
-                    }
-                    
-                    # Calculate relative path
-                    $relativePath = $item.FullName.Substring($msixExtract.Length).TrimStart('\')
-                    $destPath = Join-Path $extractPath $relativePath
-                    
-                    if ($item.PSIsContainer) {
-                        # Create directory
-                        if (-not (Test-Path $destPath)) {
-                            New-Item -Path $destPath -ItemType Directory -Force | Out-Null
-                        }
-                    } else {
-                        # Copy file
-                        $destDir = Split-Path $destPath -Parent
-                        if (-not (Test-Path $destDir)) {
-                            New-Item -Path $destDir -ItemType Directory -Force | Out-Null
-                        }
-                        Copy-Item $item.FullName -Destination $destPath -Force
+                foreach ($file in $metadataFiles) {
+                    $filePath = Join-Path $extractPath $file
+                    if (Test-Path $filePath) {
+                        Remove-Item $filePath -Force -ErrorAction SilentlyContinue
                     }
                 }
                 
-                # Count what we copied
-                $fileCount = (Get-ChildItem $extractPath -Recurse -File).Count
-                $dirCount = (Get-ChildItem $extractPath -Recurse -Directory).Count
+                # Count what we have
+                $fileCount = (Get-ChildItem $extractPath -Recurse -File -ErrorAction SilentlyContinue).Count
+                $dirCount = (Get-ChildItem $extractPath -Recurse -Directory -ErrorAction SilentlyContinue).Count
                 
                 Write-Info "Copied $fileCount files in $dirCount directories"
                 
                 # Verify critical files exist
-                $criticalFiles = @{
-                    "wt.exe" = $null
-                    "WindowsTerminal.exe" = $null
-                    "OpenConsole.exe" = $null
-                }
+                $criticalFiles = @("wt.exe", "WindowsTerminal.exe", "OpenConsole.exe")
                 
-                Write-Info "Locating critical files:"
-                foreach ($file in $criticalFiles.Keys) {
+                Write-Info "Verifying critical files:"
+                $allPresent = $true
+                foreach ($file in $criticalFiles) {
                     $found = Get-ChildItem $extractPath -Filter $file -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
                     if ($found) {
                         $relativePath = $found.FullName.Replace($extractPath, "").TrimStart('\')
-                        $criticalFiles[$file] = $relativePath
                         Write-Info "  ✓ $file at .\$relativePath"
                     } else {
-                        Write-Failure "  ✗ $file NOT FOUND!"
+                        Write-Info "  ✗ $file NOT FOUND!"
+                        $allPresent = $false
                     }
+                }
+                
+                if (-not $allPresent) {
+                    Write-Failure "Some critical files are missing!"
                 }
                 
                 # Create .portable file to enable portable mode
@@ -435,7 +421,7 @@ $vendorConfig = [ordered]@{
             } else {
                 Write-Failure "Could not find x64 MSIX package in bundle"
                 Write-Info "Available packages:"
-                Get-ChildItem $tempExtract -Filter "*.msix" | ForEach-Object {
+                Get-ChildItem $tempExtract -Filter "*.msix" -ErrorAction SilentlyContinue | ForEach-Object {
                     Write-Info "  - $($_.Name)"
                 }
             }
