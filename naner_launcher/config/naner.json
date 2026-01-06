@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "Naner Configuration",
+  "description": "Configuration for Naner terminal launcher",
+  
+  "VendorPaths": {
+    "PowerShell": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
+    "WindowsTerminal": "%NANER_ROOT%\\vendor\\terminal\\wt.exe",
+    "GitBash": "%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe",
+    "MSYS2Shell": "%NANER_ROOT%\\vendor\\msys64\\msys2_shell.cmd"
+  },
+  
+  "Environment": {
+    "UnifiedPath": true,
+    "PathPrecedence": [
+      "%NANER_ROOT%\\bin",
+      "%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin",
+      "%NANER_ROOT%\\vendor\\msys64\\usr\\bin",
+      "%NANER_ROOT%\\vendor\\powershell",
+      "%NANER_ROOT%\\opt"
+    ],
+    "EnvironmentVariables": {
+      "NANER_ROOT": "%NANER_ROOT%",
+      "MSYSTEM": "MINGW64",
+      "MSYS2_PATH_TYPE": "inherit"
+    }
+  },
+  
+  "DefaultProfile": "Unified",
+  
+  "Profiles": {
+    "Unified": {
+      "Name": "Naner (Unified)",
+      "Description": "Unified environment with PowerShell, Git, and Unix tools",
+      "Shell": "PowerShell",
+      "StartingDirectory": "%USERPROFILE%",
+      "Icon": "%NANER_ROOT%\\icons\\naner.ico",
+      "ColorScheme": "Campbell",
+      "UseVendorPath": true
+    },
+    
+    "PowerShell": {
+      "Name": "PowerShell 7",
+      "Description": "PowerShell 7 with vendored tools in PATH",
+      "Shell": "PowerShell",
+      "StartingDirectory": "%USERPROFILE%",
+      "Icon": "%NANER_ROOT%\\icons\\powershell.ico",
+      "ColorScheme": "Campbell",
+      "UseVendorPath": true
+    },
+    
+    "Bash": {
+      "Name": "Bash",
+      "Description": "MSYS2 Bash environment",
+      "Shell": "Bash",
+      "StartingDirectory": "~",
+      "Icon": "%NANER_ROOT%\\icons\\bash.ico",
+      "ColorScheme": "Campbell",
+      "UseVendorPath": true,
+      "CustomShell": {
+        "ExecutablePath": "%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe",
+        "Arguments": "--login -i"
+      }
+    },
+    
+    "CMD": {
+      "Name": "CMD",
+      "Description": "Windows Command Prompt with vendored tools",
+      "Shell": "CMD",
+      "StartingDirectory": "%USERPROFILE%",
+      "Icon": "%NANER_ROOT%\\icons\\cmd.ico",
+      "ColorScheme": "Campbell",
+      "UseVendorPath": true,
+      "CustomShell": {
+        "ExecutablePath": "cmd.exe",
+        "Arguments": "/k"
+      }
+    }
+  },
+  
+  "WindowsTerminal": {
+    "DefaultTerminal": true,
+    "LaunchMode": "default",
+    "TabTitle": "Naner",
+    "SuppressApplicationTitle": true
+  },
+  
+  "Advanced": {
+    "PreservePath": false,
+    "InheritSystemPath": true,
+    "VerboseLogging": false,
+    "DebugMode": false
+  },
+  
+  "CustomProfiles": {
+    "_comment": "Add custom profiles here following the Profiles schema above"
+  }
+}
