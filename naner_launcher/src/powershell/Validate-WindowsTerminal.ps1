@@ -137,7 +137,24 @@ Write-Host " Verdict" -ForegroundColor Cyan
 Write-Host "═══════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 
-if ($criticalMissing -eq 0 -and $dllsMissing -lt 2 -and $allFiles.Count -gt 20) {
+# Check for subdirectories (should have some)
+$subdirCount = (Get-ChildItem $terminalDir -Directory -ErrorAction SilentlyContinue).Count
+
+Write-Host "Structure Check:" -ForegroundColor Yellow
+Write-Host "  Subdirectories: $subdirCount" -ForegroundColor Gray
+
+if ($subdirCount -eq 0) {
+    Write-Host "  ✗ FLAT STRUCTURE (WRONG!)" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "The extraction flattened all files into one directory." -ForegroundColor Red
+    Write-Host "Windows Terminal REQUIRES folder structure to work!" -ForegroundColor Red
+} else {
+    Write-Host "  ✓ Has subdirectories (correct)" -ForegroundColor Green
+}
+
+Write-Host ""
+
+if ($criticalMissing -eq 0 -and $dllsMissing -lt 2 -and $allFiles.Count -gt 20 -and $subdirCount -gt 0) {
     Write-Host "✓ Windows Terminal installation appears COMPLETE" -ForegroundColor Green
     Write-Host ""
     Write-Host "You can now try:" -ForegroundColor Cyan
@@ -149,6 +166,17 @@ if ($criticalMissing -eq 0 -and $dllsMissing -lt 2 -and $allFiles.Count -gt 20) 
     Write-Host "Solution:" -ForegroundColor Yellow
     Write-Host "  Remove-Item vendor\terminal -Recurse -Force" -ForegroundColor Gray
     Write-Host "  .\Setup-NanerVendor.ps1 -ForceDownload" -ForegroundColor Gray
+} elseif ($subdirCount -eq 0) {
+    Write-Host "✗ Installation INCORRECT - Flat structure!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "The folder structure was not preserved during extraction." -ForegroundColor Yellow
+    Write-Host "Windows Terminal needs its files in subdirectories to work." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Solution:" -ForegroundColor Yellow
+    Write-Host "  Remove-Item vendor\terminal -Recurse -Force" -ForegroundColor Gray
+    Write-Host "  .\Setup-NanerVendor.ps1 -ForceDownload" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Make sure you have the LATEST Setup-NanerVendor.ps1!" -ForegroundColor Cyan
 } else {
     Write-Host "⚠ Installation may be INCOMPLETE" -ForegroundColor Yellow
     Write-Host ""

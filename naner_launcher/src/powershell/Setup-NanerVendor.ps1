@@ -347,68 +347,80 @@ $vendorConfig = [ordered]@{
             if ($x64Package) {
                 Write-Info "Found package: $($x64Package.Name)"
                 
-                # Extract the x64 msix package
+                # Extract the MSIX package to temp location
                 $msixExtract = Join-Path $tempExtract "msix_contents"
                 New-Item -Path $msixExtract -ItemType Directory -Force | Out-Null
                 
                 Write-Info "Extracting MSIX package..."
                 & $sevenZip x "$($x64Package.FullName)" -o"$msixExtract" -y | Out-Null
                 
-                # Copy ALL files from the MSIX to destination (more reliable than selective copy)
-                Write-Info "Copying Windows Terminal files..."
+                # Now copy EVERYTHING with folder structure preserved
+                Write-Info "Copying with folder structure preserved..."
                 
-                # Get all files, excluding some unnecessary ones
-                $excludePatterns = @(
+                # Ensure destination is clean
+                if (Test-Path $extractPath) {
+                    Remove-Item $extractPath -Recurse -Force
+                }
+                New-Item -Path $extractPath -ItemType Directory -Force | Out-Null
+                
+                # Copy all items recursively, excluding MSIX metadata
+                $excludeFiles = @(
                     "AppxManifest.xml",
                     "AppxSignature.p7x",
-                    "*.pri",
-                    "[Content_Types].xml",
-                    "AppxBlockMap.xml"
+                    "AppxBlockMap.xml",
+                    "[Content_Types].xml"
                 )
                 
-                $filesToCopy = Get-ChildItem $msixExtract -File -Recurse | 
-                    Where-Object { 
-                        $file = $_
-                        $exclude = $false
-                        foreach ($pattern in $excludePatterns) {
-                            if ($file.Name -like $pattern) {
-                                $exclude = $true
-                                break
-                            }
-                        }
-                        -not $exclude
-                    }
+                # Get all items (files and directories)
+                $allItems = Get-ChildItem $msixExtract -Recurse
                 
-                $copiedCount = 0
-                foreach ($file in $filesToCopy) {
-                    $destPath = Join-Path $extractPath $file.Name
-                    Copy-Item $file.FullName -Destination $destPath -Force -ErrorAction SilentlyContinue
-                    $copiedCount++
+                foreach ($item in $allItems) {
+                    # Skip metadata files
+                    if ($excludeFiles -contains $item.Name) {
+                        continue
+                    }
+                    
+                    # Calculate relative path
+                    $relativePath = $item.FullName.Substring($msixExtract.Length).TrimStart('\')
+                    $destPath = Join-Path $extractPath $relativePath
+                    
+                    if ($item.PSIsContainer) {
+                        # Create directory
+                        if (-not (Test-Path $destPath)) {
+                            New-Item -Path $destPath -ItemType Directory -Force | Out-Null
+                        }
+                    } else {
+                        # Copy file
+                        $destDir = Split-Path $destPath -Parent
+                        if (-not (Test-Path $destDir)) {
+                            New-Item -Path $destDir -ItemType Directory -Force | Out-Null
+                        }
+                        Copy-Item $item.FullName -Destination $destPath -Force
+                    }
                 }
                 
-                Write-Info "Copied $copiedCount files"
+                # Count what we copied
+                $fileCount = (Get-ChildItem $extractPath -Recurse -File).Count
+                $dirCount = (Get-ChildItem $extractPath -Recurse -Directory).Count
+                
+                Write-Info "Copied $fileCount files in $dirCount directories"
                 
                 # Verify critical files exist
-                $criticalFiles = @("wt.exe", "WindowsTerminal.exe", "OpenConsole.exe")
-                $missing = @()
-                
-                foreach ($file in $criticalFiles) {
-                    if (-not (Test-Path (Join-Path $extractPath $file))) {
-                        $missing += $file
-                    }
+                $criticalFiles = @{
+                    "wt.exe" = $null
+                    "WindowsTerminal.exe" = $null
+                    "OpenConsole.exe" = $null
                 }
                 
-                if ($missing.Count -gt 0) {
-                    Write-Failure "Missing critical files: $($missing -join ', ')"
-                    Write-Info "Attempting deeper search..."
-                    
-                    # Try to find files in subdirectories
-                    foreach ($file in $missing) {
-                        $found = Get-ChildItem $msixExtract -Filter $file -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
-                        if ($found) {
-                            Copy-Item $found.FullName -Destination (Join-Path $extractPath $file) -Force
-                            Write-Info "Found and copied: $file"
-                        }
+                Write-Info "Locating critical files:"
+                foreach ($file in $criticalFiles.Keys) {
+                    $found = Get-ChildItem $extractPath -Filter $file -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+                    if ($found) {
+                        $relativePath = $found.FullName.Replace($extractPath, "").TrimStart('\')
+                        $criticalFiles[$file] = $relativePath
+                        Write-Info "  ✓ $file at .\$relativePath"
+                    } else {
+                        Write-Failure "  ✗ $file NOT FOUND!"
                     }
                 }
                 
@@ -417,21 +429,8 @@ $vendorConfig = [ordered]@{
                 New-Item -Path $portableFile -ItemType File -Force | Out-Null
                 Write-Info "Created .portable file for portable mode"
                 
-                # Count final files
-                $finalFileCount = (Get-ChildItem $extractPath -File).Count
-                Write-Success "Windows Terminal extracted successfully ($finalFileCount files)"
-                
-                # List what we have
-                Write-Info "Key files present:"
-                foreach ($file in $criticalFiles) {
-                    $filePath = Join-Path $extractPath $file
-                    if (Test-Path $filePath) {
-                        $size = [math]::Round((Get-Item $filePath).Length / 1KB, 2)
-                        Write-Info "  ✓ $file ($size KB)"
-                    } else {
-                        Write-Info "  ✗ $file (MISSING)"
-                    }
-                }
+                Write-Success "Windows Terminal extracted with folder structure preserved"
+                Write-Info "  Files: $fileCount | Directories: $dirCount"
                 
             } else {
                 Write-Failure "Could not find x64 MSIX package in bundle"
