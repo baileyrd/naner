@@ -1,0 +1,3 @@
+
+When I tried to run Invoke-Naner, I got the following error:
+.\Invoke-Naner.ps1: A parameter with the name 'Debug' was defined multiple times for the command.

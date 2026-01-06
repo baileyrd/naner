@@ -10,6 +10,15 @@
     
     All dependencies are installed to the vendor/ directory and configured
     for a unified PATH environment.
+    
+    DYNAMIC VERSION FETCHING:
+    This script automatically fetches the latest releases from official sources:
+    - PowerShell: GitHub API (PowerShell/PowerShell)
+    - Windows Terminal: GitHub API (microsoft/terminal)
+    - MSYS2: Web scraping (repo.msys2.org)
+    
+    Fallback URLs are provided in case API calls fail due to rate limiting
+    or network issues. The script will use the fallback URLs and continue.
 
 .PARAMETER NanerRoot
     The root directory of the Naner installation. Defaults to script's grandparent directory.
@@ -25,6 +34,21 @@
     
 .EXAMPLE
     .\Setup-NanerVendor.ps1 -NanerRoot "C:\MyNaner" -ForceDownload
+    
+.NOTES
+    Network Requirements:
+    - Internet connection required for downloads
+    - GitHub API access (api.github.com)
+    - MSYS2 repository access (repo.msys2.org)
+    
+    GitHub API Rate Limits:
+    - Unauthenticated: 60 requests/hour per IP
+    - If rate limited, fallback URLs will be used
+    
+    Total Download Size: ~550MB
+    - PowerShell: ~100MB
+    - Windows Terminal: ~50MB
+    - MSYS2: ~400MB
 #>
 
 [CmdletBinding()]
@@ -87,14 +111,130 @@ Write-Status "Creating directory structure..."
     }
 }
 
+# Function to get latest release info from GitHub
+function Get-LatestGitHubRelease {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Repo,
+        
+        [Parameter(Mandatory)]
+        [string]$AssetPattern,
+        
+        [Parameter()]
+        [string]$FallbackUrl = ""
+    )
+    
+    try {
+        $apiUrl = "https://api.github.com/repos/$Repo/releases/latest"
+        Write-Info "Fetching latest release from $Repo..."
+        
+        # GitHub API call with User-Agent (required by GitHub)
+        $headers = @{
+            "User-Agent" = "Naner-Vendor-Setup"
+            "Accept" = "application/vnd.github.v3+json"
+        }
+        
+        $release = Invoke-RestMethod -Uri $apiUrl -Headers $headers -TimeoutSec 30
+        
+        $asset = $release.assets | Where-Object { $_.name -like $AssetPattern } | Select-Object -First 1
+        
+        if (-not $asset) {
+            throw "Could not find asset matching pattern: $AssetPattern"
+        }
+        
+        return @{
+            Version = $release.tag_name
+            Url = $asset.browser_download_url
+            FileName = $asset.name
+            Size = [math]::Round($asset.size / 1MB, 2)
+        }
+    }
+    catch {
+        Write-Warning "Failed to fetch release info from GitHub API: $_"
+        
+        if ($FallbackUrl) {
+            Write-Info "Using fallback URL..."
+            $fileName = [System.IO.Path]::GetFileName($FallbackUrl)
+            
+            return @{
+                Version = "latest"
+                Url = $FallbackUrl
+                FileName = $fileName
+                Size = "Unknown"
+            }
+        }
+        
+        Write-Failure "No fallback URL available"
+        return $null
+    }
+}
+
+# Function to get latest MSYS2 release
+function Get-LatestMSYS2Release {
+    param(
+        [Parameter()]
+        [string]$FallbackUrl = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz"
+    )
+    
+    try {
+        $baseUrl = "https://repo.msys2.org/distrib/x86_64/"
+        Write-Info "Fetching latest MSYS2 release..."
+        
+        # Fetch the directory listing
+        $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing -TimeoutSec 30
+        
+        # Parse HTML to find base packages (not sfx)
+        $pattern = 'href="(msys2-base-x86_64-(\d{8})\.tar\.xz)"'
+        $matches = [regex]::Matches($response.Content, $pattern)
+        
+        if ($matches.Count -eq 0) {
+            throw "Could not find MSYS2 base package"
+        }
+        
+        # Get the most recent (they're named with dates YYYYMMDD)
+        $latest = $matches | Sort-Object { $_.Groups[2].Value } -Descending | Select-Object -First 1
+        
+        $fileName = $latest.Groups[1].Value
+        $version = $latest.Groups[2].Value
+        
+        return @{
+            Version = $version
+            Url = $baseUrl + $fileName
+            FileName = $fileName
+            Size = "~400"  # Approximate
+        }
+    }
+    catch {
+        Write-Warning "Failed to fetch MSYS2 release info: $_"
+        
+        if ($FallbackUrl) {
+            Write-Info "Using fallback URL..."
+            $fileName = [System.IO.Path]::GetFileName($FallbackUrl)
+            $version = if ($fileName -match '(\d{8})') { $matches[1] } else { "latest" }
+            
+            return @{
+                Version = $version
+                Url = $FallbackUrl
+                FileName = $fileName
+                Size = "~400"
+            }
+        }
+        
+        Write-Failure "No fallback URL available"
+        return $null
+    }
+}
+
 # Vendor configuration
 $vendorConfig = @{
     PowerShell = @{
         Name = "PowerShell"
-        Version = "latest"
-        Url = "https://github.com/PowerShell/PowerShell/releases/latest/download/PowerShell-7.4.6-win-x64.zip"
-        FileName = "PowerShell-win-x64.zip"
         ExtractDir = "powershell"
+        GetLatestRelease = {
+            # Fallback to a recent stable version if API fails
+            $fallbackUrl = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.zip"
+            return Get-LatestGitHubRelease -Repo "PowerShell/PowerShell" -AssetPattern "*win-x64.zip" -FallbackUrl $fallbackUrl
+        }
         PostInstall = {
             param($extractPath)
             # Create a pwsh.bat wrapper for easier PATH usage
@@ -109,16 +249,18 @@ $vendorConfig = @{
     
     WindowsTerminal = @{
         Name = "Windows Terminal"
-        Version = "latest"
-        Url = "https://github.com/microsoft/terminal/releases/latest/download/Microsoft.WindowsTerminal_Win10_1.21.2361.0_8wekyb3d8bbwe.msixbundle"
-        FileName = "WindowsTerminal.msixbundle"
         ExtractDir = "terminal"
+        GetLatestRelease = {
+            # Fallback to a recent stable version if API fails
+            $fallbackUrl = "https://github.com/microsoft/terminal/releases/download/v1.21.2361.0/Microsoft.WindowsTerminal_1.21.2361.0_x64.zip"
+            return Get-LatestGitHubRelease -Repo "microsoft/terminal" -AssetPattern "*.msixbundle" -FallbackUrl $fallbackUrl
+        }
         PostInstall = {
             param($extractPath)
             Write-Status "Extracting Windows Terminal from MSIX bundle..."
             
             # Extract the msixbundle (it's a zip file)
-            $bundlePath = Join-Path $downloadDir $vendorConfig.WindowsTerminal.FileName
+            $bundlePath = Join-Path $downloadDir $releaseInfo.FileName
             $tempExtract = Join-Path $downloadDir "wt_temp"
             
             if (Test-Path $tempExtract) {
@@ -159,10 +301,12 @@ $vendorConfig = @{
     
     MSYS2 = @{
         Name = "MSYS2"
-        Version = "latest"
-        Url = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz"
-        FileName = "msys2-base.tar.xz"
         ExtractDir = "msys64"
+        GetLatestRelease = {
+            # Fallback to a known stable version if scraping fails
+            $fallbackUrl = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz"
+            return Get-LatestMSYS2Release -FallbackUrl $fallbackUrl
+        }
         PostInstall = {
             param($extractPath)
             Write-Status "Configuring MSYS2..."
@@ -210,21 +354,66 @@ $vendorConfig = @{
 function Download-FileWithProgress {
     param(
         [string]$Url,
-        [string]$OutFile
+        [string]$OutFile,
+        [int]$MaxRetries = 3
     )
     
-    try {
-        $webClient = New-Object System.Net.WebClient
+    $attempt = 0
+    $success = $false
+    
+    while ($attempt -lt $MaxRetries -and -not $success) {
+        $attempt++
         
-        $webClient.DownloadFile($Url, $OutFile)
-        $webClient.Dispose()
-        
-        return $true
+        try {
+            if ($attempt -gt 1) {
+                Write-Info "Retry attempt $attempt of $MaxRetries..."
+                Start-Sleep -Seconds 2
+            }
+            
+            # Use .NET WebClient for better progress support
+            $webClient = New-Object System.Net.WebClient
+            
+            # Register progress event
+            $progressEventHandler = {
+                param($sender, $e)
+                $percent = [int]($e.BytesReceived / $e.TotalBytesToReceive * 100)
+                Write-Progress -Activity "Downloading" -Status "$percent% Complete" -PercentComplete $percent
+            }
+            
+            Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -SourceIdentifier WebClient.DownloadProgressChanged -Action $progressEventHandler | Out-Null
+            
+            # Start download
+            $downloadTask = $webClient.DownloadFileTaskAsync($Url, $OutFile)
+            $downloadTask.Wait()
+            
+            # Cleanup
+            Unregister-Event -SourceIdentifier WebClient.DownloadProgressChanged -ErrorAction SilentlyContinue
+            $webClient.Dispose()
+            Write-Progress -Activity "Downloading" -Completed
+            
+            $success = $true
+        }
+        catch {
+            Write-Warning "Download attempt $attempt failed: $($_.Exception.Message)"
+            
+            if ($attempt -lt $MaxRetries) {
+                Write-Info "Retrying..."
+            }
+            else {
+                Write-Failure "Download failed after $MaxRetries attempts: $_"
+            }
+            
+            # Cleanup on error
+            Unregister-Event -SourceIdentifier WebClient.DownloadProgressChanged -ErrorAction SilentlyContinue
+            
+            # Remove partial download
+            if (Test-Path $OutFile) {
+                Remove-Item $OutFile -Force -ErrorAction SilentlyContinue
+            }
+        }
     }
-    catch {
-        Write-Failure "Download failed: $_"
-        return $false
-    }
+    
+    return $success
 }
 
 # Function to extract archive
@@ -270,7 +459,20 @@ foreach ($key in $vendorConfig.Keys) {
     
     Write-Status "Processing: $($config.Name)"
     
-    $downloadPath = Join-Path $downloadDir $config.FileName
+    # Fetch latest release information
+    Write-Info "Fetching latest release information..."
+    $releaseInfo = & $config.GetLatestRelease
+    
+    if (-not $releaseInfo) {
+        Write-Failure "Failed to get release information for $($config.Name)"
+        continue
+    }
+    
+    Write-Info "Latest version: $($releaseInfo.Version)"
+    Write-Info "Download URL: $($releaseInfo.Url)"
+    Write-Info "File size: ~$($releaseInfo.Size) MB"
+    
+    $downloadPath = Join-Path $downloadDir $releaseInfo.FileName
     $extractPath = Join-Path $vendorDir $config.ExtractDir
     
     # Check if already installed
@@ -289,18 +491,18 @@ foreach ($key in $vendorConfig.Keys) {
     
     # Download
     if (-not (Test-Path $downloadPath) -or $ForceDownload) {
-        Write-Info "Downloading from: $($config.Url)"
-        $success = Download-FileWithProgress -Url $config.Url -OutFile $downloadPath
+        Write-Info "Downloading from: $($releaseInfo.Url)"
+        $success = Download-FileWithProgress -Url $releaseInfo.Url -OutFile $downloadPath
         
         if (-not $success) {
             Write-Failure "Failed to download $($config.Name)"
             continue
         }
         
-        Write-Success "Downloaded: $($config.FileName)"
+        Write-Success "Downloaded: $($releaseInfo.FileName)"
     }
     else {
-        Write-Info "Using cached download: $($config.FileName)"
+        Write-Info "Using cached download: $($releaseInfo.FileName)"
     }
     
     # Extract
@@ -336,6 +538,9 @@ foreach ($key in $vendorConfig.Keys) {
         & $config.PostInstall $extractPath
     }
     
+    # Store release info for manifest
+    $config.ReleaseInfo = $releaseInfo
+    
     Write-Host ""
 }
 
@@ -349,10 +554,15 @@ $manifest = @{
 
 foreach ($key in $vendorConfig.Keys) {
     $config = $vendorConfig[$key]
-    $manifest.Dependencies[$key] = @{
-        Name = $config.Name
-        Version = $config.Version
-        ExtractDir = $config.ExtractDir
+    if ($config.ReleaseInfo) {
+        $manifest.Dependencies[$key] = @{
+            Name = $config.Name
+            Version = $config.ReleaseInfo.Version
+            ExtractDir = $config.ExtractDir
+            DownloadUrl = $config.ReleaseInfo.Url
+            FileName = $config.ReleaseInfo.FileName
+            InstalledDate = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        }
     }
 }
 

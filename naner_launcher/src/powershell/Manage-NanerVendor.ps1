@@ -62,19 +62,67 @@ function Write-Info {
     Write-Host "    $Message" -ForegroundColor Gray
 }
 
+# Helper function for GitHub API
+function Get-GitHubLatestRelease {
+    param(
+        [string]$Repo,
+        [string]$AssetPattern
+    )
+    
+    try {
+        $releases = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest" -Headers @{
+            "User-Agent" = "Naner-Vendor-Manager"
+        }
+        $asset = $releases.assets | Where-Object { $_.name -like $AssetPattern } | Select-Object -First 1
+        
+        if ($asset) {
+            return @{
+                Version = $releases.tag_name
+                Url = $asset.browser_download_url
+                FileName = $asset.name
+            }
+        }
+        return $null
+    }
+    catch {
+        return $null
+    }
+}
+
+# Helper function for MSYS2
+function Get-MSYS2LatestRelease {
+    try {
+        $baseUrl = "https://repo.msys2.org/distrib/x86_64/"
+        $response = Invoke-WebRequest -Uri $baseUrl -UseBasicParsing
+        
+        $pattern = 'href="(msys2-base-x86_64-(\d{8})\.tar\.xz)"'
+        $matches = [regex]::Matches($response.Content, $pattern)
+        
+        if ($matches.Count -gt 0) {
+            $latest = $matches | Sort-Object { $_.Groups[2].Value } -Descending | Select-Object -First 1
+            $fileName = $latest.Groups[1].Value
+            $version = $latest.Groups[2].Value
+            
+            return @{
+                Version = $version
+                Url = $baseUrl + $fileName
+                FileName = $fileName
+            }
+        }
+        return $null
+    }
+    catch {
+        return $null
+    }
+}
+
 # Version sources
 $versionSources = @{
     PowerShell = @{
         Type = "GitHub"
         Repo = "PowerShell/PowerShell"
         GetLatestUrl = {
-            $releases = Invoke-RestMethod "https://api.github.com/repos/PowerShell/PowerShell/releases/latest"
-            $asset = $releases.assets | Where-Object { $_.name -like "*win-x64.zip" } | Select-Object -First 1
-            return @{
-                Version = $releases.tag_name
-                Url = $asset.browser_download_url
-                FileName = $asset.name
-            }
+            return Get-GitHubLatestRelease -Repo "PowerShell/PowerShell" -AssetPattern "*win-x64.zip"
         }
     }
     
@@ -82,39 +130,14 @@ $versionSources = @{
         Type = "GitHub"
         Repo = "microsoft/terminal"
         GetLatestUrl = {
-            $releases = Invoke-RestMethod "https://api.github.com/repos/microsoft/terminal/releases/latest"
-            $asset = $releases.assets | Where-Object { $_.name -like "*.msixbundle" } | Select-Object -First 1
-            return @{
-                Version = $releases.tag_name
-                Url = $asset.browser_download_url
-                FileName = $asset.name
-            }
+            return Get-GitHubLatestRelease -Repo "microsoft/terminal" -AssetPattern "*.msixbundle"
         }
     }
     
     MSYS2 = @{
         Type = "Direct"
         GetLatestUrl = {
-            # MSYS2 uses a dated versioning scheme
-            $baseUrl = "https://repo.msys2.org/distrib/x86_64/"
-            
-            # Scrape the directory listing to find latest
-            $page = Invoke-WebRequest $baseUrl
-            $links = $page.Links | Where-Object { $_.href -like "msys2-base-x86_64-*.tar.xz" }
-            $latest = $links | Sort-Object href -Descending | Select-Object -First 1
-            
-            if ($latest) {
-                $fileName = $latest.href
-                $version = $fileName -replace 'msys2-base-x86_64-', '' -replace '.tar.xz', ''
-                
-                return @{
-                    Version = $version
-                    Url = "$baseUrl$fileName"
-                    FileName = $fileName
-                }
-            }
-            
-            return $null
+            return Get-MSYS2LatestRelease
         }
     }
 }
