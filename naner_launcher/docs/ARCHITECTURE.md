@@ -44,16 +44,28 @@ This document provides a technical overview of Naner's architecture and design d
 
 **Location**: `vendor/terminal/wt.exe`
 
+**Portable Mode**: `.portable` file enables local settings storage
+
 **Responsibilities**:
 - Render terminal UI
 - Handle tabs and panes
 - Apply color schemes
 - Manage window lifecycle
+- Store settings locally (via `.portable` file)
 
 **Why Vendored**: 
 - Ensures consistent experience
 - Not all Windows 10 users have it installed
 - Allows version pinning for stability
+- Portable mode keeps settings with Naner
+
+**Portable Mode Explained**:
+Windows Terminal checks for a `.portable` file in its directory. When present:
+- Settings stored in: `vendor/terminal/LocalState/settings.json`
+- State stored in: `vendor/terminal/LocalState/state.json`
+- No writes to `%LOCALAPPDATA%\Packages\Microsoft.WindowsTerminal_*\`
+- Complete isolation from system Windows Terminal
+- Settings travel with Naner installation
 
 ### 2. PowerShell 7.x
 **Purpose**: Modern shell with cross-platform cmdlets and improved performance

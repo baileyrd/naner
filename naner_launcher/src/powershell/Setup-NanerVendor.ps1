@@ -355,6 +355,11 @@ $vendorConfig = [ordered]@{
                     }
                 }
                 
+                # Create .portable file to enable portable mode
+                $portableFile = Join-Path $extractPath ".portable"
+                New-Item -Path $portableFile -ItemType File -Force | Out-Null
+                Write-Info "Created .portable file for portable mode"
+                
                 Write-Success "Windows Terminal extracted successfully"
             } else {
                 Write-Failure "Could not find x64 package in bundle"

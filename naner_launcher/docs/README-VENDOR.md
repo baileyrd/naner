@@ -39,6 +39,17 @@ naner/
 - **Size**: ~50MB
 - **Purpose**: Modern terminal emulator with tab support
 - **Path**: `vendor/terminal/wt.exe`
+- **Portable Mode**: Includes `.portable` file to store settings locally
+
+**What is `.portable` mode?**
+When a `.portable` file exists in the Windows Terminal directory, all settings, profiles, and state are stored in:
+- `vendor/terminal/LocalState/` (instead of `%LOCALAPPDATA%`)
+
+This ensures:
+- Settings travel with Naner installation
+- No conflicts with system Windows Terminal
+- True portability across machines
+- Isolated profiles and customizations
 
 ### MSYS2
 - **Size**: ~400MB (base + essential packages)

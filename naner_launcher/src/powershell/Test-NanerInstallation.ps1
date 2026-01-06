@@ -264,6 +264,15 @@ if (Test-Path $wtPath) {
     
     $wtSize = [math]::Round((Get-Item $wtPath).Length / 1MB, 2)
     Write-TestResult -TestName "Windows Terminal executable" -Passed $true -Message "Size: $wtSize MB"
+    
+    # Check for .portable file
+    $portableFile = Join-Path $vendorDir "terminal\.portable"
+    if (Test-Path $portableFile) {
+        Write-TestResult -TestName "Windows Terminal portable mode" -Passed $true -Message ".portable file present"
+    }
+    else {
+        Write-TestResult -TestName "Windows Terminal portable mode" -Passed $false -IsWarning $true -Message ".portable file missing (settings won't be portable)"
+    }
 }
 else {
     Write-TestResult -TestName "Windows Terminal installed" -Passed $false
