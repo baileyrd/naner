@@ -27,6 +27,33 @@ cd vendor\terminal
 
 ## Common Issues & Fixes
 
+### Issue 0: Incomplete Windows Terminal Extraction (MOST COMMON)
+
+**Symptom**: Process starts but exits immediately, or window doesn't appear
+
+**Cause**: Not all Windows Terminal files were copied during extraction
+
+**Diagnostic**:
+```powershell
+.\Validate-WindowsTerminal.ps1
+
+# Should show all critical files present
+```
+
+**Fix**:
+```powershell
+# Delete incomplete installation
+Remove-Item vendor\terminal -Recurse -Force
+
+# Re-run setup (now uses improved extraction)
+.\Setup-NanerVendor.ps1 -ForceDownload
+
+# Verify it worked
+.\Validate-WindowsTerminal.ps1
+```
+
+**What Changed**: The new Setup-NanerVendor.ps1 now copies ALL files from the MSIX package instead of just specific patterns. This ensures nothing is missed.
+
 ### Issue 1: Missing DLLs
 
 **Symptom**: Process starts but exits immediately

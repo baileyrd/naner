@@ -331,27 +331,84 @@ $vendorConfig = [ordered]@{
             New-Item -Path $tempExtract -ItemType Directory -Force | Out-Null
             
             # Extract bundle
+            Write-Info "Extracting MSIX bundle..."
             & $sevenZip x "$bundlePath" -o"$tempExtract" -y | Out-Null
             
             # Find the x64 msix package
-            $x64Package = Get-ChildItem $tempExtract -Filter "*x64*.msix" | Select-Object -First 1
+            $x64Package = Get-ChildItem $tempExtract -Filter "*x64*.msix" -ErrorAction SilentlyContinue | Select-Object -First 1
+            
+            if (-not $x64Package) {
+                # Try without architecture filter
+                $x64Package = Get-ChildItem $tempExtract -Filter "*.msix" -ErrorAction SilentlyContinue | 
+                    Where-Object { $_.Name -match "x64|win10" } | 
+                    Select-Object -First 1
+            }
             
             if ($x64Package) {
-                Write-Info "Found x64 package: $($x64Package.Name)"
+                Write-Info "Found package: $($x64Package.Name)"
                 
                 # Extract the x64 msix package
                 $msixExtract = Join-Path $tempExtract "msix_contents"
                 New-Item -Path $msixExtract -ItemType Directory -Force | Out-Null
                 
+                Write-Info "Extracting MSIX package..."
                 & $sevenZip x "$($x64Package.FullName)" -o"$msixExtract" -y | Out-Null
                 
-                # Copy necessary files to vendor directory
-                $filesToCopy = @("wt.exe", "WindowsTerminal.exe", "OpenConsole.exe", "*.dll")
+                # Copy ALL files from the MSIX to destination (more reliable than selective copy)
+                Write-Info "Copying Windows Terminal files..."
                 
-                foreach ($pattern in $filesToCopy) {
-                    Get-ChildItem $msixExtract -Filter $pattern -Recurse | ForEach-Object {
-                        Copy-Item $_.FullName -Destination $extractPath -Force
-                        Write-Info "Copied: $($_.Name)"
+                # Get all files, excluding some unnecessary ones
+                $excludePatterns = @(
+                    "AppxManifest.xml",
+                    "AppxSignature.p7x",
+                    "*.pri",
+                    "[Content_Types].xml",
+                    "AppxBlockMap.xml"
+                )
+                
+                $filesToCopy = Get-ChildItem $msixExtract -File -Recurse | 
+                    Where-Object { 
+                        $file = $_
+                        $exclude = $false
+                        foreach ($pattern in $excludePatterns) {
+                            if ($file.Name -like $pattern) {
+                                $exclude = $true
+                                break
+                            }
+                        }
+                        -not $exclude
+                    }
+                
+                $copiedCount = 0
+                foreach ($file in $filesToCopy) {
+                    $destPath = Join-Path $extractPath $file.Name
+                    Copy-Item $file.FullName -Destination $destPath -Force -ErrorAction SilentlyContinue
+                    $copiedCount++
+                }
+                
+                Write-Info "Copied $copiedCount files"
+                
+                # Verify critical files exist
+                $criticalFiles = @("wt.exe", "WindowsTerminal.exe", "OpenConsole.exe")
+                $missing = @()
+                
+                foreach ($file in $criticalFiles) {
+                    if (-not (Test-Path (Join-Path $extractPath $file))) {
+                        $missing += $file
+                    }
+                }
+                
+                if ($missing.Count -gt 0) {
+                    Write-Failure "Missing critical files: $($missing -join ', ')"
+                    Write-Info "Attempting deeper search..."
+                    
+                    # Try to find files in subdirectories
+                    foreach ($file in $missing) {
+                        $found = Get-ChildItem $msixExtract -Filter $file -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 1
+                        if ($found) {
+                            Copy-Item $found.FullName -Destination (Join-Path $extractPath $file) -Force
+                            Write-Info "Found and copied: $file"
+                        }
                     }
                 }
                 
@@ -360,9 +417,28 @@ $vendorConfig = [ordered]@{
                 New-Item -Path $portableFile -ItemType File -Force | Out-Null
                 Write-Info "Created .portable file for portable mode"
                 
-                Write-Success "Windows Terminal extracted successfully"
+                # Count final files
+                $finalFileCount = (Get-ChildItem $extractPath -File).Count
+                Write-Success "Windows Terminal extracted successfully ($finalFileCount files)"
+                
+                # List what we have
+                Write-Info "Key files present:"
+                foreach ($file in $criticalFiles) {
+                    $filePath = Join-Path $extractPath $file
+                    if (Test-Path $filePath) {
+                        $size = [math]::Round((Get-Item $filePath).Length / 1KB, 2)
+                        Write-Info "  ✓ $file ($size KB)"
+                    } else {
+                        Write-Info "  ✗ $file (MISSING)"
+                    }
+                }
+                
             } else {
-                Write-Failure "Could not find x64 package in bundle"
+                Write-Failure "Could not find x64 MSIX package in bundle"
+                Write-Info "Available packages:"
+                Get-ChildItem $tempExtract -Filter "*.msix" | ForEach-Object {
+                    Write-Info "  - $($_.Name)"
+                }
             }
             
             # Cleanup temp extraction
