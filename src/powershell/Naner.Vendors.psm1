@@ -989,6 +989,55 @@ update: --env-shebang
     }
 }
 
+<#
+.SYNOPSIS
+    Post-install configuration for .NET SDK
+.DESCRIPTION
+    Sets up .NET SDK for portable use
+#>
+function Initialize-DotNetSDK {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$ExtractPath,
+
+        [Parameter(Mandatory=$true)]
+        [string]$NanerRoot
+    )
+
+    Write-Status "Configuring .NET SDK..."
+
+    $dotnetExe = Join-Path $ExtractPath "dotnet.exe"
+
+    if (Test-Path $dotnetExe) {
+        # Verify installation
+        Write-Info "  Verifying .NET SDK installation..."
+        & $dotnetExe --version 2>&1 | Out-Null
+
+        if ($LASTEXITCODE -eq 0) {
+            $sdkVersion = & $dotnetExe --version
+            Write-Success "  .NET SDK version: $sdkVersion"
+
+            # List installed SDKs
+            Write-Info "  Installed SDKs:"
+            & $dotnetExe --list-sdks | ForEach-Object {
+                Write-Info "    $_"
+            }
+        } else {
+            Write-Warning "  .NET SDK verification failed"
+        }
+
+        # Set up portable DOTNET_ROOT (will be added to naner.json)
+        $dotnetRoot = Join-Path $NanerRoot "vendor\dotnet-sdk"
+        Write-Info "  DOTNET_ROOT: $dotnetRoot"
+        Write-Info "  Add to naner.json Environment.EnvironmentVariables:"
+        Write-Info "    `"DOTNET_ROOT`": `"%NANER_ROOT%\\vendor\\dotnet-sdk`""
+        Write-Info "    `"DOTNET_CLI_TELEMETRY_OPTOUT`": `"1`""
+
+    } else {
+        Write-Warning ".NET SDK executable not found at expected location"
+    }
+}
+
 #endregion
 
 # Export module functions

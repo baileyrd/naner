@@ -15,7 +15,8 @@
     "Rustc": "%NANER_ROOT%\\vendor\\rust\\rustc\\bin\\rustc.exe",
     "Cargo": "%NANER_ROOT%\\vendor\\rust\\cargo\\bin\\cargo.exe",
     "Ruby": "%NANER_ROOT%\\vendor\\ruby\\bin\\ruby.exe",
-    "Gem": "%NANER_ROOT%\\vendor\\ruby\\bin\\gem.cmd"
+    "Gem": "%NANER_ROOT%\\vendor\\ruby\\bin\\gem.cmd",
+    "DotNet": "%NANER_ROOT%\\vendor\\dotnet-sdk\\dotnet.exe"
   },
   "Environment": {
     "UnifiedPath": true,
@@ -37,6 +38,7 @@
       "%NANER_ROOT%\\vendor\\msys64\\usr\\bin",
       "%NANER_ROOT%\\vendor\\powershell",
       "%NANER_ROOT%\\vendor\\7zip",
+      "%NANER_ROOT%\\vendor\\dotnet-sdk",
       "%NANER_ROOT%\\opt"
     ],
     "EnvironmentVariables": {
@@ -60,6 +62,8 @@
       "RUSTUP_HOME": "%NANER_ROOT%\\home\\.rustup",
       "GEM_HOME": "%NANER_ROOT%\\home\\.gem",
       "GEM_PATH": "%NANER_ROOT%\\home\\.gem",
+      "DOTNET_ROOT": "%NANER_ROOT%\\vendor\\dotnet-sdk",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
       "MSYSTEM": "MINGW64",
       "MSYS2_PATH_TYPE": "inherit"
     }

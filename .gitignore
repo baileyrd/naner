@@ -8,6 +8,12 @@ config/test-*.json
 dist/
 *.zip
 
+# C# build artifacts
+src/csharp/**/bin/
+src/csharp/**/obj/
+bin/naner.exe
+bin/naner.pdb
+
 # Temporary files
 *.tmp
 *.log
