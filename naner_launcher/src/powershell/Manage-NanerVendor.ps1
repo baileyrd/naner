@@ -42,51 +42,38 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Import common utilities
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (Test-Path $commonModule) {
+    Import-Module $commonModule -Force
+} else {
+    Write-Warning "Common module not found. Using fallback functions."
+
+    function Write-Status {
+        param([string]$Message)
+        Write-Host "[*] $Message" -ForegroundColor Cyan
+    }
+
+    function Write-Success {
+        param([string]$Message)
+        Write-Host "[✓] $Message" -ForegroundColor Green
+    }
+
+    function Write-Info {
+        param([string]$Message)
+        Write-Host "    $Message" -ForegroundColor Gray
+    }
+}
+
 # Determine Naner root
-$nanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$nanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
 $vendorDir = Join-Path $nanerRoot "vendor"
 $manifestPath = Join-Path $vendorDir "vendor-manifest.json"
 
-function Write-Status {
-    param([string]$Message)
-    Write-Host "[*] $Message" -ForegroundColor Cyan
-}
-
-function Write-Success {
-    param([string]$Message)
-    Write-Host "[✓] $Message" -ForegroundColor Green
-}
-
-function Write-Info {
-    param([string]$Message)
-    Write-Host "    $Message" -ForegroundColor Gray
-}
-
-# Helper function for GitHub API
-function Get-GitHubLatestRelease {
-    param(
-        [string]$Repo,
-        [string]$AssetPattern
-    )
-    
-    try {
-        $releases = Invoke-RestMethod "https://api.github.com/repos/$Repo/releases/latest" -Headers @{
-            "User-Agent" = "Naner-Vendor-Manager"
-        }
-        $asset = $releases.assets | Where-Object { $_.name -like $AssetPattern } | Select-Object -First 1
-        
-        if ($asset) {
-            return @{
-                Version = $releases.tag_name
-                Url = $asset.browser_download_url
-                FileName = $asset.name
-            }
-        }
-        return $null
-    }
-    catch {
-        return $null
-    }
+# NOTE: Get-LatestGitHubRelease is now provided by Common.psm1
+# For compatibility, create alias for old function name
+if (Get-Command Get-LatestGitHubRelease -ErrorAction SilentlyContinue) {
+    New-Alias -Name Get-GitHubLatestRelease -Value Get-LatestGitHubRelease -Force
 }
 
 # Helper function for MSYS2

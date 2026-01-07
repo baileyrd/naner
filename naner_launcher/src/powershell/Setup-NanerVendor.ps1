@@ -65,30 +65,39 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Color output functions
-function Write-Status {
-    param([string]$Message)
-    Write-Host "[*] $Message" -ForegroundColor Cyan
-}
+# Import common utilities
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (Test-Path $commonModule) {
+    Import-Module $commonModule -Force
+} else {
+    Write-Warning "Common module not found at: $commonModule"
+    Write-Warning "Some functions may be unavailable. Continuing with local definitions..."
 
-function Write-Success {
-    param([string]$Message)
-    Write-Host "[✓] $Message" -ForegroundColor Green
-}
+    # Fallback: Define minimal functions if Common.psm1 is not available
+    function Write-Status {
+        param([string]$Message)
+        Write-Host "[*] $Message" -ForegroundColor Cyan
+    }
 
-function Write-Failure {
-    param([string]$Message)
-    Write-Host "[✗] $Message" -ForegroundColor Red
-}
+    function Write-Success {
+        param([string]$Message)
+        Write-Host "[✓] $Message" -ForegroundColor Green
+    }
 
-function Write-Info {
-    param([string]$Message)
-    Write-Host "    $Message" -ForegroundColor Gray
+    function Write-Failure {
+        param([string]$Message)
+        Write-Host "[✗] $Message" -ForegroundColor Red
+    }
+
+    function Write-Info {
+        param([string]$Message)
+        Write-Host "    $Message" -ForegroundColor Gray
+    }
 }
 
 # Determine Naner root
 if (-not $NanerRoot) {
-    $NanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    $NanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
 }
 
 if (-not (Test-Path $NanerRoot)) {
@@ -111,63 +120,7 @@ Write-Status "Creating directory structure..."
     }
 }
 
-# Function to get latest release info from GitHub
-function Get-LatestGitHubRelease {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Repo,
-        
-        [Parameter(Mandatory)]
-        [string]$AssetPattern,
-        
-        [Parameter()]
-        [string]$FallbackUrl = ""
-    )
-    
-    try {
-        $apiUrl = "https://api.github.com/repos/$Repo/releases/latest"
-        Write-Info "Fetching latest release from $Repo..."
-        
-        # GitHub API call with User-Agent (required by GitHub)
-        $headers = @{
-            "User-Agent" = "Naner-Vendor-Setup"
-            "Accept" = "application/vnd.github.v3+json"
-        }
-        
-        $release = Invoke-RestMethod -Uri $apiUrl -Headers $headers -TimeoutSec 30
-        
-        $asset = $release.assets | Where-Object { $_.name -like $AssetPattern } | Select-Object -First 1
-        
-        if (-not $asset) {
-            throw "Could not find asset matching pattern: $AssetPattern"
-        }
-        
-        return @{
-            Version = $release.tag_name
-            Url = $asset.browser_download_url
-            FileName = $asset.name
-            Size = [math]::Round($asset.size / 1MB, 2)
-        }
-    }
-    catch {
-        Write-Warning "Failed to fetch release info from GitHub API: $_"
-        
-        if ($FallbackUrl) {
-            Write-Info "Using fallback URL..."
-            $fileName = [System.IO.Path]::GetFileName($FallbackUrl)
-            
-            return @{
-                Version = "latest"
-                Url = $FallbackUrl
-                FileName = $fileName
-                Size = "Unknown"
-            }
-        }
-        
-        Write-Failure "No fallback URL available"
-        return $null
-    }
-}
+# NOTE: Get-LatestGitHubRelease is now provided by Common.psm1
 
 # Function to get latest MSYS2 release
 function Get-LatestMSYS2Release {

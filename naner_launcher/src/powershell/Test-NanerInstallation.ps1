@@ -43,6 +43,12 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+# Import common utilities (for path expansion if needed)
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (Test-Path $commonModule) {
+    Import-Module $commonModule -Force -ErrorAction SilentlyContinue
+}
+
 # Test results tracking
 $testResults = @{
     Passed = 0
@@ -65,16 +71,16 @@ function Write-TestResult {
         [string]$Message = "",
         [bool]$IsWarning = $false
     )
-    
+
     $result = @{
         Name = $TestName
         Passed = $Passed
         Message = $Message
         IsWarning = $IsWarning
     }
-    
+
     $testResults.Tests += $result
-    
+
     if ($IsWarning) {
         $testResults.Warnings++
         Write-Host "[⚠] $TestName" -ForegroundColor Yellow
@@ -100,7 +106,12 @@ function Write-TestResult {
 
 # Determine Naner root
 try {
-    $nanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    if (Get-Command Get-NanerRootSimple -ErrorAction SilentlyContinue) {
+        $nanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
+    } else {
+        $nanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    }
+
     if (-not (Test-Path $nanerRoot)) {
         throw "Naner root not found"
     }

@@ -48,24 +48,32 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-function Write-Status {
-    param([string]$Message)
-    Write-Host "[*] $Message" -ForegroundColor Cyan
-}
+# Import common utilities
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (Test-Path $commonModule) {
+    Import-Module $commonModule -Force
+} else {
+    Write-Warning "Common module not found. Using fallback functions."
 
-function Write-Success {
-    param([string]$Message)
-    Write-Host "[✓] $Message" -ForegroundColor Green
-}
+    function Write-Status {
+        param([string]$Message)
+        Write-Host "[*] $Message" -ForegroundColor Cyan
+    }
 
-function Write-Info {
-    param([string]$Message)
-    Write-Host "    $Message" -ForegroundColor Gray
+    function Write-Success {
+        param([string]$Message)
+        Write-Host "[✓] $Message" -ForegroundColor Green
+    }
+
+    function Write-Info {
+        param([string]$Message)
+        Write-Host "    $Message" -ForegroundColor Gray
+    }
 }
 
 function Get-DirectorySize {
     param([string]$Path)
-    
+
     $size = (Get-ChildItem $Path -Recurse -File | Measure-Object -Property Length -Sum).Sum
     return [math]::Round($size / 1MB, 2)
 }
@@ -77,7 +85,7 @@ if (-not $CreatePortable -and -not $CreateInstaller) {
 }
 
 # Determine Naner root
-$nanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$nanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
 
 if (-not (Test-Path $nanerRoot)) {
     throw "Naner root not found: $nanerRoot"
