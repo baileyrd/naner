@@ -1,0 +1,46 @@
+{
+  "recommendations": [
+    // Language Support
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+    "golang.go",
+    "rust-lang.rust-analyzer",
+    "Shopify.ruby-lsp",
+    "ms-vscode.powershell",
+
+    // Web Development
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+    "zignd.html-css-class-completion",
+
+    // Git
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Productivity
+    "ms-vsliveshare.vsliveshare",
+    "ritwickdey.liveserver",
+    "christian-kohler.path-intellisense",
+    "aaron-bond.better-comments",
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker",
+
+    // Themes & Icons
+    "PKief.material-icon-theme",
+    "zhuangtongfa.material-theme",
+    "GitHub.github-vscode-theme",
+
+    // Docker & DevOps (Optional)
+    "ms-azuretools.vscode-docker",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+    // Data & Config Files
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+    "ms-vscode.makefile-tools"
+  ],
+  "unwantedRecommendations": []
+}

@@ -1,0 +1,121 @@
+## Naner Portable Nano Configuration
+
+## Basic Settings
+set autoindent          # Auto-indent new lines
+set tabsize 4           # Tab size of 4 spaces
+set tabstospaces        # Convert tabs to spaces
+set smooth              # Smooth scrolling
+set linenumbers         # Show line numbers
+set mouse               # Enable mouse support
+set softwrap            # Soft-wrap long lines
+
+## Display
+set titlecolor bold,white,blue
+set statuscolor bold,white,green
+set keycolor bold,white,blue
+set functioncolor white
+
+## Backup
+# set backup            # Create backup files
+# set backupdir "~/.nano/backups"
+
+## Search
+set casesensitive       # Case-sensitive search by default
+set regexp              # Use regular expressions for search
+
+## Syntax Highlighting
+
+## Python
+include "/usr/share/nano/python.nanorc"
+
+## JavaScript / TypeScript
+include "/usr/share/nano/javascript.nanorc"
+
+## HTML
+include "/usr/share/nano/html.nanorc"
+
+## CSS
+include "/usr/share/nano/css.nanorc"
+
+## JSON
+include "/usr/share/nano/json.nanorc"
+
+## Markdown
+include "/usr/share/nano/markdown.nanorc"
+
+## Shell
+include "/usr/share/nano/sh.nanorc"
+
+## Ruby
+include "/usr/share/nano/ruby.nanorc"
+
+## Go
+include "/usr/share/nano/go.nanorc"
+
+## Rust
+include "/usr/share/nano/rust.nanorc"
+
+## YAML
+include "/usr/share/nano/yaml.nanorc"
+
+## XML
+include "/usr/share/nano/xml.nanorc"
+
+## C/C++
+include "/usr/share/nano/c.nanorc"
+
+## PowerShell (if available)
+# include "/usr/share/nano/powershell.nanorc"
+
+## Key Bindings (Emacs-style)
+bind ^S savefile main
+bind ^Q exit all
+bind ^F whereis all
+bind ^R replace main
+bind ^G help all
+bind ^A mark main
+bind ^C copy main
+bind ^X cut main
+bind ^V paste all
+bind ^Z undo main
+bind ^Y redo main
+
+## Additional useful bindings
+bind ^W writeout main
+bind ^O insert main
+bind ^T gotoline main
+bind ^P location main
+
+## Custom syntax highlighting for common files
+
+## .env files
+syntax "env" "\.env.*$"
+color cyan "^[A-Z_][A-Z0-9_]*="
+color yellow "".*""
+color brightblack "(^|[[:space:]])#.*$"
+
+## .gitignore files
+syntax "gitignore" "\.gitignore$"
+color cyan "^[^#].*$"
+color brightblack "^#.*$"
+color yellow "^\*.*$"
+color green "^!.*$"
+
+## Configuration files
+syntax "conf" "\.(conf|config|ini)$"
+color cyan "^[[:space:]]*[^=]*="
+color yellow ""[^"]*""
+color brightblack "^[[:space:]]*[;#].*$"
+color magenta "^\[.*\]$"
+
+## Dockerfile
+syntax "Dockerfile" "Dockerfile.*$"
+color brightblue "^(FROM|MAINTAINER|RUN|CMD|EXPOSE|ENV|ADD|COPY|ENTRYPOINT|VOLUME|USER|WORKDIR|ARG|LABEL|SHELL)[[:space:]]"
+color yellow ""[^"]*""
+color brightblack "^[[:space:]]*#.*$"
+
+## Welcome note
+# To see all keybindings: ^G (Ctrl+G) for help
+# Quick reference:
+#   ^S = Save    ^Q = Quit    ^F = Find    ^R = Replace
+#   ^X = Cut     ^C = Copy    ^V = Paste   ^Z = Undo
