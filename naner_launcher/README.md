@@ -36,6 +36,9 @@ naner_launcher/
 │   ├── .config/                # Configuration files
 │   │   ├── git/                # Git global ignore patterns
 │   │   └── powershell/         # PowerShell profile
+│   ├── .bashrc                 # Portable Bash configuration
+│   ├── .bash_profile           # Bash login profile
+│   ├── .bash_aliases           # Bash aliases
 │   ├── .gitconfig              # Portable Git configuration
 │   ├── .ssh/                   # Portable SSH configuration (keys gitignored)
 │   └── Documents/PowerShell/   # Modules and scripts
@@ -74,6 +77,7 @@ naner_launcher/
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture overview
 - **[Implementation Guide](docs/IMPLEMENTATION-GUIDE.md)** - Detailed implementation
 - **[Vendor Setup](docs/README-VENDOR.md)** - Vendor dependency information
+- **[Portable Bash](docs/PORTABLE-BASH.md)** - Portable Bash profiles & aliases
 - **[Portable Git](docs/PORTABLE-GIT.md)** - Portable Git configuration & aliases
 - **[Portable PowerShell](docs/PORTABLE-POWERSHELL.md)** - Portable PowerShell profiles & modules
 - **[Portable SSH](docs/PORTABLE-SSH.md)** - Portable SSH configuration guide

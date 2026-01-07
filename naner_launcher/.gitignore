@@ -55,3 +55,12 @@ home/.config/git/credentials
 !home/.gitconfig
 !home/.config/git/ignore
 !home/.config/git/.gitkeep
+
+# Bash - Protect history and session data
+home/.bash_history
+home/.bash_sessions/
+
+# Bash - Allow profile and aliases
+!home/.bashrc
+!home/.bash_profile
+!home/.bash_aliases
