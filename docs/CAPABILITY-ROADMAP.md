@@ -11,7 +11,9 @@ This roadmap outlines planned enhancements to Naner, organized by priority and i
 ## Current State (✅ Implemented)
 
 ### Core Functionality
-- ✅ **Portable Vendor Dependencies** - 7-Zip, PowerShell 7, Windows Terminal, MSYS2/Git Bash
+- ✅ **Portable Vendor Dependencies** - 9 vendors available (4 required, 5 optional)
+  - Required: 7-Zip, PowerShell 7, Windows Terminal, MSYS2/Git Bash
+  - Optional: Node.js, Python (Miniconda), Go, Rust, Ruby
 - ✅ **Unified PATH Management** - Single PATH configuration across all shells
 - ✅ **Windows Terminal Integration** - Launch with custom profiles
 - ✅ **Multiple Shell Profiles** - Unified, PowerShell, Bash, CMD
@@ -265,122 +267,171 @@ This roadmap outlines planned enhancements to Naner, organized by priority and i
 
 ---
 
-## Phase 4: Development Runtimes (SHORT-TERM)
+## Phase 4: Development Runtimes ✅ COMPLETED
 
 **Goal:** Vendor common development runtimes
 **Timeline:** 2-4 weeks
 **Effort:** Medium
+**Status:** ✅ **COMPLETED** - All 5 runtimes fully implemented and available as optional vendors
 
-### 4.1 Node.js Portable Runtime 🔥 HIGH DEMAND
+**Summary:** Node.js, Python (Miniconda), Go, Rust, and Ruby are all implemented with:
+- Vendor configuration in `config/vendors.json`
+- PostInstall functions in `Naner.Vendors.psm1`
+- Download URL resolution (GitHub API, web scraping, static URLs)
+- Portable environment configuration
+- PATH integration
+- Package manager portability (npm, conda, cargo, gem)
 
-**Status:** Planned
-**Effort:** ~1 hour
+**Current Status:** All runtimes are `enabled: false` (optional) - users can enable them as needed.
+
+### 4.1 Node.js Portable Runtime ✅ COMPLETED
+
+**Status:** ✅ IMPLEMENTED (lines 97-116 in vendors.json)
 **Value:** Very High
 
-**Features:**
-- Portable Node.js runtime
-- npm/pnpm package managers
-- Global npm packages in portable location
-- Node version management (optional)
+**Implementation:**
+- ✅ Vendor configured with GitHub API release source
+- ✅ PostInstall function: `Initialize-NodeJS` (Naner.Vendors.psm1:635-704)
+- ✅ npm prefix configured to `home/.npm-global`
+- ✅ npm cache configured to `home/.npm-cache`
+- ✅ Nested directory structure flattened automatically
+- ✅ Version verification on installation
 
-**Vendor Configuration:**
+**Features Implemented:**
+- Portable Node.js runtime from nodejs/node releases
+- npm global packages in `home/.npm-global`
+- npm cache in `home/.npm-cache`
+- Automatic npm configuration for portability
+
+**To Enable:**
 ```powershell
-$vendorConfig.NodeJS = @{
-    Name = "Node.js"
-    Url = { Get-LatestGitHubRelease -Repo "nodejs/node" -AssetPattern "*win-x64.zip" }
-    ExtractDir = "nodejs"
-    PostInstall = { /* Configure npm prefix */ }
-}
+# Edit config/vendors.json: set NodeJS "enabled": true
+.\src\powershell\Setup-NanerVendor.ps1 -VendorId NodeJS
 ```
-
-**Environment Variables:**
-```json
-"NODE_PATH": "%NANER_ROOT%\\vendor\\nodejs",
-"NPM_CONFIG_PREFIX": "%NANER_ROOT%\\home\\.npm-global"
-```
-
-**Benefits:**
-- No system Node.js installation required
-- Portable npm global packages
-- Consistent Node version across machines
-- npm cache in portable location
-
-**Implementation Checklist:**
-- [ ] Add Node.js to `Setup-NanerVendor.ps1`
-- [ ] Configure npm prefix to portable location
-- [ ] Add Node.js bin to PATH
-- [ ] Test: `node --version`, `npm install -g`
-- [ ] Document npm global package portability
 
 ---
 
-### 4.2 Python Portable Runtime
+### 4.2 Python Portable Runtime (Miniconda) ✅ COMPLETED
 
-**Status:** Planned
-**Effort:** ~1 hour
+**Status:** ✅ IMPLEMENTED (lines 117-132 in vendors.json)
 **Value:** High
 
-**Features:**
-- Portable Python installation
-- pip package manager
-- Virtual environment support
-- Portable site-packages
+**Implementation:**
+- ✅ Miniconda installer as static URL
+- ✅ PostInstall function: `Initialize-Miniconda` (Naner.Vendors.psm1:706-780)
+- ✅ Silent installation with portable configuration
+- ✅ conda pkgs_dirs → `home/.conda/pkgs`
+- ✅ conda envs_dirs → `home/.conda/envs`
+- ✅ Auto-activate base disabled
+- ✅ Version verification
 
-**Environment Variables:**
-```json
-"PYTHONHOME": "%NANER_ROOT%\\vendor\\python",
-"PYTHONPATH": "%NANER_ROOT%\\home\\.local\\lib\\python\\site-packages"
-```
+**Features Implemented:**
+- Miniconda3 (Python 3.x) distribution
+- conda package manager
+- pip included
+- Portable package and environment directories
+- Python + conda ready to use
 
-**Benefits:**
-- No system Python installation required
-- Portable pip packages
-- Scripts and automation tools portable
-
-**Implementation Checklist:**
-- [ ] Add Python to vendor downloads
-- [ ] Configure PYTHONHOME and PYTHONPATH
-- [ ] Add Python to PATH
-- [ ] Test pip install --user
-- [ ] Document virtual environment usage
-
----
-
-### 4.3 Go Toolchain (Optional)
-
-**Status:** Planned
-**Effort:** ~45 minutes
-**Value:** Medium
-
-**Features:**
-- Portable Go compiler and tools
-- GOPATH in portable location
-- Module cache portability
-
-**Environment Variables:**
-```json
-"GOROOT": "%NANER_ROOT%\\vendor\\go",
-"GOPATH": "%NANER_ROOT%\\home\\go"
+**To Enable:**
+```powershell
+# Edit config/vendors.json: set Miniconda "enabled": true
+.\src\powershell\Setup-NanerVendor.ps1 -VendorId Miniconda
 ```
 
 ---
 
-### 4.4 Rust Toolchain (Optional)
+### 4.3 Go Toolchain ✅ COMPLETED
 
-**Status:** Planned
-**Effort:** ~1 hour
+**Status:** ✅ IMPLEMENTED (lines 133-151 in vendors.json)
 **Value:** Medium
 
-**Features:**
-- Portable Rust compiler (rustc)
+**Implementation:**
+- ✅ Go releases via golang.org API
+- ✅ PostInstall function: `Initialize-Go` (Naner.Vendors.psm1:782-820)
+- ✅ GOPATH configured to `home/go`
+- ✅ GOPATH structure created (bin/, pkg/, src/)
+- ✅ Version display on installation
+
+**Features Implemented:**
+- Latest stable Go from go.dev
+- Portable GOPATH in home directory
+- Ready for `go get`, `go install`
+- Module cache portable
+
+**To Enable:**
+```powershell
+# Edit config/vendors.json: set Go "enabled": true
+.\src\powershell\Setup-NanerVendor.ps1 -VendorId Go
+```
+
+---
+
+### 4.4 Rust Toolchain ✅ COMPLETED
+
+**Status:** ✅ IMPLEMENTED (lines 152-176 in vendors.json)
+**Value:** Medium
+
+**Implementation:**
+- ✅ rustup-init.exe from static URL
+- ✅ PostInstall function: `Initialize-Rust` (Naner.Vendors.psm1:822-922)
+- ✅ CARGO_HOME → `home/.cargo`
+- ✅ RUSTUP_HOME → `home/.rustup`
+- ✅ Silent installation with default toolchain
+- ✅ Portable cargo config.toml created
+- ✅ Version verification (cargo, rustc, rustup)
+
+**Features Implemented:**
+- rustup toolchain manager
+- Stable Rust toolchain
 - Cargo package manager
-- Portable cargo registry cache
+- Portable registry cache
+- No PATH modification (Naner manages)
 
-**Environment Variables:**
-```json
-"CARGO_HOME": "%NANER_ROOT%\\home\\.cargo",
-"RUSTUP_HOME": "%NANER_ROOT%\\home\\.rustup"
+**To Enable:**
+```powershell
+# Edit config/vendors.json: set Rust "enabled": true
+.\src\powershell\Setup-NanerVendor.ps1 -VendorId Rust
 ```
+
+---
+
+### 4.5 Ruby Runtime ✅ COMPLETED (BONUS)
+
+**Status:** ✅ IMPLEMENTED (lines 177-196 in vendors.json)
+**Value:** Medium
+
+**Implementation:**
+- ✅ RubyInstaller2 devkit from GitHub releases
+- ✅ PostInstall function: `Initialize-Ruby` (Naner.Vendors.psm1:924-990)
+- ✅ GEM_HOME → `home/.gem`
+- ✅ Portable .gemrc configuration
+- ✅ Bundler auto-installed
+- ✅ Version verification
+
+**Features Implemented:**
+- Ruby runtime with devkit
+- gem package manager
+- Portable gem directory
+- Bundler included
+- No-document install by default
+
+**To Enable:**
+```powershell
+# Edit config/vendors.json: set Ruby "enabled": true
+.\src\powershell\Setup-NanerVendor.ps1 -VendorId Ruby
+```
+
+---
+
+### Phase 4 Success Metrics ✅ ACHIEVED
+
+- [x] All 5 runtimes (Node, Python, Go, Rust, Ruby) fully implemented
+- [x] PostInstall functions create portable configurations
+- [x] Package managers configured for portability
+- [x] PATH integration complete
+- [x] Vendor configuration with automatic updates
+- [x] Version verification on installation
+- [x] Nested directory structures normalized
 
 ---
 
@@ -747,21 +798,28 @@ See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
 ## Implementation Priorities Summary
 
 ### ✅ Completed (2026-01-07)
+
+**Phase 3: Portable Developer Identity**
 1. ✅ **Portable Git Configuration** - Complete developer identity trilogy
 2. ✅ **Bash Profile Support** - Complete shell portability
+
+**Phase 3.5: Testing, CI/CD & Quality Infrastructure**
 3. ✅ **Unit Testing Framework** - 94 Pester tests (100% passing)
 4. ✅ **CI/CD Pipeline** - 3 GitHub Actions workflows
 5. ✅ **Vendor Lock Files** - Reproducible installations
 6. ✅ **Structured Error Codes** - 30+ error codes with resolutions
 
-### Immediate (Next 2 Weeks)
-1. 🔥 **Node.js Runtime** - High demand from web developers
-2. 🔥 **Python Runtime** - High demand from automation/data users
+**Phase 4: Development Runtimes** (Already Implemented!)
+7. ✅ **Node.js Runtime** - Portable npm, global packages (vendor available)
+8. ✅ **Python/Miniconda Runtime** - Portable conda, pip (vendor available)
+9. ✅ **Go Toolchain** - Portable GOPATH, modules (vendor available)
+10. ✅ **Rust Toolchain** - Portable cargo, rustup (vendor available)
+11. ✅ **Ruby Runtime** - Portable gem, bundler (vendor available)
 
-### Short-Term (Next Month)
-3. **Go Runtime** - Systems programming support
-4. **Rust Runtime** - Performance-critical development
-5. **Project Templates** - Productivity boost
+### Immediate (Next 2 Weeks)
+1. 🔥 **Project Templates** - Scaffolding for common project types
+2. **Template Documentation** - Guide for using project templates
+3. **Vendor Documentation** - Complete guides for enabling optional vendors
 
 ### Medium-Term (2-3 Months)
 6. **VS Code Portable Settings** - Editor configuration portability
