@@ -847,22 +847,115 @@ Remove-NanerSecret -Name "GITHUB_TOKEN"
 
 ---
 
-### 9.3 Sync & Backup Integration
+### 9.3 Sync & Backup Integration ✅ COMPLETED
 
-**Status:** Concept
+**Status:** ✅ COMPLETED (2026-01-07)
 **Effort:** ~3-4 hours
 **Value:** Medium
 
-**Features:**
-- Cloud sync integration (OneDrive, Dropbox, Google Drive)
-- Automatic backup scripts
-- Conflict resolution for synced configs
-- Selective sync (sync profile but not cache)
-
 **Implementation:**
-- Scripts to watch for changes
-- Exclude patterns for sync
-- Documentation on cloud sync best practices
+- ✅ Complete backup/restore/sync system with 3 PowerShell scripts
+- ✅ Backup script: [Backup-NanerConfig.ps1](../src/powershell/Backup-NanerConfig.ps1) (240 lines)
+- ✅ Restore script: [Restore-NanerConfig.ps1](../src/powershell/Restore-NanerConfig.ps1) (230 lines)
+- ✅ Sync script: [Sync-NanerConfig.ps1](../src/powershell/Sync-NanerConfig.ps1) (300 lines)
+- ✅ Sync ignore patterns: [.syncignore](../.syncignore) (90 lines)
+- ✅ Comprehensive documentation: [SYNC-BACKUP.md](SYNC-BACKUP.md) (850+ lines)
+- ✅ 66 unit tests (100% passing)
+
+**Features Implemented:**
+
+**Backup Operations:**
+- ✅ Timestamped backups (naner-backup-YYYY-MM-DD-HHMMSS)
+- ✅ Compressed backup support (.zip archives)
+- ✅ Backup manifest with metadata (JSON)
+- ✅ Custom backup names and locations
+- ✅ SSH key inclusion (opt-in with security warnings)
+- ✅ Selective item backup
+
+**Restore Operations:**
+- ✅ Restore from directory or .zip backups
+- ✅ Dry-run mode (-WhatIf) to preview changes
+- ✅ Conflict resolution (interactive or -Force)
+- ✅ Selective restoration with -Exclude patterns
+- ✅ SSH key restoration (opt-in)
+- ✅ Automatic backup manifest reading
+
+**Cloud Sync:**
+- ✅ OneDrive integration
+- ✅ Dropbox integration
+- ✅ Google Drive integration
+- ✅ Custom sync path support
+- ✅ Three sync directions: Push, Pull, Bidirectional
+- ✅ Timestamp-based conflict resolution
+- ✅ Dry-run mode for preview
+- ✅ Smart filtering with .syncignore patterns
+
+**Security Features:**
+- ✅ SSH private keys excluded by default
+- ✅ Opt-in required for sensitive data
+- ✅ Clear security warnings for cloud storage
+- ✅ Git credentials excluded
+- ✅ Shell history excluded
+- ✅ Encryption recommendations in documentation
+
+**Smart Filtering (.syncignore):**
+- ✅ Package caches (.cargo, .conda, .npm-cache, .gem)
+- ✅ Build artifacts (go/pkg, go/bin)
+- ✅ Lock files (package-lock.json, Cargo.lock)
+- ✅ Binary files (*.exe, *.dll, *.zip)
+- ✅ Temporary files (*.log, *.tmp)
+- ✅ OS-specific files (.DS_Store, Thumbs.db)
+- ✅ Customizable patterns
+
+**What Gets Synced (Typical 1-5 MB):**
+- Shell configs (.bashrc, .gitconfig, .vimrc)
+- Editor settings (.vscode, .config)
+- SSH config (NOT keys)
+- PowerShell profile and modules
+- Project templates
+
+**What Doesn't Get Synced:**
+- Package caches (100s of MB)
+- SSH private keys (security)
+- Binary files and vendor dependencies
+- Shell history
+- Lock files (platform-specific)
+
+**Usage Examples:**
+```powershell
+# Backup
+.\src\powershell\Backup-NanerConfig.ps1 -Compress
+
+# Restore
+.\src\powershell\Restore-NanerConfig.ps1 -BackupPath "backup.zip" -WhatIf
+
+# Sync to OneDrive
+.\src\powershell\Sync-NanerConfig.ps1 -SyncProvider OneDrive -Direction Push
+```
+
+**Files Created:**
+- `src/powershell/Backup-NanerConfig.ps1` (240 lines)
+- `src/powershell/Restore-NanerConfig.ps1` (230 lines)
+- `src/powershell/Sync-NanerConfig.ps1` (300 lines)
+- `.syncignore` (90 lines)
+- `docs/SYNC-BACKUP.md` (850+ lines)
+- `tests/unit/Backup-Restore.Tests.ps1` (28 tests)
+- `tests/unit/Sync.Tests.ps1` (38 tests)
+
+**Testing:**
+- 66 comprehensive unit tests
+- 100% passing
+- Tests cover: parameters, security, ignore patterns, sync logic, error handling
+
+**Documentation:**
+- Quick start guide
+- What gets backed up (included/excluded lists)
+- Backup/restore/sync operation guides
+- Common workflows (5 detailed scenarios)
+- Advanced scenarios (encryption, Git integration, WSL migration)
+- Troubleshooting guide
+- Security considerations
+- Performance tips and best practices
 
 ---
 
@@ -1066,6 +1159,7 @@ See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
 | 1.1 | 2026-01-07 | Added Phase 3.5 (Testing/CI/CD/Quality), marked Phase 3 complete, updated priorities |
 | 1.2 | 2026-01-07 | Marked Phase 4 (Development Runtimes) and Phase 5.1-5.2 (Templates & VS Code) as completed |
 | 1.3 | 2026-01-07 | Marked Phase 5.3 (Windows Terminal) as completed, all immediate priorities achieved (vendor docs, tests, terminal config) |
+| 1.4 | 2026-01-07 | Marked Phase 9.3 (Sync & Backup Integration) as completed - 3 scripts, .syncignore, comprehensive docs, 66 tests |
 
 ---
 
@@ -1146,4 +1240,4 @@ See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
 
 **Next Review Date:** 2026-02-01
 **Roadmap Owner:** Project maintainers
-**Last Updated:** 2026-01-07 (v1.3 - Phase 5 fully complete, all immediate priorities achieved)
+**Last Updated:** 2026-01-07 (v1.4 - Phase 9.3 complete: Sync & Backup Integration)
