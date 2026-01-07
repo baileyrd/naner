@@ -93,12 +93,13 @@ if (-not (Test-Path $vendorsModule)) {
 }
 
 try {
-    Import-Module $commonModule -Force -ErrorAction Stop
-    Import-Module $archivesModule -Force -ErrorAction Stop
-    Import-Module $vendorsModule -Force -ErrorAction Stop
+    # Use dot-sourcing instead of Import-Module to ensure functions are available in script scope
+    . $commonModule
+    . $archivesModule
+    . $vendorsModule
 }
 catch {
-    Write-Host "ERROR importing modules: $_"
+    Write-Host "ERROR loading modules: $_"
     Write-Host "Stack trace: $($_.ScriptStackTrace)"
     exit 1
 }
