@@ -1,0 +1,6 @@
+# PowerShell Scripts Directory
+#
+# Place your custom PowerShell scripts here.
+# This directory is automatically added to PATH when running PowerShell in Naner.
+#
+# Any .ps1 script in this directory can be executed by name from anywhere.

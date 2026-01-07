@@ -34,3 +34,14 @@ home/.ssh/authorized_keys
 !home/.ssh/config
 !home/.ssh/README.md
 !home/.ssh/.gitkeep
+
+# PowerShell - Module cache and temporary files
+home/.local/share/powershell/
+home/Documents/PowerShell/Modules/*/
+!home/Documents/PowerShell/Modules/.gitkeep
+home/.cache/powershell/
+*.nupkg
+
+# PowerShell - Allow profile and custom scripts
+!home/.config/powershell/profile.ps1
+!home/Documents/PowerShell/Scripts/*.ps1

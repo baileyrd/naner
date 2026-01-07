@@ -1,0 +1,13 @@
+# PowerShell Modules Directory
+#
+# Place your portable PowerShell modules here.
+# They will be automatically available when running PowerShell in Naner.
+#
+# Install modules here with:
+#   Install-Module -Name ModuleName -Scope CurrentUser
+#
+# Popular modules to consider:
+# - posh-git (Git integration)
+# - PSReadLine (enhanced command line editing)
+# - Oh-My-Posh (terminal theming)
+# - Terminal-Icons (file icons in directory listings)
