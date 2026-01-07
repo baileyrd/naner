@@ -331,21 +331,21 @@ $vendorConfig = [ordered]@{
         PostInstall = {
             param($extractPath)
             Write-Status "Configuring MSYS2..."
-            
+
             # Initialize MSYS2
             $msys2Shell = Join-Path $extractPath "msys2_shell.cmd"
-            
+
             if (Test-Path $msys2Shell) {
                 Write-Info "Initializing MSYS2 (this may take a few minutes)..."
-                
+
                 # First run to initialize
                 & $msys2Shell -defterm -no-start -c "exit" 2>&1 | Out-Null
                 Start-Sleep -Seconds 2
-                
+
                 # Update package database
                 Write-Info "Updating package database..."
                 & $msys2Shell -defterm -no-start -c "pacman -Sy --noconfirm" 2>&1 | Out-Null
-                
+
                 # Install essential packages
                 Write-Info "Installing essential packages (git, make, gcc, etc.)..."
                 $packages = @(
@@ -359,14 +359,83 @@ $vendorConfig = [ordered]@{
                     "zip",
                     "unzip"
                 )
-                
+
                 $packageList = $packages -join " "
                 & $msys2Shell -defterm -no-start -c "pacman -S --noconfirm $packageList" 2>&1 | Out-Null
-                
+
                 Write-Success "MSYS2 configured with essential packages"
             } else {
                 Write-Failure "MSYS2 shell script not found"
             }
+        }
+    }
+
+    NodeJS = @{
+        Name = "Node.js"
+        ExtractDir = "nodejs"
+        GetLatestRelease = {
+            # Fallback to a recent LTS version if API fails
+            $fallbackUrl = "https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip"
+            return Get-LatestGitHubRelease -Repo "nodejs/node" -AssetPattern "*win-x64.zip" -FallbackUrl $fallbackUrl
+        }
+        PostInstall = {
+            param($extractPath)
+            Write-Status "Configuring Node.js..."
+
+            # Node.js zip contains a versioned folder (e.g., node-v20.11.0-win-x64)
+            # Move contents up one level
+            $subDirs = Get-ChildItem $extractPath -Directory -ErrorAction SilentlyContinue
+
+            if ($subDirs.Count -eq 1 -and $subDirs[0].Name -match '^node-v[\d\.]+-win-x64$') {
+                Write-Info "Found nested directory: $($subDirs[0].Name), moving contents up..."
+                $nestedDir = $subDirs[0].FullName
+
+                # Move contents up one level
+                Get-ChildItem $nestedDir | Move-Item -Destination $extractPath -Force
+
+                # Remove the now-empty nested directory
+                Remove-Item $nestedDir -Force -ErrorAction SilentlyContinue
+            }
+
+            # Verify Node.js executables exist
+            $nodeExe = Join-Path $extractPath "node.exe"
+            $npmCmd = Join-Path $extractPath "npm.cmd"
+            $npxCmd = Join-Path $extractPath "npx.cmd"
+
+            if (Test-Path $nodeExe) {
+                # Get Node.js version
+                $nodeVersion = & $nodeExe --version 2>&1
+                Write-Success "Node.js installed: $nodeVersion"
+            } else {
+                Write-Warning "node.exe not found at expected location"
+            }
+
+            if (Test-Path $npmCmd) {
+                # Get npm version
+                $npmVersion = & $nodeExe (Join-Path $extractPath "node_modules\npm\bin\npm-cli.js") --version 2>&1
+                Write-Success "npm installed: v$npmVersion"
+            } else {
+                Write-Warning "npm not found at expected location"
+            }
+
+            # Configure npm to use portable directories
+            Write-Info "Configuring npm for portable usage..."
+
+            # Set npm prefix to portable location (for global packages)
+            $npmPrefix = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\.npm-global"
+            $npmCache = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\.npm-cache"
+
+            # Create directories
+            New-Item -ItemType Directory -Force -Path $npmPrefix | Out-Null
+            New-Item -ItemType Directory -Force -Path $npmCache | Out-Null
+
+            # Configure npm
+            & $nodeExe (Join-Path $extractPath "node_modules\npm\bin\npm-cli.js") config set prefix $npmPrefix --location=user 2>&1 | Out-Null
+            & $nodeExe (Join-Path $extractPath "node_modules\npm\bin\npm-cli.js") config set cache $npmCache --location=user 2>&1 | Out-Null
+
+            Write-Success "Node.js configured for portable usage"
+            Write-Info "  Global packages: $npmPrefix"
+            Write-Info "  npm cache: $npmCache"
         }
     }
 }

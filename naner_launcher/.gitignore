@@ -64,3 +64,9 @@ home/.bash_sessions/
 !home/.bashrc
 !home/.bash_profile
 !home/.bash_aliases
+
+# Node.js / npm - Protect cache and installed modules
+home/.npm-cache/
+home/.npm-global/
+home/.npm/
+home/.node_repl_history
