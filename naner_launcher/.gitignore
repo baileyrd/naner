@@ -1,0 +1,17 @@
+# User-specific configuration
+config/user-settings.json
+
+# Test files (keep examples)
+config/test-*.json
+
+# Build outputs
+dist/
+*.zip
+
+# Temporary files
+*.tmp
+*.log
+
+# OS-specific
+Thumbs.db
+.DS_Store
