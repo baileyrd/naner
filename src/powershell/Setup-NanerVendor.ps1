@@ -587,58 +587,53 @@ $vendorConfig = [ordered]@{
         Name = "Rust"
         ExtractDir = "rust"
         GetLatestRelease = {
-            try {
-                # Get latest stable Rust version
-                $rustVersion = (Invoke-WebRequest -Uri "https://static.rust-lang.org/dist/channel-rust-stable.toml" -UseBasicParsing).Content
-                if ($rustVersion -match 'version = "([^"]+)"') {
-                    $version = $matches[1]
-                    $filename = "rust-$version-x86_64-pc-windows-msvc.zip"
-
-                    return @{
-                        Version = $version
-                        Url = "https://static.rust-lang.org/dist/$filename"
-                        FileName = $filename
-                        Size = "~250"
-                    }
-                }
-            } catch {
-                Write-Warning "Could not fetch latest Rust release: $_"
-            }
-
-            # Fallback to known stable version
-            $fallbackVersion = "1.75.0"
-            $fallbackFile = "rust-$fallbackVersion-x86_64-pc-windows-msvc.zip"
+            # Use rustup-init.exe for Rust installation
             return @{
-                Version = $fallbackVersion
-                Url = "https://static.rust-lang.org/dist/$fallbackFile"
-                FileName = $fallbackFile
-                Size = "~250"
+                Version = "latest"
+                Url = "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe"
+                FileName = "rustup-init.exe"
+                Size = "~10"
             }
         }
         PostInstall = {
             param($extractPath)
+            Write-Status "Installing Rust via rustup..."
 
-            # Rust extracts to rust-<version>-<target> directory
-            $rustDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
-            if ($rustDir) {
-                $actualRustPath = $rustDir.FullName
+            # rustup-init.exe is the installer
+            $rustupInit = Join-Path $extractPath "rustup-init.exe"
 
-                # Move contents up one level
-                Get-ChildItem -Path $actualRustPath | Move-Item -Destination $extractPath -Force
-                Remove-Item -Path $actualRustPath -Force
-            }
+            if (Test-Path $rustupInit) {
+                Write-Info "Running rustup installation (this may take a few minutes)..."
 
-            $cargoExe = Join-Path $extractPath "cargo\bin\cargo.exe"
-            $rustcExe = Join-Path $extractPath "rustc\bin\rustc.exe"
+                # Configure portable Cargo/Rustup home
+                $nanerRoot = Split-Path (Split-Path $extractPath -Parent) -Parent
+                $cargoHome = Join-Path $nanerRoot "home\.cargo"
+                $rustupHome = Join-Path $nanerRoot "home\.rustup"
 
-            if ((Test-Path $cargoExe) -and (Test-Path $rustcExe)) {
-                Write-Info "  ✓ Rust installed successfully"
+                # Create directories
+                New-Item -ItemType Directory -Path $cargoHome -Force | Out-Null
+                New-Item -ItemType Directory -Path $rustupHome -Force | Out-Null
 
-                # Configure portable Cargo home
-                $cargoHome = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\.cargo"
-                if (-not (Test-Path $cargoHome)) {
-                    New-Item -ItemType Directory -Path $cargoHome -Force | Out-Null
-                    New-Item -ItemType Directory -Path (Join-Path $cargoHome "bin") -Force | Out-Null
+                # Set environment variables for installation
+                $env:CARGO_HOME = $cargoHome
+                $env:RUSTUP_HOME = $rustupHome
+
+                # Silent install arguments for rustup
+                $installArgs = @(
+                    "-y",
+                    "--default-toolchain", "stable",
+                    "--profile", "default",
+                    "--no-modify-path"
+                )
+
+                # Run installer
+                $process = Start-Process -FilePath $rustupInit -ArgumentList $installArgs -Wait -PassThru -NoNewWindow
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Success "Rust installed successfully via rustup"
+                    Remove-Item $rustupInit -Force -ErrorAction SilentlyContinue
+                } else {
+                    Write-Warning "Rustup installation returned exit code: $($process.ExitCode)"
                 }
 
                 # Create config.toml for portable registry
@@ -659,14 +654,30 @@ $vendorConfig = [ordered]@{
                     Set-Content -Path $cargoConfig -Value $configContent -Encoding UTF8
                 }
 
-                # Display version
-                $rustcVersion = & $rustcExe --version
-                $cargoVersion = & $cargoExe --version
-                Write-Info "  Rustc: $rustcVersion"
-                Write-Info "  Cargo: $cargoVersion"
+                # Verify executables
+                $cargoExe = Join-Path $cargoHome "bin\cargo.exe"
+                $rustcExe = Join-Path $cargoHome "bin\rustc.exe"
+                $rustupExe = Join-Path $cargoHome "bin\rustup.exe"
+
+                if (Test-Path $cargoExe) {
+                    $cargoVersion = & $cargoExe --version 2>&1
+                    Write-Success "Cargo: $cargoVersion"
+                }
+
+                if (Test-Path $rustcExe) {
+                    $rustcVersion = & $rustcExe --version 2>&1
+                    Write-Success "Rustc: $rustcVersion"
+                }
+
+                if (Test-Path $rustupExe) {
+                    $rustupVersion = & $rustupExe --version 2>&1
+                    Write-Success "Rustup: $rustupVersion"
+                }
+
                 Write-Info "  CARGO_HOME: $cargoHome"
+                Write-Info "  RUSTUP_HOME: $rustupHome"
             } else {
-                Write-Warning "Rust executables not found at expected location"
+                Write-Warning "rustup-init.exe not found at expected location"
             }
         }
     }
@@ -794,7 +805,8 @@ function Download-FileWithProgress {
             
             # Use .NET WebClient for better progress support
             $webClient = New-Object System.Net.WebClient
-            
+            $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
+
             # Register progress event
             $progressEventHandler = {
                 param($sender, $e)
