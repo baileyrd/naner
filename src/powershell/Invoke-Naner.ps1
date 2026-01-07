@@ -9,6 +9,9 @@
 .PARAMETER Profile
     The profile to launch. Defaults to the DefaultProfile in naner.json.
 
+.PARAMETER Environment
+    The environment to use. Defaults to the active environment or "default".
+
 .PARAMETER StartingDirectory
     The starting directory for the terminal session.
 
@@ -20,10 +23,13 @@
 
 .EXAMPLE
     .\Invoke-Naner.ps1
-    
+
 .EXAMPLE
     .\Invoke-Naner.ps1 -Profile Bash -StartingDirectory "C:\Projects"
-    
+
+.EXAMPLE
+    .\Invoke-Naner.ps1 -Environment "work"
+
 .EXAMPLE
     .\Invoke-Naner.ps1 -DebugMode
 #>
@@ -32,13 +38,16 @@
 param(
     [Parameter()]
     [string]$Profile,
-    
+
+    [Parameter()]
+    [string]$Environment,
+
     [Parameter()]
     [string]$StartingDirectory,
-    
+
     [Parameter()]
     [string]$ConfigPath,
-    
+
     [Parameter()]
     [switch]$DebugMode
 )
@@ -52,6 +61,12 @@ if (-not (Test-Path $commonModule)) {
 }
 
 Import-Module $commonModule -Force
+
+# Import environment management module
+$envModule = Join-Path $PSScriptRoot "Naner.Environments.psm1"
+if (Test-Path $envModule) {
+    Import-Module $envModule -Force
+}
 
 #region Helper Functions
 
@@ -185,10 +200,36 @@ try {
     Write-Host "Naner Terminal Launcher" -ForegroundColor Cyan
     Write-Host "========================" -ForegroundColor Cyan
     Write-Host ""
-    
+
     # Locate Naner root
     $nanerRoot = Find-NanerRoot
     Write-Host "Naner Root: $nanerRoot" -ForegroundColor Green
+
+    # Determine active environment
+    if (-not $Environment) {
+        if (Get-Command Get-ActiveNanerEnvironment -ErrorAction SilentlyContinue) {
+            $Environment = Get-ActiveNanerEnvironment -NanerRoot $nanerRoot
+        }
+        else {
+            $Environment = "default"
+        }
+    }
+
+    Write-Host "Environment: $Environment" -ForegroundColor Green
+
+    # Set HOME environment variable based on environment
+    if ($Environment -eq "default") {
+        $homeDir = Join-Path $nanerRoot "home"
+    }
+    else {
+        $homeDir = Join-Path $nanerRoot "home\environments\$Environment"
+
+        if (-not (Test-Path $homeDir)) {
+            throw "Environment '$Environment' not found at: $homeDir`nCreate it with: New-NanerEnvironment -Name '$Environment'"
+        }
+    }
+
+    Write-DebugInfo "HOME directory: $homeDir"
     
     # Determine config path
     if (-not $ConfigPath) {
@@ -262,14 +303,34 @@ try {
     $envVars = @{
         "PATH" = $unifiedPath
         "NANER_ROOT" = $nanerRoot
+        "NANER_ENVIRONMENT" = $Environment
     }
-    
+
     # Add custom environment variables from config
     if ($config.Environment.EnvironmentVariables) {
         foreach ($property in $config.Environment.EnvironmentVariables.PSObject.Properties) {
-            $expandedValue = Expand-NanerPath -Path $property.Value -NanerRoot $nanerRoot
-            $envVars[$property.Name] = $expandedValue
+            # Special handling for HOME - use environment-specific directory
+            if ($property.Name -eq "HOME") {
+                $envVars["HOME"] = $homeDir
+                Write-DebugInfo "Set HOME to: $homeDir"
+            }
+            else {
+                # Replace %NANER_ROOT%\home with actual home directory for environment
+                $value = $property.Value
+                if ($value -match '%NANER_ROOT%\\home') {
+                    $value = $value -replace '%NANER_ROOT%\\home', $homeDir
+                }
+
+                $expandedValue = Expand-NanerPath -Path $value -NanerRoot $nanerRoot
+                $envVars[$property.Name] = $expandedValue
+                Write-DebugInfo "Set $($property.Name) to: $expandedValue"
+            }
         }
+    }
+
+    # Ensure HOME is set correctly
+    if (-not $envVars.ContainsKey("HOME")) {
+        $envVars["HOME"] = $homeDir
     }
     
     # Build command line
