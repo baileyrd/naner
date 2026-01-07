@@ -91,3 +91,10 @@ home/.cargo/git/
 home/.cargo/.package-cache
 home/.cargo/bin/
 home/.rustup/
+
+# Ruby - Protect gem cache and installed gems
+home/.gem/cache/
+home/.gem/doc/
+home/.gem/extensions/
+home/.gem/specifications/
+home/.gem/bin/

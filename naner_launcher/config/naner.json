@@ -14,7 +14,9 @@
     "Conda": "%NANER_ROOT%\vendor\miniconda\Scripts\conda.exe",
     "Go": "%NANER_ROOT%\vendor\go\bin\go.exe",
     "Rustc": "%NANER_ROOT%\vendor\rust\rustc\bin\rustc.exe",
-    "Cargo": "%NANER_ROOT%\vendor\rust\cargo\bin\cargo.exe"
+    "Cargo": "%NANER_ROOT%\vendor\rust\cargo\bin\cargo.exe",
+    "Ruby": "%NANER_ROOT%\vendor\ruby\bin\ruby.exe",
+    "Gem": "%NANER_ROOT%\vendor\ruby\bin\gem.cmd"
   },
   
   "Environment": {
@@ -24,9 +26,11 @@
       "%NANER_ROOT%\home\.npm-global",
       "%NANER_ROOT%\home\go\bin",
       "%NANER_ROOT%\home\.cargo\bin",
+      "%NANER_ROOT%\home\.gem\bin",
       "%NANER_ROOT%\vendor\go\bin",
       "%NANER_ROOT%\vendor\rust\cargo\bin",
       "%NANER_ROOT%\vendor\rust\rustc\bin",
+      "%NANER_ROOT%\vendor\ruby\bin",
       "%NANER_ROOT%\vendor\miniconda",
       "%NANER_ROOT%\vendor\miniconda\Scripts",
       "%NANER_ROOT%\vendor\miniconda\Library\bin",
@@ -56,6 +60,8 @@
       "GOCACHE": "%NANER_ROOT%\home\.cache\go-build",
       "CARGO_HOME": "%NANER_ROOT%\home\.cargo",
       "RUSTUP_HOME": "%NANER_ROOT%\home\.rustup",
+      "GEM_HOME": "%NANER_ROOT%\home\.gem",
+      "GEM_PATH": "%NANER_ROOT%\home\.gem",
       "MSYSTEM": "MINGW64",
       "MSYS2_PATH_TYPE": "inherit"
     }

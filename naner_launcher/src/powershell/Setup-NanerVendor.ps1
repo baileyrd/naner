@@ -670,6 +670,106 @@ $vendorConfig = [ordered]@{
             }
         }
     }
+
+    Ruby = @{
+        Name = "Ruby"
+        ExtractDir = "ruby"
+        GetLatestRelease = {
+            try {
+                # Get latest Ruby version from RubyInstaller GitHub releases
+                $apiUrl = "https://api.github.com/repos/oneclick/rubyinstaller2/releases/latest"
+                $release = Invoke-RestMethod -Uri $apiUrl -Headers @{ "User-Agent" = "Naner-Setup" }
+
+                # Find Ruby+Devkit x64 7z archive
+                $asset = $release.assets | Where-Object {
+                    $_.name -match 'rubyinstaller-devkit-.*-x64\.7z$'
+                } | Select-Object -First 1
+
+                if ($asset) {
+                    # Extract version from filename (e.g., rubyinstaller-devkit-3.2.3-1-x64.7z)
+                    if ($asset.name -match 'rubyinstaller-devkit-([0-9.]+(?:-\d+)?)-x64\.7z') {
+                        $version = $matches[1]
+                    } else {
+                        $version = $release.tag_name -replace '^RubyInstaller-', ''
+                    }
+
+                    return @{
+                        Version = $version
+                        Url = $asset.browser_download_url
+                        FileName = $asset.name
+                        Size = [math]::Round($asset.size / 1MB, 2)
+                    }
+                }
+            } catch {
+                Write-Warning "Could not fetch latest Ruby release: $_"
+            }
+
+            # Fallback to known stable version
+            $fallbackVersion = "3.2.3-1"
+            $fallbackFile = "rubyinstaller-devkit-$fallbackVersion-x64.7z"
+            return @{
+                Version = $fallbackVersion
+                Url = "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-$fallbackVersion/$fallbackFile"
+                FileName = $fallbackFile
+                Size = "~180"
+            }
+        }
+        PostInstall = {
+            param($extractPath)
+
+            # Ruby extracts to rubyinstaller-<version>-x64 directory
+            $rubyDir = Get-ChildItem -Path $extractPath -Directory | Where-Object { $_.Name -match 'rubyinstaller' } | Select-Object -First 1
+            if ($rubyDir) {
+                $actualRubyPath = $rubyDir.FullName
+
+                # Move contents up one level
+                Get-ChildItem -Path $actualRubyPath | Move-Item -Destination $extractPath -Force
+                Remove-Item -Path $actualRubyPath -Force
+            }
+
+            $rubyExe = Join-Path $extractPath "bin\ruby.exe"
+            $gemExe = Join-Path $extractPath "bin\gem.cmd"
+
+            if ((Test-Path $rubyExe) -and (Test-Path $gemExe)) {
+                Write-Info "  ✓ Ruby installed successfully"
+
+                # Configure portable gem home
+                $gemHome = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\.gem"
+                if (-not (Test-Path $gemHome)) {
+                    New-Item -ItemType Directory -Path $gemHome -Force | Out-Null
+                }
+
+                # Create .gemrc for portable configuration
+                $homeDir = Split-Path (Split-Path $extractPath -Parent) -Parent | Join-Path -ChildPath "home"
+                $gemrc = Join-Path $homeDir ".gemrc"
+                if (-not (Test-Path $gemrc)) {
+                    $gemrcContent = @"
+# Portable gem configuration for Naner
+gem: --no-document
+install: --env-shebang
+update: --env-shebang
+"@
+                    Set-Content -Path $gemrc -Value $gemrcContent -Encoding UTF8
+                }
+
+                # Display version
+                $rubyVersion = & $rubyExe --version
+                $gemVersion = & $rubyExe (Join-Path $extractPath "bin\gem") --version
+                Write-Info "  Ruby: $rubyVersion"
+                Write-Info "  Gem: $gemVersion"
+                Write-Info "  GEM_HOME: $gemHome"
+
+                # Install bundler if not present
+                Write-Info "  Installing bundler..."
+                $env:GEM_HOME = $gemHome
+                $env:GEM_PATH = $gemHome
+                & $rubyExe (Join-Path $extractPath "bin\gem") install bundler --no-document 2>&1 | Out-Null
+                Write-Success "  Bundler installed"
+            } else {
+                Write-Warning "Ruby executables not found at expected location"
+            }
+        }
+    }
 }
 
 # Function to download file with progress
