@@ -271,11 +271,11 @@ naner-aliases() {
 
 # Quick access to Naner scripts
 naner-setup() {
-    "$NANER_ROOT/naner_launcher/src/powershell/Setup-NanerVendor.ps1" "$@"
+    "$NANER_ROOT/src/powershell/Setup-NanerVendor.ps1" "$@"
 }
 
 naner-test() {
-    "$NANER_ROOT/naner_launcher/src/powershell/Test-NanerInstallation.ps1" "$@"
+    "$NANER_ROOT/src/powershell/Test-NanerInstallation.ps1" "$@"
 }
 
 # ============================================================================

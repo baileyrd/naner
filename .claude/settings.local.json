@@ -5,7 +5,13 @@
       "Bash(dir:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(pwsh:*)",
+      "Bash(powershell -NoProfile -Command \"Import-Module ''c:\\\\Users\\\\BAILEYRD\\\\dev\\\\naner\\\\src\\\\powershell\\\\Naner.Vendors.psm1'' -ErrorAction Stop; Write-Host ''Module loaded successfully''\")",
+      "Bash(powershell -NoProfile -Command:*)",
+      "Bash(powershell:*)"
     ]
   }
 }
