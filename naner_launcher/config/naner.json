@@ -11,7 +11,8 @@
     "MSYS2Shell": "%NANER_ROOT%\vendor\msys64\msys2_shell.cmd",
     "NodeJS": "%NANER_ROOT%\vendor\nodejs\node.exe",
     "Python": "%NANER_ROOT%\vendor\miniconda\python.exe",
-    "Conda": "%NANER_ROOT%\vendor\miniconda\Scripts\conda.exe"
+    "Conda": "%NANER_ROOT%\vendor\miniconda\Scripts\conda.exe",
+    "Go": "%NANER_ROOT%\vendor\go\bin\go.exe"
   },
   
   "Environment": {
@@ -19,6 +20,8 @@
     "PathPrecedence": [
       "%NANER_ROOT%\bin",
       "%NANER_ROOT%\home\.npm-global",
+      "%NANER_ROOT%\home\go\bin",
+      "%NANER_ROOT%\vendor\go\bin",
       "%NANER_ROOT%\vendor\miniconda",
       "%NANER_ROOT%\vendor\miniconda\Scripts",
       "%NANER_ROOT%\vendor\miniconda\Library\bin",
@@ -43,6 +46,9 @@
       "CONDA_PKGS_DIRS": "%NANER_ROOT%\home\.conda\pkgs",
       "CONDA_ENVS_PATH": "%NANER_ROOT%\home\.conda\envs",
       "PYTHONUSERBASE": "%NANER_ROOT%\home\.local",
+      "GOROOT": "%NANER_ROOT%\vendor\go",
+      "GOPATH": "%NANER_ROOT%\home\go",
+      "GOCACHE": "%NANER_ROOT%\home\.cache\go-build",
       "MSYSTEM": "MINGW64",
       "MSYS2_PATH_TYPE": "inherit"
     }

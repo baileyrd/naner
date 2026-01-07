@@ -79,3 +79,8 @@ home/.jupyter/
 home/.ipython/
 *.pyc
 __pycache__/
+
+# Go - Protect cache and downloaded modules
+home/.cache/go-build/
+home/go/pkg/
+home/go/bin/

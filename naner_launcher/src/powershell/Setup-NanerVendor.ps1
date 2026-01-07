@@ -517,6 +517,71 @@ $vendorConfig = [ordered]@{
             }
         }
     }
+
+    Go = @{
+        Name = "Go"
+        ExtractDir = "go"
+        GetLatestRelease = {
+            try {
+                # Get latest stable Go version from golang.org
+                $goDownloadPage = Invoke-WebRequest -Uri "https://go.dev/dl/?mode=json" -UseBasicParsing
+                $releases = $goDownloadPage.Content | ConvertFrom-Json
+
+                # Find latest stable Windows AMD64 zip
+                $latestRelease = $releases | Where-Object { $_.stable -eq $true } | Select-Object -First 1
+                $asset = $latestRelease.files | Where-Object { $_.os -eq "windows" -and $_.arch -eq "amd64" -and $_.kind -eq "archive" } | Select-Object -First 1
+
+                if ($asset) {
+                    return @{
+                        Version = $latestRelease.version
+                        Url = "https://go.dev/dl/$($asset.filename)"
+                        FileName = $asset.filename
+                        Size = [math]::Round($asset.size / 1MB, 2)
+                    }
+                }
+            } catch {
+                Write-Warning "Could not fetch latest Go release: $_"
+            }
+
+            # Fallback to known stable version
+            $fallbackVersion = "go1.21.6"
+            $fallbackFile = "$fallbackVersion.windows-amd64.zip"
+            return @{
+                Version = $fallbackVersion
+                Url = "https://go.dev/dl/$fallbackFile"
+                FileName = $fallbackFile
+                Size = "~140"
+            }
+        }
+        PostInstall = {
+            param($extractPath)
+
+            # Go extracts to a 'go' subdirectory
+            $goRoot = $extractPath
+            $goExe = Join-Path $goRoot "bin\go.exe"
+
+            if (Test-Path $goExe) {
+                Write-Info "  ✓ Go installed successfully"
+
+                # Configure portable GOPATH
+                $goPath = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\go"
+                if (-not (Test-Path $goPath)) {
+                    New-Item -ItemType Directory -Path $goPath -Force | Out-Null
+                    New-Item -ItemType Directory -Path (Join-Path $goPath "bin") -Force | Out-Null
+                    New-Item -ItemType Directory -Path (Join-Path $goPath "pkg") -Force | Out-Null
+                    New-Item -ItemType Directory -Path (Join-Path $goPath "src") -Force | Out-Null
+                }
+
+                # Display version
+                $version = & $goExe version
+                Write-Info "  Version: $version"
+                Write-Info "  GOROOT: $goRoot"
+                Write-Info "  GOPATH: $goPath"
+            } else {
+                Write-Warning "Go executable not found at expected location"
+            }
+        }
+    }
 }
 
 # Function to download file with progress
