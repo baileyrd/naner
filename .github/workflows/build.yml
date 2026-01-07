@@ -1,0 +1,180 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Distribution
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell 7
+        uses: actions/setup-powershell@v1
+
+      - name: Get version from tag
+        id: get_version
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -match 'refs/tags/v(.+)') {
+            $version = $matches[1]
+          } else {
+            $version = "dev-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          }
+
+          Write-Host "Version: $version" -ForegroundColor Cyan
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build portable distribution
+        shell: pwsh
+        run: |
+          Write-Host "Building portable distribution..." -ForegroundColor Cyan
+
+          # Check if Build-NanerDistribution.ps1 exists
+          if (Test-Path ".\src\powershell\Build-NanerDistribution.ps1") {
+            .\src\powershell\Build-NanerDistribution.ps1 -OutputDir .\dist -SkipVendors
+            Write-Host "Distribution built successfully" -ForegroundColor Green
+          } else {
+            Write-Host "Build script not found, creating manual distribution..." -ForegroundColor Yellow
+
+            $distDir = ".\dist\naner-portable"
+            New-Item -Path $distDir -ItemType Directory -Force | Out-Null
+
+            # Copy essential files
+            $copyItems = @(
+              @{Source = ".\src"; Dest = "$distDir\src"},
+              @{Source = ".\config"; Dest = "$distDir\config"},
+              @{Source = ".\home"; Dest = "$distDir\home"},
+              @{Source = ".\docs"; Dest = "$distDir\docs"},
+              @{Source = ".\bin"; Dest = "$distDir\bin"},
+              @{Source = ".\README.md"; Dest = "$distDir\README.md"},
+              @{Source = ".\naner.bat"; Dest = "$distDir\naner.bat"}
+            )
+
+            foreach ($item in $copyItems) {
+              if (Test-Path $item.Source) {
+                Copy-Item -Path $item.Source -Destination $item.Dest -Recurse -Force
+                Write-Host "  Copied: $($item.Source)" -ForegroundColor Gray
+              }
+            }
+
+            # Create vendor directory placeholder
+            New-Item -Path "$distDir\vendor" -ItemType Directory -Force | Out-Null
+            Set-Content -Path "$distDir\vendor\README.txt" -Value "Vendor dependencies will be downloaded on first setup.`nRun Setup-NanerVendor.ps1 to install dependencies."
+
+            Write-Host "Manual distribution created successfully" -ForegroundColor Green
+          }
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Write-Host "Creating ZIP archive..." -ForegroundColor Cyan
+
+          $version = "${{ steps.get_version.outputs.version }}"
+          $zipName = "naner-portable-$version.zip"
+
+          if (Test-Path ".\dist\naner-portable") {
+            Compress-Archive -Path ".\dist\naner-portable\*" -DestinationPath ".\dist\$zipName" -Force
+            Write-Host "Created: $zipName" -ForegroundColor Green
+
+            # Show size
+            $size = [math]::Round((Get-Item ".\dist\$zipName").Length / 1MB, 2)
+            Write-Host "Size: $size MB" -ForegroundColor Gray
+          } else {
+            Write-Host "Distribution directory not found" -ForegroundColor Red
+            exit 1
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: naner-portable-${{ steps.get_version.outputs.version }}
+          path: dist/*.zip
+          retention-days: 90
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  validate-build:
+    name: Validate Build Artifacts
+    needs: build
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: naner-portable-*
+          path: artifacts
+
+      - name: Validate ZIP structure
+        shell: pwsh
+        run: |
+          Write-Host "Validating build artifacts..." -ForegroundColor Cyan
+
+          $zipFiles = Get-ChildItem -Path .\artifacts -Filter *.zip -Recurse
+
+          if ($zipFiles.Count -eq 0) {
+            Write-Host "No ZIP files found" -ForegroundColor Red
+            exit 1
+          }
+
+          foreach ($zip in $zipFiles) {
+            Write-Host "Validating: $($zip.Name)" -ForegroundColor Gray
+
+            # Extract to temp location
+            $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_validate_$([Guid]::NewGuid())"
+            Expand-Archive -Path $zip.FullName -DestinationPath $tempExtract
+
+            # Check for required files/directories
+            $requiredItems = @(
+              "src\powershell\Invoke-Naner.ps1",
+              "src\powershell\Setup-NanerVendor.ps1",
+              "config\naner.json",
+              "config\vendors.json",
+              "README.md"
+            )
+
+            $missing = @()
+            foreach ($item in $requiredItems) {
+              $fullPath = Join-Path $tempExtract $item
+              if (-not (Test-Path $fullPath)) {
+                $missing += $item
+              }
+            }
+
+            if ($missing.Count -gt 0) {
+              Write-Host "  [✗] Missing required files:" -ForegroundColor Red
+              $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+              Remove-Item $tempExtract -Recurse -Force
+              exit 1
+            } else {
+              Write-Host "  [OK] All required files present" -ForegroundColor Green
+            }
+
+            # Cleanup
+            Remove-Item $tempExtract -Recurse -Force
+          }
+
+          Write-Host ""
+          Write-Host "All build artifacts validated successfully" -ForegroundColor Green
