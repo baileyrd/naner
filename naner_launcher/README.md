@@ -69,6 +69,9 @@ naner_launcher/
 ## Development
 
 See [docs/dev/](docs/dev/) for developer documentation including:
+- [Code Quality Analysis](docs/dev/CODE-QUALITY-ANALYSIS.md) - DRY & SOLID principles
+- [C# Migration Roadmap](docs/dev/CSHARP-MIGRATION-ROADMAP.md) - Path to native executable
+- [Migration Quick Start](docs/dev/MIGRATION-QUICK-START.md) - Fast-track guide
 - Setup instructions
 - Testing guides
 - Troubleshooting
