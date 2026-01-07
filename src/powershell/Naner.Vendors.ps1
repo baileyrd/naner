@@ -225,11 +225,14 @@ function Get-WebScrapedRelease {
                 $baseUrl = [Uri]$ReleaseSource.url
                 # Build URL properly: combine base URL with relative path
                 $baseUri = "$($baseUrl.Scheme)://$($baseUrl.Host)"
-                $parentPath = Split-Path $baseUrl.AbsolutePath -Parent
-                # Normalize and combine (handle double slashes)
-                $combinedUrl = "$baseUri$parentPath/$relPath".Replace('\', '/').Replace('//', '/')
-                # Re-add the :// after http/https
-                $combinedUrl -replace '^(https?):/([^/])', '$1://$2'
+                # If URL ends with /, use the full path; otherwise use parent
+                $basePath = if ($ReleaseSource.url.EndsWith('/')) {
+                    $baseUrl.AbsolutePath
+                } else {
+                    Split-Path $baseUrl.AbsolutePath -Parent
+                }
+                # Normalize and combine
+                "$baseUri$basePath/$relPath".Replace('\', '/').Replace('//', '/') -replace '^(https?):/([^/])', '$1://$2'
             }
 
             # Extract just the filename (last part of path)
