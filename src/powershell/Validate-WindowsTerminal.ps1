@@ -12,9 +12,20 @@ param(
 
 $ErrorActionPreference = "Continue"
 
+# Import common utilities
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (Test-Path $commonModule) {
+    Import-Module $commonModule -Force
+}
+
 # Determine Naner root
 if (-not $NanerRoot) {
-    $NanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    if (Get-Command Get-NanerRootSimple -ErrorAction SilentlyContinue) {
+        $NanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
+    } else {
+        # Fallback for standalone usage
+        $NanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+    }
 }
 
 $terminalDir = Join-Path $NanerRoot "vendor\terminal"

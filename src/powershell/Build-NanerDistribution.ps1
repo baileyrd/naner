@@ -48,28 +48,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import common utilities
+# Import common utilities - REQUIRED
 $commonModule = Join-Path $PSScriptRoot "Common.psm1"
-if (Test-Path $commonModule) {
-    Import-Module $commonModule -Force
-} else {
-    Write-Warning "Common module not found. Using fallback functions."
-
-    function Write-Status {
-        param([string]$Message)
-        Write-Host "[*] $Message" -ForegroundColor Cyan
-    }
-
-    function Write-Success {
-        param([string]$Message)
-        Write-Host "[✓] $Message" -ForegroundColor Green
-    }
-
-    function Write-Info {
-        param([string]$Message)
-        Write-Host "    $Message" -ForegroundColor Gray
-    }
+if (-not (Test-Path $commonModule)) {
+    throw "Common.psm1 module not found at: $commonModule`nThis module is required for Build-NanerDistribution.ps1 to function."
 }
+
+Import-Module $commonModule -Force
 
 function Get-DirectorySize {
     param([string]$Path)

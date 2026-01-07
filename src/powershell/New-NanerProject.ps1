@@ -50,12 +50,14 @@ param(
     [switch]$NoInstall
 )
 
-# Import Common module for Write-* functions
+# Import common utilities - REQUIRED
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $commonModule = Join-Path $scriptDir "Common.psm1"
-if (Test-Path $commonModule) {
-    Import-Module $commonModule -Force
+if (-not (Test-Path $commonModule)) {
+    throw "Common.psm1 module not found at: $commonModule`nThis module is required for New-NanerProject.ps1 to function."
 }
+
+Import-Module $commonModule -Force
 
 function Write-ProjectHeader {
     Write-Host ""
@@ -166,7 +168,7 @@ Write-Host ""
 # Determine template source
 $nanerRoot = $env:NANER_ROOT
 if (-not $nanerRoot) {
-    $nanerRoot = Split-Path (Split-Path (Split-Path $scriptDir -Parent) -Parent) -Parent
+    $nanerRoot = Get-NanerRootSimple -ScriptRoot $scriptDir
 }
 
 $templateSource = Join-Path $nanerRoot "home\Templates\$Type"

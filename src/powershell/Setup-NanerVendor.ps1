@@ -65,35 +65,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import common utilities
+# Import common utilities - REQUIRED
 $commonModule = Join-Path $PSScriptRoot "Common.psm1"
-if (Test-Path $commonModule) {
-    Import-Module $commonModule -Force
-} else {
-    Write-Warning "Common module not found at: $commonModule"
-    Write-Warning "Some functions may be unavailable. Continuing with local definitions..."
-
-    # Fallback: Define minimal functions if Common.psm1 is not available
-    function Write-Status {
-        param([string]$Message)
-        Write-Host "[*] $Message" -ForegroundColor Cyan
-    }
-
-    function Write-Success {
-        param([string]$Message)
-        Write-Host "[✓] $Message" -ForegroundColor Green
-    }
-
-    function Write-Failure {
-        param([string]$Message)
-        Write-Host "[✗] $Message" -ForegroundColor Red
-    }
-
-    function Write-Info {
-        param([string]$Message)
-        Write-Host "    $Message" -ForegroundColor Gray
-    }
+if (-not (Test-Path $commonModule)) {
+    throw "Common.psm1 module not found at: $commonModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
+
+Import-Module $commonModule -Force
 
 # Determine Naner root
 if (-not $NanerRoot) {

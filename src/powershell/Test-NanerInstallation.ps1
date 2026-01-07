@@ -43,11 +43,13 @@ param(
 
 $ErrorActionPreference = "Continue"
 
-# Import common utilities (for path expansion if needed)
+# Import common utilities - REQUIRED
 $commonModule = Join-Path $PSScriptRoot "Common.psm1"
-if (Test-Path $commonModule) {
-    Import-Module $commonModule -Force -ErrorAction SilentlyContinue
+if (-not (Test-Path $commonModule)) {
+    throw "Common.psm1 module not found at: $commonModule`nThis module is required for Test-NanerInstallation.ps1 to function."
 }
+
+Import-Module $commonModule -Force
 
 # Test results tracking
 $testResults = @{

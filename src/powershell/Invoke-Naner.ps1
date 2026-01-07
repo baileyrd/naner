@@ -45,6 +45,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Import common utilities - REQUIRED
+$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+if (-not (Test-Path $commonModule)) {
+    throw "Common.psm1 module not found at: $commonModule`nThis module is required for Invoke-Naner.ps1 to function."
+}
+
+Import-Module $commonModule -Force
+
 #region Helper Functions
 
 function Write-DebugInfo {
@@ -54,115 +62,7 @@ function Write-DebugInfo {
     }
 }
 
-function Find-NanerRoot {
-    <#
-    .SYNOPSIS
-        Locates the Naner root directory by traversing up from the script location.
-    #>
-    $currentPath = $PSScriptRoot
-    $maxDepth = 10
-    $depth = 0
-    
-    Write-DebugInfo "Starting search from: $currentPath"
-    
-    while ($depth -lt $maxDepth) {
-        Write-DebugInfo "Checking depth $depth : $currentPath"
-        
-        # Check for marker directories
-        $binPath = Join-Path $currentPath "bin"
-        $vendorPath = Join-Path $currentPath "vendor"
-        $configPath = Join-Path $currentPath "config"
-        
-        if ((Test-Path $binPath) -and (Test-Path $vendorPath) -and (Test-Path $configPath)) {
-            Write-DebugInfo "Found Naner root at: $currentPath"
-            return $currentPath
-        }
-        
-        $parentPath = Split-Path $currentPath -Parent
-        if (-not $parentPath -or $parentPath -eq $currentPath) {
-            break
-        }
-        
-        $currentPath = $parentPath
-        $depth++
-    }
-    
-    throw "Could not locate Naner root directory. Ensure bin/, vendor/, and config/ folders exist."
-}
-
-function Expand-NanerPath {
-    <#
-    .SYNOPSIS
-        Expands paths containing %NANER_ROOT% and environment variables.
-    #>
-    param(
-        [Parameter(Mandatory)]
-        [string]$Path,
-        
-        [Parameter(Mandatory)]
-        [string]$NanerRoot
-    )
-    
-    # Replace %NANER_ROOT% first
-    $expanded = $Path -replace '%NANER_ROOT%', $NanerRoot
-    
-    # Handle Windows-style environment variables (%VAR%)
-    $expanded = [System.Environment]::ExpandEnvironmentVariables($expanded)
-    
-    # Handle PowerShell-style environment variables ($env:VAR)
-    if ($expanded -match '\$env:(\w+)') {
-        $matches | ForEach-Object {
-            $varName = $_.Groups[1].Value
-            $varValue = [System.Environment]::GetEnvironmentVariable($varName)
-            if ($varValue) {
-                $expanded = $expanded -replace "\`$env:$varName", $varValue
-            }
-        }
-    }
-    
-    return $expanded
-}
-
-function Get-NanerConfig {
-    <#
-    .SYNOPSIS
-        Loads and validates the Naner configuration.
-    #>
-    param(
-        [Parameter(Mandatory)]
-        [string]$ConfigPath,
-        
-        [Parameter(Mandatory)]
-        [string]$NanerRoot
-    )
-    
-    if (-not (Test-Path $ConfigPath)) {
-        throw "Configuration file not found: $ConfigPath"
-    }
-    
-    Write-DebugInfo "Loading configuration from: $ConfigPath"
-    
-    $configJson = Get-Content $ConfigPath -Raw -Encoding UTF8
-    $config = $configJson | ConvertFrom-Json
-    
-    # Validate vendor paths
-    if ($config.VendorPaths) {
-        Write-DebugInfo "Validating vendor paths..."
-        
-        foreach ($property in $config.VendorPaths.PSObject.Properties) {
-            $expandedPath = Expand-NanerPath -Path $property.Value -NanerRoot $NanerRoot
-            
-            if (-not (Test-Path $expandedPath)) {
-                Write-Warning "Vendor path not found: $($property.Name) = $expandedPath"
-            }
-            else {
-                Write-DebugInfo "  ✓ $($property.Name): $expandedPath"
-            }
-        }
-    }
-    
-    return $config
-}
+# Note: Find-NanerRoot, Expand-NanerPath, and Get-NanerConfig are now imported from Common.psm1
 
 function Build-UnifiedPath {
     <#
