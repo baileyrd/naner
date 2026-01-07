@@ -429,7 +429,7 @@ function Install-VendorPackage {
                 Write-Status "Extracting $($Vendor.name)..."
             }
 
-            $success = Expand-VendorArchive -ArchivePath $downloadPath -DestinationPath $VendorDir -ExtractDir $Vendor.extractDir
+            $success = Expand-VendorArchive -ArchivePath $downloadPath -DestinationPath $extractPath -VendorDir $VendorDir
 
             if (-not $success) {
                 if (Get-Command Write-Failure -ErrorAction SilentlyContinue) {
