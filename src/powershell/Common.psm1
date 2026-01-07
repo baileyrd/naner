@@ -24,7 +24,7 @@ function Write-Success {
         Writes a success message in green.
     #>
     param([string]$Message)
-    Write-Host "[✓] $Message" -ForegroundColor Green
+    Write-Host "[OK] $Message" -ForegroundColor Green
 }
 
 function Write-Failure {
@@ -194,16 +194,7 @@ function Expand-NanerPath {
     # Handle Windows-style environment variables (%VAR%)
     $expanded = [System.Environment]::ExpandEnvironmentVariables($expanded)
 
-    # Handle PowerShell-style environment variables ($env:VAR)
-    if ($expanded -match '\$env:(\w+)') {
-        $matches | ForEach-Object {
-            $varName = $_.Groups[1].Value
-            $varValue = [System.Environment]::GetEnvironmentVariable($varName)
-            if ($varValue) {
-                $expanded = $expanded -replace "\`$env:$varName", $varValue
-            }
-        }
-    }
+    # Note: PowerShell-style environment variables are handled by ExpandEnvironmentVariables above
 
     return $expanded
 }
@@ -270,7 +261,7 @@ function Get-NanerConfig {
                 Write-Warning "Vendor path not found: $($property.Name) = $expandedPath"
             }
             else {
-                Write-Verbose "  ✓ $($property.Name): $expandedPath"
+                Write-Verbose "  [OK] $($property.Name): $expandedPath"
             }
         }
     }
