@@ -215,16 +215,25 @@ function Get-WebScrapedRelease {
         $response = Invoke-WebRequest -Uri $ReleaseSource.url -UseBasicParsing
 
         if ($response.Content -match $ReleaseSource.pattern) {
-            $fileName = $matches[1]
+            $relPath = $matches[1]
             $version = if ($matches.Count -gt 2) { $matches[2] } else { "latest" }
 
             # Construct full URL if needed
-            $downloadUrl = if ($fileName -match '^https?://') {
-                $fileName
+            $downloadUrl = if ($relPath -match '^https?://') {
+                $relPath
             } else {
                 $baseUrl = [Uri]$ReleaseSource.url
-                "$($baseUrl.Scheme)://$($baseUrl.Host)$(Split-Path $baseUrl.AbsolutePath -Parent)/$fileName"
+                # Build URL properly: combine base URL with relative path
+                $baseUri = "$($baseUrl.Scheme)://$($baseUrl.Host)"
+                $parentPath = Split-Path $baseUrl.AbsolutePath -Parent
+                # Normalize and combine (handle double slashes)
+                $combinedUrl = "$baseUri$parentPath/$relPath".Replace('\', '/').Replace('//', '/')
+                # Re-add the :// after http/https
+                $combinedUrl -replace '^(https?):/([^/])', '$1://$2'
             }
+
+            # Extract just the filename (last part of path)
+            $fileName = Split-Path $relPath -Leaf
 
             return @{
                 Version = $version
@@ -980,17 +989,5 @@ update: --env-shebang
 #endregion
 
 # Export module functions
-Export-ModuleMember -Function @(
-    'Get-VendorConfiguration',
-    'Get-VendorRelease',
-    'Install-VendorPackage',
-    'Initialize-SevenZip',
-    'Initialize-PowerShell',
-    'Initialize-WindowsTerminal',
-    'Initialize-MSYS2',
-    'Initialize-NodeJS',
-    'Initialize-Miniconda',
-    'Initialize-Go',
-    'Initialize-Rust',
-    'Initialize-Ruby'
-)
+# Export-ModuleMember removed - this is a .ps1 file for dot-sourcing, not a module
+# All functions are automatically available when dot-sourced
