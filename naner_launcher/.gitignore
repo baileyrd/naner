@@ -70,3 +70,12 @@ home/.npm-cache/
 home/.npm-global/
 home/.npm/
 home/.node_repl_history
+
+# Python / Conda - Protect cache and environments
+home/.conda/
+home/.local/lib/python*/
+home/.local/share/jupyter/
+home/.jupyter/
+home/.ipython/
+*.pyc
+__pycache__/

@@ -438,6 +438,85 @@ $vendorConfig = [ordered]@{
             Write-Info "  npm cache: $npmCache"
         }
     }
+
+    Miniconda = @{
+        Name = "Miniconda (Python)"
+        ExtractDir = "miniconda"
+        GetLatestRelease = {
+            # Miniconda3 latest version (Python 3.11+)
+            $fallbackUrl = "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+
+            return @{
+                Version = "latest"
+                Url = $fallbackUrl
+                FileName = "Miniconda3-latest-Windows-x86_64.exe"
+                Size = "~50"
+            }
+        }
+        PostInstall = {
+            param($extractPath)
+            Write-Status "Installing Miniconda..."
+
+            # Miniconda comes as an .exe installer
+            $installerPath = Join-Path $extractPath "Miniconda3-latest-Windows-x86_64.exe"
+
+            if (Test-Path $installerPath) {
+                Write-Info "Running Miniconda silent installation (this may take a few minutes)..."
+
+                # Silent install arguments
+                $installArgs = @(
+                    "/InstallationType=JustMe",
+                    "/RegisterPython=0",
+                    "/S",
+                    "/D=$extractPath"
+                )
+
+                # Run installer
+                $process = Start-Process -FilePath $installerPath -ArgumentList $installArgs -Wait -PassThru
+
+                if ($process.ExitCode -eq 0) {
+                    Write-Success "Miniconda installed successfully"
+                    Remove-Item $installerPath -Force -ErrorAction SilentlyContinue
+                } else {
+                    Write-Warning "Miniconda installation returned exit code: $($process.ExitCode)"
+                }
+            }
+
+            # Verify executables
+            $pythonExe = Join-Path $extractPath "python.exe"
+            $condaExe = Join-Path $extractPath "Scripts\conda.exe"
+
+            if (Test-Path $pythonExe) {
+                $pythonVersion = & $pythonExe --version 2>&1
+                Write-Success "Python installed: $pythonVersion"
+            }
+
+            if (Test-Path $condaExe) {
+                $condaVersion = & $condaExe --version 2>&1
+                Write-Success "Conda installed: $condaVersion"
+            }
+
+            # Configure conda for portable usage
+            Write-Info "Configuring conda for portable usage..."
+
+            $nanerRoot = Split-Path (Split-Path $extractPath -Parent) -Parent
+            $condaPkgs = Join-Path $nanerRoot "home\.conda\pkgs"
+            $condaEnvs = Join-Path $nanerRoot "home\.conda\envs"
+
+            New-Item -ItemType Directory -Force -Path $condaPkgs | Out-Null
+            New-Item -ItemType Directory -Force -Path $condaEnvs | Out-Null
+
+            if (Test-Path $condaExe) {
+                & $condaExe config --add pkgs_dirs $condaPkgs 2>&1 | Out-Null
+                & $condaExe config --add envs_dirs $condaEnvs 2>&1 | Out-Null
+                & $condaExe config --set auto_activate_base false 2>&1 | Out-Null
+
+                Write-Success "Conda configured for portable usage"
+                Write-Info "  Package cache: $condaPkgs"
+                Write-Info "  Environments: $condaEnvs"
+            }
+        }
+    }
 }
 
 # Function to download file with progress
