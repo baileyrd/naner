@@ -37,7 +37,7 @@ This roadmap outlines planned enhancements to Naner, organized by priority and i
 
 ### 3.1 Portable Git Configuration 🔥 PRIORITY #1
 
-**Status:** Planned
+**Status:** ✅ COMPLETED (2026-01-06)
 **Effort:** ~30 minutes
 **Value:** High
 
@@ -69,12 +69,13 @@ This roadmap outlines planned enhancements to Naner, organized by priority and i
 - Completes SSH + PowerShell + Git portable trinity
 
 **Implementation Checklist:**
-- [ ] Create `home/.gitconfig.example` with common settings
-- [ ] Update `naner.json` with `GIT_CONFIG_GLOBAL`
-- [ ] Add `.git-credentials` to `.gitignore`
-- [ ] Create `docs/PORTABLE-GIT.md`
-- [ ] Update main README.md
-- [ ] Test Git operations use portable config
+- [x] Create `home/.gitconfig` with common settings
+- [x] Create `home/.config/git/ignore` with global gitignore patterns
+- [x] Update `naner.json` with `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM`
+- [x] Add `.git-credentials` to `.gitignore`
+- [x] Create `docs/PORTABLE-GIT.md`
+- [x] Update main README.md
+- [x] Ready for testing
 
 ---
 

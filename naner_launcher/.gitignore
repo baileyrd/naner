@@ -45,3 +45,13 @@ home/.cache/powershell/
 # PowerShell - Allow profile and custom scripts
 !home/.config/powershell/profile.ps1
 !home/Documents/PowerShell/Scripts/*.ps1
+
+# Git - Protect credentials and sensitive data
+home/.git-credentials
+home/.gitconfig.local
+home/.config/git/credentials
+
+# Git - Allow main config and global ignore
+!home/.gitconfig
+!home/.config/git/ignore
+!home/.config/git/.gitkeep
