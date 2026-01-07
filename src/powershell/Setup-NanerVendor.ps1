@@ -92,13 +92,21 @@ if (-not (Test-Path $vendorsModule)) {
     throw "Naner.Vendors.psm1 module not found at: $vendorsModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
 
-Import-Module $commonModule -Force
-Import-Module $archivesModule -Force
-Import-Module $vendorsModule -Force
+try {
+    Import-Module $commonModule -Force -ErrorAction Stop
+    Import-Module $archivesModule -Force -ErrorAction Stop
+    Import-Module $vendorsModule -Force -ErrorAction Stop
+}
+catch {
+    Write-Host "ERROR importing modules: $_"
+    Write-Host "Stack trace: $($_.ScriptStackTrace)"
+    exit 1
+}
 
 # Determine Naner root
 if (-not $NanerRoot) {
-    $NanerRoot = Get-NanerRootSimple -ScriptRoot $PSScriptRoot
+    # Calculate Naner root (script is in src/powershell, so go up two levels)
+    $NanerRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 }
 
 if (-not (Test-Path $NanerRoot)) {
