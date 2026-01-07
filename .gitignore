@@ -1,5 +1,6 @@
 # User-specific configuration
 config/user-settings.json
+vendor/*
 
 # Test files (keep examples)
 config/test-*.json
