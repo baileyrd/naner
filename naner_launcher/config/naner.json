@@ -23,6 +23,8 @@
     ],
     "EnvironmentVariables": {
       "NANER_ROOT": "%NANER_ROOT%",
+      "HOME": "%NANER_ROOT%\\home",
+      "SSH_HOME": "%NANER_ROOT%\\home\\.ssh",
       "MSYSTEM": "MINGW64",
       "MSYS2_PATH_TYPE": "inherit"
     }

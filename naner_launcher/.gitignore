@@ -15,3 +15,22 @@ dist/
 # OS-specific
 Thumbs.db
 .DS_Store
+
+# SSH - Protect private keys and sensitive files
+home/.ssh/id_rsa
+home/.ssh/id_dsa
+home/.ssh/id_ecdsa
+home/.ssh/id_ed25519
+home/.ssh/*_rsa
+home/.ssh/*_dsa
+home/.ssh/*_ecdsa
+home/.ssh/*_ed25519
+home/.ssh/known_hosts
+home/.ssh/known_hosts.old
+home/.ssh/authorized_keys
+
+# SSH - Allow public keys, config, and documentation
+!home/.ssh/*.pub
+!home/.ssh/config
+!home/.ssh/README.md
+!home/.ssh/.gitkeep

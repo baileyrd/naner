@@ -14,6 +14,7 @@ naner_launcher/
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md          # System architecture overview
 │   ├── IMPLEMENTATION-GUIDE.md  # Implementation details
+│   ├── PORTABLE-SSH.md          # Portable SSH configuration guide
 │   ├── QUICK-START.md          # Quick start guide
 │   ├── README-VENDOR.md        # Vendor dependency info
 │   └── dev/                    # Developer documentation
@@ -30,6 +31,8 @@ naner_launcher/
 │       ├── TROUBLESHOOTING-CUSTOM-PROFILES.md
 │       ├── USER-SETTINGS-EXAMPLES.md
 │       └── WINDOWS-TERMINAL-PORTABLE.md
+├── home/                        # Portable home directory
+│   └── .ssh/                   # Portable SSH configuration (keys gitignored)
 ├── src/                         # Source code
 │   └── powershell/             # PowerShell scripts
 │       ├── Build-NanerDistribution.ps1
@@ -65,6 +68,7 @@ naner_launcher/
 - **[Architecture](docs/ARCHITECTURE.md)** - Technical architecture overview
 - **[Implementation Guide](docs/IMPLEMENTATION-GUIDE.md)** - Detailed implementation
 - **[Vendor Setup](docs/README-VENDOR.md)** - Vendor dependency information
+- **[Portable SSH](docs/PORTABLE-SSH.md)** - Portable SSH configuration guide
 
 ## Development
 
