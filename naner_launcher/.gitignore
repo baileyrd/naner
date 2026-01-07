@@ -84,3 +84,10 @@ __pycache__/
 home/.cache/go-build/
 home/go/pkg/
 home/go/bin/
+
+# Rust - Protect cargo cache and rustup data
+home/.cargo/registry/
+home/.cargo/git/
+home/.cargo/.package-cache
+home/.cargo/bin/
+home/.rustup/

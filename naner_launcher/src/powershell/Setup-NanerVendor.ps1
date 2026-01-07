@@ -582,6 +582,94 @@ $vendorConfig = [ordered]@{
             }
         }
     }
+
+    Rust = @{
+        Name = "Rust"
+        ExtractDir = "rust"
+        GetLatestRelease = {
+            try {
+                # Get latest stable Rust version
+                $rustVersion = (Invoke-WebRequest -Uri "https://static.rust-lang.org/dist/channel-rust-stable.toml" -UseBasicParsing).Content
+                if ($rustVersion -match 'version = "([^"]+)"') {
+                    $version = $matches[1]
+                    $filename = "rust-$version-x86_64-pc-windows-msvc.zip"
+
+                    return @{
+                        Version = $version
+                        Url = "https://static.rust-lang.org/dist/$filename"
+                        FileName = $filename
+                        Size = "~250"
+                    }
+                }
+            } catch {
+                Write-Warning "Could not fetch latest Rust release: $_"
+            }
+
+            # Fallback to known stable version
+            $fallbackVersion = "1.75.0"
+            $fallbackFile = "rust-$fallbackVersion-x86_64-pc-windows-msvc.zip"
+            return @{
+                Version = $fallbackVersion
+                Url = "https://static.rust-lang.org/dist/$fallbackFile"
+                FileName = $fallbackFile
+                Size = "~250"
+            }
+        }
+        PostInstall = {
+            param($extractPath)
+
+            # Rust extracts to rust-<version>-<target> directory
+            $rustDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
+            if ($rustDir) {
+                $actualRustPath = $rustDir.FullName
+
+                # Move contents up one level
+                Get-ChildItem -Path $actualRustPath | Move-Item -Destination $extractPath -Force
+                Remove-Item -Path $actualRustPath -Force
+            }
+
+            $cargoExe = Join-Path $extractPath "cargo\bin\cargo.exe"
+            $rustcExe = Join-Path $extractPath "rustc\bin\rustc.exe"
+
+            if ((Test-Path $cargoExe) -and (Test-Path $rustcExe)) {
+                Write-Info "  ✓ Rust installed successfully"
+
+                # Configure portable Cargo home
+                $cargoHome = Join-Path (Split-Path (Split-Path $extractPath -Parent) -Parent) "home\.cargo"
+                if (-not (Test-Path $cargoHome)) {
+                    New-Item -ItemType Directory -Path $cargoHome -Force | Out-Null
+                    New-Item -ItemType Directory -Path (Join-Path $cargoHome "bin") -Force | Out-Null
+                }
+
+                # Create config.toml for portable registry
+                $cargoConfig = Join-Path $cargoHome "config.toml"
+                if (-not (Test-Path $cargoConfig)) {
+                    $configContent = @"
+# Portable Cargo configuration for Naner
+
+[build]
+# Number of parallel jobs, defaults to # of CPUs
+# jobs = 1
+
+[term]
+# Verbosity
+# verbose = false
+# color = 'auto'
+"@
+                    Set-Content -Path $cargoConfig -Value $configContent -Encoding UTF8
+                }
+
+                # Display version
+                $rustcVersion = & $rustcExe --version
+                $cargoVersion = & $cargoExe --version
+                Write-Info "  Rustc: $rustcVersion"
+                Write-Info "  Cargo: $cargoVersion"
+                Write-Info "  CARGO_HOME: $cargoHome"
+            } else {
+                Write-Warning "Rust executables not found at expected location"
+            }
+        }
+    }
 }
 
 # Function to download file with progress

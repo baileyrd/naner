@@ -12,7 +12,9 @@
     "NodeJS": "%NANER_ROOT%\vendor\nodejs\node.exe",
     "Python": "%NANER_ROOT%\vendor\miniconda\python.exe",
     "Conda": "%NANER_ROOT%\vendor\miniconda\Scripts\conda.exe",
-    "Go": "%NANER_ROOT%\vendor\go\bin\go.exe"
+    "Go": "%NANER_ROOT%\vendor\go\bin\go.exe",
+    "Rustc": "%NANER_ROOT%\vendor\rust\rustc\bin\rustc.exe",
+    "Cargo": "%NANER_ROOT%\vendor\rust\cargo\bin\cargo.exe"
   },
   
   "Environment": {
@@ -21,7 +23,10 @@
       "%NANER_ROOT%\bin",
       "%NANER_ROOT%\home\.npm-global",
       "%NANER_ROOT%\home\go\bin",
+      "%NANER_ROOT%\home\.cargo\bin",
       "%NANER_ROOT%\vendor\go\bin",
+      "%NANER_ROOT%\vendor\rust\cargo\bin",
+      "%NANER_ROOT%\vendor\rust\rustc\bin",
       "%NANER_ROOT%\vendor\miniconda",
       "%NANER_ROOT%\vendor\miniconda\Scripts",
       "%NANER_ROOT%\vendor\miniconda\Library\bin",
@@ -49,6 +54,8 @@
       "GOROOT": "%NANER_ROOT%\vendor\go",
       "GOPATH": "%NANER_ROOT%\home\go",
       "GOCACHE": "%NANER_ROOT%\home\.cache\go-build",
+      "CARGO_HOME": "%NANER_ROOT%\home\.cargo",
+      "RUSTUP_HOME": "%NANER_ROOT%\home\.rustup",
       "MSYSTEM": "MINGW64",
       "MSYS2_PATH_TYPE": "inherit"
     }
