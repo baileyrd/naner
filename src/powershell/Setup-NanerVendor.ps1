@@ -65,13 +65,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import common utilities - REQUIRED
+# Import required modules
 $commonModule = Join-Path $PSScriptRoot "Common.psm1"
 if (-not (Test-Path $commonModule)) {
     throw "Common.psm1 module not found at: $commonModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
 
+$archivesModule = Join-Path $PSScriptRoot "Naner.Archives.psm1"
+if (-not (Test-Path $archivesModule)) {
+    throw "Naner.Archives.psm1 module not found at: $archivesModule`nThis module is required for Setup-NanerVendor.ps1 to function."
+}
+
 Import-Module $commonModule -Force
+Import-Module $archivesModule -Force
 
 # Determine Naner root
 if (-not $NanerRoot) {
@@ -761,260 +767,8 @@ update: --env-shebang
     }
 }
 
-# Function to download file with progress
-function Download-FileWithProgress {
-    param(
-        [string]$Url,
-        [string]$OutFile,
-        [int]$MaxRetries = 3
-    )
-    
-    $attempt = 0
-    $success = $false
-    
-    while ($attempt -lt $MaxRetries -and -not $success) {
-        $attempt++
-        
-        try {
-            if ($attempt -gt 1) {
-                Write-Info "Retry attempt $attempt of $MaxRetries..."
-                Start-Sleep -Seconds 2
-            }
-            
-            # Use .NET WebClient for better progress support
-            $webClient = New-Object System.Net.WebClient
-            $webClient.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36")
-
-            # Register progress event
-            $progressEventHandler = {
-                param($sender, $e)
-                $percent = [int]($e.BytesReceived / $e.TotalBytesToReceive * 100)
-                Write-Progress -Activity "Downloading" -Status "$percent% Complete" -PercentComplete $percent
-            }
-            
-            Register-ObjectEvent -InputObject $webClient -EventName DownloadProgressChanged -SourceIdentifier WebClient.DownloadProgressChanged -Action $progressEventHandler | Out-Null
-            
-            # Start download
-            $downloadTask = $webClient.DownloadFileTaskAsync($Url, $OutFile)
-            $downloadTask.Wait()
-            
-            # Cleanup
-            Unregister-Event -SourceIdentifier WebClient.DownloadProgressChanged -ErrorAction SilentlyContinue
-            $webClient.Dispose()
-            Write-Progress -Activity "Downloading" -Completed
-            
-            $success = $true
-        }
-        catch {
-            Write-Warning "Download attempt $attempt failed: $($_.Exception.Message)"
-            
-            if ($attempt -lt $MaxRetries) {
-                Write-Info "Retrying..."
-            }
-            else {
-                Write-Failure "Download failed after $MaxRetries attempts: $_"
-            }
-            
-            # Cleanup on error
-            Unregister-Event -SourceIdentifier WebClient.DownloadProgressChanged -ErrorAction SilentlyContinue
-            
-            # Remove partial download
-            if (Test-Path $OutFile) {
-                Remove-Item $OutFile -Force -ErrorAction SilentlyContinue
-            }
-        }
-    }
-    
-    return $success
-}
-
-# Helper function to get available 7-Zip executable
-function Get-SevenZipPath {
-    param(
-        [string]$VendorDir = ""
-    )
-
-    # First, check if we have vendored 7-Zip
-    $vendoredSevenZip = if ($VendorDir) { Join-Path $VendorDir "7zip\7z.exe" } else { "" }
-
-    if ($vendoredSevenZip -and (Test-Path $vendoredSevenZip)) {
-        return @{
-            Path = $vendoredSevenZip
-            Source = "vendored"
-        }
-    }
-
-    # Try system 7-Zip
-    $sevenZipPaths = @(
-        "${env:ProgramFiles}\7-Zip\7z.exe",
-        "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
-        "$env:ProgramData\chocolatey\bin\7z.exe"
-    )
-
-    $sevenZip = $sevenZipPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-
-    if ($sevenZip) {
-        return @{
-            Path = $sevenZip
-            Source = "system"
-        }
-    }
-
-    return $null
-}
-
-# Helper function to expand archive using 7-Zip
-function Expand-ArchiveWith7Zip {
-    param(
-        [string]$ArchivePath,
-        [string]$DestinationPath,
-        [string]$VendorDir = ""
-    )
-
-    $sevenZipInfo = Get-SevenZipPath -VendorDir $VendorDir
-
-    if (-not $sevenZipInfo) {
-        return $false
-    }
-
-    Write-Info "Using $($sevenZipInfo.Source) 7-Zip for extraction..."
-    $sevenZip = $sevenZipInfo.Path
-
-    $extension = [System.IO.Path]::GetExtension($ArchivePath).ToLower()
-
-    if ($extension -eq ".xz") {
-        # Extract .xz to get .tar
-        $tarPath = $ArchivePath -replace '\.xz$', ''
-        & $sevenZip x "$ArchivePath" -o"$(Split-Path $ArchivePath)" -y | Out-Null
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Failure "Failed to decompress .xz file"
-            return $false
-        }
-
-        # Extract .tar to destination
-        & $sevenZip x "$tarPath" -o"$DestinationPath" -y | Out-Null
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Failure "Failed to extract .tar file"
-            Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
-            return $false
-        }
-
-        # Cleanup intermediate .tar file
-        Remove-Item $tarPath -Force -ErrorAction SilentlyContinue
-    }
-    else {
-        # Standard extraction for other formats
-        & $sevenZip x "$ArchivePath" -o"$DestinationPath" -y | Out-Null
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Failure "7-Zip extraction failed"
-            return $false
-        }
-    }
-
-    return $true
-}
-
-# Function to expand vendor archive files
-function Expand-VendorArchive {
-    param(
-        [string]$ArchivePath,
-        [string]$DestinationPath,
-        [string]$VendorDir = ""
-    )
-
-    $extension = [System.IO.Path]::GetExtension($ArchivePath).ToLower()
-
-    if ($extension -eq ".zip") {
-        Expand-Archive -Path $ArchivePath -DestinationPath $DestinationPath -Force
-    }
-    elseif ($extension -eq ".msi") {
-        # Extract MSI using msiexec (Windows built-in)
-        Write-Info "Extracting MSI using msiexec..."
-
-        # Create temp directory for extraction
-        $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_msi_$([Guid]::NewGuid())"
-        New-Item -Path $tempExtract -ItemType Directory -Force | Out-Null
-
-        # Use msiexec to extract files (administrative install)
-        $msiArgs = @(
-            "/a",
-            "`"$ArchivePath`"",
-            "/qn",
-            "TARGETDIR=`"$tempExtract`""
-        )
-
-        $process = Start-Process -FilePath "msiexec.exe" -ArgumentList $msiArgs -Wait -PassThru -NoNewWindow
-
-        if ($process.ExitCode -eq 0) {
-            # Find the Files directory (MSI extracts to Files/ProgramFiles/7-Zip)
-            $filesDir = Get-ChildItem $tempExtract -Recurse -Directory |
-                Where-Object { $_.Name -eq "7-Zip" } |
-                Select-Object -First 1
-
-            if ($filesDir) {
-                # Copy extracted files to destination
-                Copy-Item "$($filesDir.FullName)\*" -Destination $DestinationPath -Recurse -Force
-            }
-            else {
-                # Fallback: copy everything from temp
-                Copy-Item "$tempExtract\*" -Destination $DestinationPath -Recurse -Force
-            }
-
-            # Cleanup temp directory
-            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        else {
-            Write-Failure "MSI extraction failed with exit code: $($process.ExitCode)"
-            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
-            return $false
-        }
-    }
-    elseif ($extension -eq ".xz") {
-        # For .tar.xz files, try 7-Zip first, then fallback to tar
-        $success = Expand-ArchiveWith7Zip -ArchivePath $ArchivePath -DestinationPath $DestinationPath -VendorDir $VendorDir
-
-        if (-not $success) {
-            # Try tar with Unix-style path (last resort)
-            if (Get-Command tar -ErrorAction SilentlyContinue) {
-                Write-Info "Using tar for extraction..."
-                Write-Warning "This may fail on some systems. Consider letting setup complete 7-Zip installation first."
-
-                # Create destination directory first
-                New-Item -Path $DestinationPath -ItemType Directory -Force | Out-Null
-
-                # Change to destination directory and extract
-                $currentDir = Get-Location
-                Set-Location $DestinationPath
-
-                & tar -xf "$ArchivePath" 2>&1 | Out-Null
-                $tarExitCode = $LASTEXITCODE
-
-                Set-Location $currentDir
-
-                if ($tarExitCode -ne 0) {
-                    Write-Failure "tar extraction failed"
-                    return $false
-                }
-            }
-            else {
-                Write-Failure "Cannot extract .tar.xz files - 7-Zip not available"
-                Write-Host ""
-                Write-Host "This shouldn't happen as 7-Zip is downloaded first." -ForegroundColor Yellow
-                Write-Host "Try re-running the setup script." -ForegroundColor Yellow
-                return $false
-            }
-        }
-    }
-    else {
-        Write-Failure "Unsupported archive format: $extension"
-        return $false
-    }
-
-    return $true
-}
+# NOTE: Download and archive extraction functions are now provided by Naner.Archives.psm1
+# Functions available: Get-FileWithProgress, Get-SevenZipPath, Expand-ArchiveWith7Zip, Expand-VendorArchive
 
 # Process each vendor dependency
 Write-Status "Setting up vendor dependencies..."
@@ -1058,7 +812,7 @@ foreach ($key in $vendorConfig.Keys) {
     # Download
     if (-not (Test-Path $downloadPath) -or $ForceDownload) {
         Write-Info "Downloading from: $($releaseInfo.Url)"
-        $success = Download-FileWithProgress -Url $releaseInfo.Url -OutFile $downloadPath
+        $success = Get-FileWithProgress -Url $releaseInfo.Url -OutFile $downloadPath
         
         if (-not $success) {
             Write-Failure "Failed to download $($config.Name)"
