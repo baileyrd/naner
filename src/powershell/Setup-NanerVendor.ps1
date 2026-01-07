@@ -76,27 +76,28 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import required modules
-$commonModule = Join-Path $PSScriptRoot "Common.psm1"
+# Import required modules (using .ps1 versions for dot-sourcing)
+$commonModule = Join-Path $PSScriptRoot "Common.ps1"
 if (-not (Test-Path $commonModule)) {
-    throw "Common.psm1 module not found at: $commonModule`nThis module is required for Setup-NanerVendor.ps1 to function."
+    throw "Common.ps1 module not found at: $commonModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
 
-$archivesModule = Join-Path $PSScriptRoot "Naner.Archives.psm1"
+$archivesModule = Join-Path $PSScriptRoot "Naner.Archives.ps1"
 if (-not (Test-Path $archivesModule)) {
-    throw "Naner.Archives.psm1 module not found at: $archivesModule`nThis module is required for Setup-NanerVendor.ps1 to function."
+    throw "Naner.Archives.ps1 module not found at: $archivesModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
 
-$vendorsModule = Join-Path $PSScriptRoot "Naner.Vendors.psm1"
+$vendorsModule = Join-Path $PSScriptRoot "Naner.Vendors.ps1"
 if (-not (Test-Path $vendorsModule)) {
-    throw "Naner.Vendors.psm1 module not found at: $vendorsModule`nThis module is required for Setup-NanerVendor.ps1 to function."
+    throw "Naner.Vendors.ps1 module not found at: $vendorsModule`nThis module is required for Setup-NanerVendor.ps1 to function."
 }
 
 try {
-    # Import modules with -Global scope to ensure functions are available in script scope
-    Import-Module $commonModule -Force -Global -ErrorAction Stop
-    Import-Module $archivesModule -Force -Global -ErrorAction Stop
-    Import-Module $vendorsModule -Force -Global -ErrorAction Stop
+    # Dot-source the .ps1 modules to make all functions available in script scope
+    # .ps1 files can be dot-sourced successfully, unlike .psm1 files which have module semantics
+    . $commonModule
+    . $archivesModule
+    . $vendorsModule
 }
 catch {
     Write-Host "ERROR loading modules: $_"
