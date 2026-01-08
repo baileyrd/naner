@@ -12,8 +12,10 @@ dist/
 # C# build artifacts
 src/csharp/**/bin/
 src/csharp/**/obj/
-bin/naner.exe
-bin/naner.pdb
+
+# User binaries (bin/ is for user-added executables after deployment)
+bin/*
+!bin/.gitkeep
 
 # Temporary files
 *.tmp

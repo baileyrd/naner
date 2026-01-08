@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 
 # Paths
 $ProjectPath = "$PSScriptRoot\Naner.Launcher\Naner.Launcher.csproj"
-$OutputPath = "$PSScriptRoot\..\..\bin"
+$OutputPath = "$PSScriptRoot\..\..\vendor\bin"
 $DotNetExe = "$PSScriptRoot\..\..\vendor\dotnet-sdk\dotnet.exe"
 
 # Colors
@@ -87,9 +87,9 @@ if (Test-Path $exePath) {
     Write-Host "  Size: $([math]::Round($exeSize, 2)) MB" -ForegroundColor Gray
     Write-Host ""
     Write-Host "Test it:" -ForegroundColor Yellow
-    Write-Host "  .\bin\naner.exe --version" -ForegroundColor Yellow
-    Write-Host "  .\bin\naner.exe --help" -ForegroundColor Yellow
-    Write-Host "  .\bin\naner.exe --profile PowerShell" -ForegroundColor Yellow
+    Write-Host "  .\vendor\bin\naner.exe --version" -ForegroundColor Yellow
+    Write-Host "  .\vendor\bin\naner.exe --help" -ForegroundColor Yellow
+    Write-Host "  .\vendor\bin\naner.exe --profile PowerShell" -ForegroundColor Yellow
 } else {
     Write-Failure "naner.exe not found in output directory"
     exit 1

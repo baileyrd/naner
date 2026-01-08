@@ -6,7 +6,7 @@ setlocal
 
 REM Get the directory where this batch file is located
 set "NANER_ROOT=%~dp0"
-set "NANER_EXE=%NANER_ROOT%bin\naner.exe"
+set "NANER_EXE=%NANER_ROOT%vendor\bin\naner.exe"
 set "PS_SCRIPT=%NANER_ROOT%src\powershell\Invoke-Naner.ps1"
 
 REM Check if C# executable exists
