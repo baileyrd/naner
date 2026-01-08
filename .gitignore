@@ -1,6 +1,9 @@
 # User-specific configuration
 config/user-settings.json
+
+# Vendor dependencies (except bin/)
 vendor/*
+!vendor/bin/
 
 # Test files (keep examples)
 config/test-*.json
