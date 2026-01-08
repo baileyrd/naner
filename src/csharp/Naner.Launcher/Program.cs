@@ -1,4 +1,6 @@
 using CommandLine;
+using Naner.Common;
+using Naner.Configuration;
 using Naner.Launcher;
 
 // Command-line options
@@ -32,7 +34,7 @@ class Options
 class Program
 {
     private const string Version = "0.1.0-alpha";
-    private const string PhaseName = "Phase 10.1 - C# Wrapper";
+    private const string PhaseName = "Phase 10.2 - Core Migration (Pure C#)";
 
     static int Main(string[] args)
     {
@@ -49,152 +51,77 @@ class Program
             // Handle version flag
             if (opts.Version)
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"Naner Terminal Launcher v{Version}");
+                Logger.Header($"Naner Terminal Launcher v{Version}");
                 Console.WriteLine(PhaseName);
-                Console.ResetColor();
+                Console.WriteLine();
                 return 0;
             }
 
-            // Display header
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Naner Terminal Launcher (C# Wrapper)");
-            Console.WriteLine("=====================================");
-            Console.ResetColor();
-            Console.WriteLine();
+            // Display header (unless in quiet mode)
+            Logger.Header("Naner Terminal Launcher");
+            Logger.Debug($"Version: {Version}", opts.Debug);
+            Logger.Debug($"Phase: {PhaseName}", opts.Debug);
 
             // 1. Find NANER_ROOT
-            if (opts.Debug)
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[DEBUG] Finding Naner root directory...");
-                Console.ResetColor();
-            }
-
+            Logger.Debug("Finding Naner root directory...", opts.Debug);
             var nanerRoot = PathResolver.FindNanerRoot();
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"[✓] Naner Root: {nanerRoot}");
-            Console.ResetColor();
+            Logger.Success($"Naner Root: {nanerRoot}");
 
             // 2. Load configuration
-            var configPath = opts.ConfigPath ??
-                Path.Combine(nanerRoot, "config", "naner.json");
+            var configPath = opts.ConfigPath ?? Path.Combine(nanerRoot, "config", "naner.json");
+            Logger.Debug($"Loading configuration from: {configPath}", opts.Debug);
 
-            if (opts.Debug)
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"[DEBUG] Loading configuration from: {configPath}");
-                Console.ResetColor();
-            }
+            var configManager = new ConfigurationManager(nanerRoot);
+            var config = configManager.Load(configPath);
 
-            var config = ConfigLoader.Load(configPath);
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"[✓] Configuration: {configPath}");
-            Console.ResetColor();
-            Console.WriteLine();
+            Logger.Success($"Configuration loaded");
+            Logger.Debug($"Default profile: {config.DefaultProfile}", opts.Debug);
 
             // 3. Setup environment variables
+            Logger.Status("Setting up environment...");
             PathResolver.SetupEnvironment(nanerRoot, opts.Environment);
+            configManager.SetupEnvironmentVariables();
 
-            var unifiedPath = ConfigLoader.BuildUnifiedPath(config, nanerRoot);
+            var unifiedPath = configManager.BuildUnifiedPath(config.Advanced.InheritSystemPath);
             Environment.SetEnvironmentVariable("PATH", unifiedPath, EnvironmentVariableTarget.Process);
 
-            if (opts.Debug)
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[DEBUG] Environment variables set:");
-                Console.WriteLine($"  NANER_ROOT={Environment.GetEnvironmentVariable("NANER_ROOT")}");
-                Console.WriteLine($"  NANER_ENVIRONMENT={Environment.GetEnvironmentVariable("NANER_ENVIRONMENT")}");
-                Console.WriteLine($"  PATH={unifiedPath.Substring(0, Math.Min(200, unifiedPath.Length))}...");
-                Console.ResetColor();
-            }
-
-            // 4. Extract embedded PowerShell scripts
-            if (opts.Debug)
-            {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("[DEBUG] Extracting embedded PowerShell scripts...");
-                Console.ResetColor();
-            }
-
-            var scriptDir = PowerShellHost.ExtractEmbeddedScripts();
+            Logger.Success("Environment configured");
 
             if (opts.Debug)
             {
-                Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine($"[DEBUG] Scripts extracted to: {scriptDir}");
-                Console.ResetColor();
+                Logger.Debug($"NANER_ROOT={Environment.GetEnvironmentVariable("NANER_ROOT")}", true);
+                Logger.Debug($"NANER_ENVIRONMENT={Environment.GetEnvironmentVariable("NANER_ENVIRONMENT")}", true);
+                Logger.Debug($"PATH (first 150 chars)={unifiedPath.Substring(0, Math.Min(150, unifiedPath.Length))}...", true);
             }
 
-            // 5. Build PowerShell arguments
-            var psArgs = new List<string>();
-            if (opts.Profile != null)
-                psArgs.Add($"-Profile {opts.Profile}");
-            if (opts.Environment != "default")
-                psArgs.Add($"-Environment {opts.Environment}");
-            if (opts.Directory != null)
-                psArgs.Add($"-StartingDirectory '{opts.Directory}'");
-            if (opts.Debug)
-                psArgs.Add("-DebugMode");
+            // 4. Determine profile to launch
+            var profileName = opts.Profile ?? config.DefaultProfile;
+            Logger.Debug($"Selected profile: {profileName}", opts.Debug);
 
-            // 6. Execute PowerShell launcher
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("[*] Launching Naner via PowerShell...");
-            Console.ResetColor();
-            Console.WriteLine();
-
-            var exitCode = PowerShellHost.ExecuteScript(
-                scriptPath: Path.Combine(scriptDir, "Invoke-Naner.ps1"),
-                arguments: psArgs,
-                debugMode: opts.Debug
-            );
-
-            // 7. Cleanup temp files
-            PowerShellHost.Cleanup(scriptDir);
+            // 5. Launch terminal with profile
+            Logger.NewLine();
+            var launcher = new TerminalLauncher(nanerRoot, config, opts.Debug);
+            var exitCode = launcher.LaunchProfile(profileName, opts.Directory);
 
             return exitCode;
         }
         catch (DirectoryNotFoundException ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[✗] {ex.Message}");
-            Console.ResetColor();
-            Console.WriteLine();
-            Console.WriteLine("Make sure you're running naner.exe from within the Naner directory structure.");
-            if (opts.Debug)
-            {
-                Console.WriteLine();
-                Console.WriteLine("Stack Trace:");
-                Console.WriteLine(ex.StackTrace);
-            }
+            Logger.Failure(ex.Message);
+            Logger.Info("Make sure you're running naner.exe from within the Naner directory structure.");
+            Logger.Debug(ex.ToString(), opts.Debug);
             return 1;
         }
         catch (FileNotFoundException ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[✗] {ex.Message}");
-            Console.ResetColor();
-            if (opts.Debug)
-            {
-                Console.WriteLine();
-                Console.WriteLine("Stack Trace:");
-                Console.WriteLine(ex.StackTrace);
-            }
+            Logger.Failure(ex.Message);
+            Logger.Debug(ex.ToString(), opts.Debug);
             return 1;
         }
         catch (Exception ex)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[✗] Fatal error: {ex.Message}");
-            Console.ResetColor();
-            if (opts.Debug)
-            {
-                Console.WriteLine();
-                Console.WriteLine("Stack Trace:");
-                Console.WriteLine(ex.StackTrace);
-            }
+            Logger.Failure($"Fatal error: {ex.Message}");
+            Logger.Debug(ex.ToString(), opts.Debug);
             return 1;
         }
     }
