@@ -40,14 +40,8 @@ public class ConfigurationManager
 
         var jsonContent = File.ReadAllText(configPath);
 
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true,
-            AllowTrailingCommas = true,
-            ReadCommentHandling = JsonCommentHandling.Skip
-        };
-
-        _config = JsonSerializer.Deserialize<NanerConfig>(jsonContent, options)
+        // Use source-generated JSON context for trim-safe deserialization
+        _config = JsonSerializer.Deserialize(jsonContent, NanerJsonContext.Default.NanerConfig)
             ?? throw new JsonException("Failed to deserialize configuration");
 
         // Expand all paths in the configuration

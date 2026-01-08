@@ -250,9 +250,38 @@ public class TerminalLauncher
     /// </summary>
     private void SetupPathEnvironment()
     {
-        var configManager = new ConfigurationManager(_nanerRoot);
-        var unifiedPath = configManager.BuildUnifiedPath(_config.Advanced.InheritSystemPath);
+        // Build unified PATH from configuration
+        var pathBuilder = new StringBuilder();
 
+        // Add configured paths in precedence order
+        foreach (var path in _config.Environment.PathPrecedence)
+        {
+            var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
+            if (Directory.Exists(expandedPath))
+            {
+                if (pathBuilder.Length > 0)
+                {
+                    pathBuilder.Append(';');
+                }
+                pathBuilder.Append(expandedPath);
+            }
+        }
+
+        // Optionally append system PATH
+        if (_config.Advanced.InheritSystemPath)
+        {
+            var systemPath = Environment.GetEnvironmentVariable("PATH");
+            if (!string.IsNullOrEmpty(systemPath))
+            {
+                if (pathBuilder.Length > 0)
+                {
+                    pathBuilder.Append(';');
+                }
+                pathBuilder.Append(systemPath);
+            }
+        }
+
+        var unifiedPath = pathBuilder.ToString();
         Environment.SetEnvironmentVariable("PATH", unifiedPath, EnvironmentVariableTarget.Process);
 
         if (_debugMode)

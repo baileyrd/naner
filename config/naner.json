@@ -127,7 +127,5 @@
     "VerboseLogging": false,
     "DebugMode": false
   },
-  "CustomProfiles": {
-    "_comment": "Add custom profiles here following the Profiles schema above"
-  }
+  "CustomProfiles": {}
 }
