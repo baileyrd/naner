@@ -13,6 +13,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
 
     <!-- Version information -->
@@ -34,6 +35,10 @@
     <EmbeddedResource Include="Resources\Invoke-Naner.ps1" />
     <EmbeddedResource Include="Resources\Common.psm1" />
     <EmbeddedResource Include="Resources\ErrorCodes.psm1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1144,14 +1144,65 @@ plugins/
 **Goal:** Migrate to native C# executable
 **Timeline:** 6-12 months
 **Effort:** Very High
-**Status:** Detailed roadmap exists
+**Status:** Phase 10.1 COMPLETE ✅
 
-See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
+See:
+- [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md) - Full roadmap
+- [PHASE-10.1-CSHARP-WRAPPER.md](PHASE-10.1-CSHARP-WRAPPER.md) - Phase 10.1 documentation
 
-**Phases:**
-1. **Phase 1 (Quick Win):** C# wrapper embedding PowerShell
-2. **Phase 2 (Core Migration):** Hybrid C# with PowerShell fallback
-3. **Phase 3 (Pure C#):** 100% native C# implementation
+### Phase 10.1: Foundation & Quick Win ✅ COMPLETED (2026-01-08)
+
+**Status:** ✅ COMPLETE
+**Duration:** ~1 week
+**Deliverable:** `bin/naner.exe` (77 MB single-file executable)
+
+**Implementation:**
+- ✅ Created C# solution structure (Naner.sln, Naner.Launcher)
+- ✅ Embedded PowerShell scripts as resources (Invoke-Naner.ps1, Common.psm1, ErrorCodes.psm1)
+- ✅ Implemented C# components:
+  - PathResolver.cs - NANER_ROOT discovery and path expansion
+  - ConfigLoader.cs - Configuration loading
+  - PowerShellHost.cs - Script extraction and execution
+  - Program.cs - CLI with CommandLineParser
+- ✅ Added .NET SDK 8.0.403 as optional vendor
+- ✅ Created build system (build.ps1)
+- ✅ Updated naner.bat to prefer C# executable
+- ✅ Single-file self-contained executable
+
+**Features:**
+- Command-line arguments: --profile, --environment, --directory, --config, --debug, --version
+- Color-coded console output
+- Exception handling with debug mode
+- Hybrid architecture (C# wrapper + PowerShell execution)
+
+**Known Issues:**
+- Windows Defender may block extraction (workaround documented)
+- File size 77 MB (will optimize in Phase 10.3)
+- Startup time ~400-600ms (will improve in Phase 10.2/10.3)
+
+**Files Created:**
+- `src/csharp/Naner.sln`
+- `src/csharp/Naner.Launcher/` (C# project)
+- `src/csharp/build.ps1`
+- `bin/naner.exe` (output)
+- `docs/PHASE-10.1-CSHARP-WRAPPER.md` (documentation)
+
+---
+
+### Remaining Phases
+
+**Phase 10.2 (Core Migration):** Hybrid C# with PowerShell fallback
+- Migrate Common.psm1 to Naner.Common.dll
+- Migrate configuration loading to C#
+- Migrate terminal launching to C#
+- Keep vendor setup in PowerShell (flexibility)
+- Target: ~50 MB, 200-400ms startup
+
+**Phase 10.3 (Pure C#):** 100% native C# implementation
+- Migrate vendor setup to C#
+- Enable PublishTrimmed for size optimization
+- Enable ReadyToRun for startup optimization
+- Target: ~10-15 MB, 50-100ms startup
 
 **Target Metrics:**
 - Startup time: < 100ms (vs current ~500-1000ms)
@@ -1323,6 +1374,7 @@ See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
 | 1.5 | 2026-01-07 | Marked Phase 9.2 (Multi-Environment Support) as completed - 5 cmdlets, 31 tests, 900+ lines docs |
 | 1.6 | 2026-01-07 | Marked Phase 9.1 (Plugin/Extension System) as completed - 7 cmdlets, 3 example plugins, plugin schema, 1,000+ lines docs, 45 tests |
 | 1.7 | 2026-01-07 | Marked Phase 9.4 (GUI Configuration Manager) as completed - PowerShell + Windows.Forms GUI, 4 tabs, setup wizard, 1,200+ lines docs, 42 tests |
+| 1.8 | 2026-01-08 | Marked Phase 10.1 (C# Migration - Foundation) as completed - Single-file C# executable (naner.exe), .NET SDK vendor, build system, comprehensive docs |
 
 ---
 
@@ -1403,4 +1455,4 @@ See: [CSHARP-MIGRATION-ROADMAP.md](dev/CSHARP-MIGRATION-ROADMAP.md)
 
 **Next Review Date:** 2026-02-01
 **Roadmap Owner:** Project maintainers
-**Last Updated:** 2026-01-07 (v1.7 - Phase 9.4 complete: GUI Configuration Manager)
+**Last Updated:** 2026-01-08 (v1.8 - Phase 10.1 complete: C# Migration Foundation)

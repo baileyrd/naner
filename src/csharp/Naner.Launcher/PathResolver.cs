@@ -1,12 +1,16 @@
+using Naner.Common;
+
 namespace Naner.Launcher;
 
 /// <summary>
-/// Utilities for finding Naner root and expanding path placeholders
+/// Launcher-specific path resolver that delegates to Naner.Common.PathUtilities.
+/// Provides environment setup specific to the launcher.
 /// </summary>
 public static class PathResolver
 {
     /// <summary>
-    /// Finds the Naner root directory by looking for marker directories
+    /// Finds the Naner root directory by looking for marker directories.
+    /// Delegates to Naner.Common.PathUtilities.FindNanerRoot.
     /// </summary>
     /// <param name="startPath">Starting path (defaults to executable location)</param>
     /// <param name="maxDepth">Maximum number of parent directories to search</param>
@@ -14,61 +18,23 @@ public static class PathResolver
     /// <exception cref="DirectoryNotFoundException">Thrown when root cannot be found</exception>
     public static string FindNanerRoot(string? startPath = null, int maxDepth = 10)
     {
-        var currentPath = startPath ?? AppContext.BaseDirectory;
-        var depth = 0;
-
-        while (depth < maxDepth)
-        {
-            // Check for marker directories that identify Naner root
-            var binPath = Path.Combine(currentPath, "bin");
-            var vendorPath = Path.Combine(currentPath, "vendor");
-            var configPath = Path.Combine(currentPath, "config");
-
-            if (Directory.Exists(binPath) &&
-                Directory.Exists(vendorPath) &&
-                Directory.Exists(configPath))
-            {
-                return Path.GetFullPath(currentPath);
-            }
-
-            // Move to parent directory
-            var parentPath = Directory.GetParent(currentPath)?.FullName;
-            if (string.IsNullOrEmpty(parentPath) || parentPath == currentPath)
-            {
-                break; // Reached root of filesystem
-            }
-
-            currentPath = parentPath;
-            depth++;
-        }
-
-        throw new DirectoryNotFoundException(
-            $"Could not locate Naner root directory from '{startPath ?? AppContext.BaseDirectory}'. " +
-            "Ensure bin/, vendor/, and config/ directories exist in the Naner installation.");
+        return PathUtilities.FindNanerRoot(startPath, maxDepth);
     }
 
     /// <summary>
-    /// Expands path placeholders and environment variables
+    /// Expands path placeholders and environment variables.
+    /// Delegates to Naner.Common.PathUtilities.ExpandNanerPath.
     /// </summary>
     /// <param name="path">Path containing placeholders like %NANER_ROOT%</param>
     /// <param name="nanerRoot">Absolute path to Naner root</param>
     /// <returns>Expanded absolute path</returns>
     public static string ExpandNanerPath(string path, string nanerRoot)
     {
-        if (string.IsNullOrWhiteSpace(path))
-            return path;
-
-        // Replace %NANER_ROOT% placeholder
-        var expanded = path.Replace("%NANER_ROOT%", nanerRoot, StringComparison.OrdinalIgnoreCase);
-
-        // Expand Windows environment variables
-        expanded = Environment.ExpandEnvironmentVariables(expanded);
-
-        return expanded;
+        return PathUtilities.ExpandNanerPath(path, nanerRoot);
     }
 
     /// <summary>
-    /// Sets up process environment variables for Naner
+    /// Sets up process environment variables for Naner launcher.
     /// </summary>
     /// <param name="nanerRoot">Naner root directory</param>
     /// <param name="environment">Environment name (e.g., "default")</param>
@@ -76,5 +42,13 @@ public static class PathResolver
     {
         Environment.SetEnvironmentVariable("NANER_ROOT", nanerRoot, EnvironmentVariableTarget.Process);
         Environment.SetEnvironmentVariable("NANER_ENVIRONMENT", environment, EnvironmentVariableTarget.Process);
+
+        // Also setup HOME environment variables for shells
+        var homePath = Path.Combine(nanerRoot, "home");
+        if (Directory.Exists(homePath))
+        {
+            Environment.SetEnvironmentVariable("HOME", homePath, EnvironmentVariableTarget.Process);
+            Environment.SetEnvironmentVariable("NANER_HOME", homePath, EnvironmentVariableTarget.Process);
+        }
     }
 }

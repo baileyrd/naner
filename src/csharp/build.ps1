@@ -19,8 +19,8 @@ $DotNetExe = "$PSScriptRoot\..\..\vendor\dotnet-sdk\dotnet.exe"
 
 # Colors
 function Write-Status { param($msg) Write-Host "[*] $msg" -ForegroundColor Cyan }
-function Write-Success { param($msg) Write-Host "[✓] $msg" -ForegroundColor Green }
-function Write-Failure { param($msg) Write-Host "[✗] $msg" -ForegroundColor Red }
+function Write-Success { param($msg) Write-Host "[+] $msg" -ForegroundColor Green }
+function Write-Failure { param($msg) Write-Host "[-] $msg" -ForegroundColor Red }
 
 Write-Host ""
 Write-Host "Naner C# Build Script" -ForegroundColor Cyan
@@ -51,7 +51,7 @@ if ($Clean) {
 }
 
 if ($NoBuild) {
-    Write-Host "Skipping build (--NoBuild specified)" -ForegroundColor Yellow
+    Write-Host "Skipping build (-NoBuild specified)" -ForegroundColor Yellow
     exit 0
 }
 
