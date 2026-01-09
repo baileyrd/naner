@@ -253,4 +253,70 @@ public static class SetupManager
         Console.WriteLine("Let's set up your environment!");
         Console.WriteLine();
     }
+
+    /// <summary>
+    /// Runs the complete interactive setup including vendor downloads.
+    /// </summary>
+    /// <param name="nanerRoot">The Naner root directory.</param>
+    /// <param name="skipVendors">Whether to skip vendor downloads.</param>
+    /// <returns>True if setup completed successfully.</returns>
+    public static async System.Threading.Tasks.Task<bool> RunInteractiveSetupAsync(string nanerRoot, bool skipVendors = false)
+    {
+        ShowWelcome();
+
+        // Create directory structure
+        if (!CreateDirectoryStructure(nanerRoot))
+        {
+            return false;
+        }
+
+        Logger.NewLine();
+
+        // Create configuration
+        if (!CreateDefaultConfiguration(nanerRoot))
+        {
+            return false;
+        }
+
+        Logger.NewLine();
+
+        // Download vendors if not skipped
+        if (!skipVendors)
+        {
+            Logger.Status("Setting up vendor dependencies...");
+            Logger.Info("This will download PowerShell, Windows Terminal, Git, and other tools.");
+            Logger.NewLine();
+
+            Console.Write("Download vendor dependencies now? [Y/n]: ");
+            var response = Console.ReadLine()?.Trim().ToLower();
+
+            if (string.IsNullOrEmpty(response) || response == "y" || response == "yes")
+            {
+                var downloader = new VendorDownloader(nanerRoot);
+                await downloader.SetupRequiredVendorsAsync();
+            }
+            else
+            {
+                Logger.Info("Skipping vendor downloads.");
+                Logger.Info("You can download vendors later with: naner setup-vendors");
+            }
+
+            Logger.NewLine();
+        }
+
+        // Create initialization marker
+        FirstRunDetector.CreateInitializationMarker(nanerRoot, "1.0.0", "Production Release");
+
+        Logger.NewLine();
+        Logger.Success("Naner setup complete!");
+        Logger.Info($"Installation location: {nanerRoot}");
+        Logger.NewLine();
+        Logger.Info("Next steps:");
+        Logger.Info("  1. Run 'naner --diagnose' to verify your setup");
+        Logger.Info("  2. Run 'naner' to launch your default terminal");
+        Logger.Info("  3. See 'naner --help' for more commands");
+        Logger.NewLine();
+
+        return true;
+    }
 }

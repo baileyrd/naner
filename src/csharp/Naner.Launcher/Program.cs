@@ -71,6 +71,12 @@ class Program
             {
                 return RunInit(args.Skip(1).ToArray());
             }
+
+            // Setup vendors command
+            if (firstArg == "setup-vendors")
+            {
+                return RunSetupVendors();
+            }
         }
 
         // Check for first run
@@ -104,7 +110,8 @@ class Program
 
         Console.WriteLine("COMMANDS:");
         Console.WriteLine("  init [PATH]                Initialize Naner in specified directory");
-        Console.WriteLine("                             Options: --minimal, --quick, --path <PATH>");
+        Console.WriteLine("                             Options: --minimal, --quick, --skip-vendors");
+        Console.WriteLine("  setup-vendors              Download and install vendor dependencies");
         Console.WriteLine();
 
         Console.WriteLine("OPTIONS:");
@@ -328,7 +335,13 @@ class Program
 
     static int RunInit(string[] args)
     {
+        return RunInitAsync(args).GetAwaiter().GetResult();
+    }
+
+    static async System.Threading.Tasks.Task<int> RunInitAsync(string[] args)
+    {
         bool interactive = !args.Contains("--minimal") && !args.Contains("--quick");
+        bool skipVendors = args.Contains("--skip-vendors") || args.Contains("--no-vendors");
         string? targetPath = null;
 
         // Parse arguments
@@ -339,68 +352,80 @@ class Program
                 targetPath = args[i + 1];
                 i++;
             }
-            else if (!args[i].StartsWith("--"))
+            else if (!args[i].StartsWith("--") && !args[i].StartsWith("-"))
             {
                 targetPath = args[i];
             }
         }
 
-        // Interactive mode
+        // Interactive mode with full setup
         if (interactive)
         {
-            SetupManager.ShowWelcome();
             targetPath ??= SetupManager.PromptInstallLocation();
+
+            try
+            {
+                targetPath = Path.GetFullPath(targetPath);
+
+                // Run full interactive setup including vendors
+                var success = await SetupManager.RunInteractiveSetupAsync(targetPath, skipVendors);
+                return success ? 0 : 1;
+            }
+            catch (Exception ex)
+            {
+                Logger.Failure($"Setup failed: {ex.Message}");
+                return 1;
+            }
         }
         else
         {
-            // Non-interactive mode
+            // Non-interactive quick mode (minimal setup, no vendors)
             targetPath ??= Environment.CurrentDirectory;
             Logger.Header("Naner Quick Setup");
             Console.WriteLine();
-        }
 
-        try
-        {
-            targetPath = Path.GetFullPath(targetPath);
-            Logger.Info($"Installation path: {targetPath}");
-            Logger.NewLine();
-
-            // Create directory structure
-            if (!SetupManager.CreateDirectoryStructure(targetPath))
+            try
             {
+                targetPath = Path.GetFullPath(targetPath);
+                Logger.Info($"Installation path: {targetPath}");
+                Logger.NewLine();
+
+                // Create directory structure
+                if (!SetupManager.CreateDirectoryStructure(targetPath))
+                {
+                    return 1;
+                }
+
+                // Create default configuration
+                if (!SetupManager.CreateDefaultConfiguration(targetPath))
+                {
+                    return 1;
+                }
+
+                // Create initialization marker
+                FirstRunDetector.CreateInitializationMarker(targetPath, Version, PhaseName);
+                Logger.Success("Created initialization marker");
+                Logger.NewLine();
+
+                // Success message
+                Logger.Header("Setup Complete!");
+                Console.WriteLine();
+                Console.WriteLine("Naner has been initialized successfully!");
+                Console.WriteLine();
+                Console.WriteLine("To download vendor dependencies:");
+                Console.WriteLine("  naner setup-vendors");
+                Console.WriteLine();
+                Console.WriteLine("Or install manually with PowerShell:");
+                Console.WriteLine("  .\\src\\powershell\\Setup-NanerVendor.ps1");
+                Console.WriteLine();
+
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Logger.Failure($"Setup failed: {ex.Message}");
                 return 1;
             }
-
-            // Create default configuration
-            if (!SetupManager.CreateDefaultConfiguration(targetPath))
-            {
-                return 1;
-            }
-
-            // Create initialization marker
-            FirstRunDetector.CreateInitializationMarker(targetPath, Version, PhaseName);
-            Logger.Success("Created initialization marker");
-            Logger.NewLine();
-
-            // Success message
-            Logger.Header("Setup Complete!");
-            Console.WriteLine();
-            Console.WriteLine("Naner has been initialized successfully!");
-            Console.WriteLine();
-            Console.WriteLine("Next steps:");
-            Console.WriteLine($"  1. cd {targetPath}");
-            Console.WriteLine("  2. Install vendors (optional):");
-            Console.WriteLine("     .\\src\\powershell\\Setup-NanerVendor.ps1");
-            Console.WriteLine("  3. Launch Naner:");
-            Console.WriteLine("     .\\vendor\\bin\\naner.exe");
-            Console.WriteLine();
-
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            Logger.Failure($"Setup failed: {ex.Message}");
-            return 1;
         }
     }
 
@@ -431,5 +456,54 @@ class Program
             "3" => 0,
             _ => RunInit(Array.Empty<string>())
         };
+    }
+
+    static int RunSetupVendors()
+    {
+        return RunSetupVendorsAsync().GetAwaiter().GetResult();
+    }
+
+    static async System.Threading.Tasks.Task<int> RunSetupVendorsAsync()
+    {
+        Logger.Header("Naner Vendor Setup");
+        Logger.NewLine();
+
+        try
+        {
+            // Find NANER_ROOT
+            string nanerRoot;
+            try
+            {
+                nanerRoot = PathUtilities.FindNanerRoot();
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                Logger.Failure("Could not locate Naner root directory");
+                Logger.NewLine();
+                Console.WriteLine(ex.Message);
+                Logger.NewLine();
+                Logger.Info("Please run this command from within your Naner installation,");
+                Logger.Info("or run 'naner init' first to set up Naner.");
+                return 1;
+            }
+
+            Logger.Info($"Naner Root: {nanerRoot}");
+            Logger.NewLine();
+
+            // Run vendor download
+            var downloader = new VendorDownloader(nanerRoot);
+            await downloader.SetupRequiredVendorsAsync();
+
+            Logger.NewLine();
+            Logger.Success("Vendor setup complete!");
+            Logger.Info("You can now launch Naner with: naner");
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Failure($"Vendor setup failed: {ex.Message}");
+            return 1;
+        }
     }
 }
