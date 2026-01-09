@@ -268,6 +268,44 @@ public class NanerUpdater
     }
 
     /// <summary>
+    /// Runs vendor setup by calling naner.exe setup-vendors.
+    /// </summary>
+    public int RunVendorSetup()
+    {
+        var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
+
+        if (!File.Exists(nanerExePath))
+        {
+            ConsoleHelper.Error($"Naner not found at: {nanerExePath}");
+            return 1;
+        }
+
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = nanerExePath,
+                WorkingDirectory = _nanerRoot,
+                UseShellExecute = false,
+                RedirectStandardOutput = false,
+                RedirectStandardError = false
+            };
+
+            startInfo.ArgumentList.Add("setup-vendors");
+
+            using var process = Process.Start(startInfo);
+            process?.WaitForExit();
+
+            return process?.ExitCode ?? 0;
+        }
+        catch (Exception ex)
+        {
+            ConsoleHelper.Error($"Failed to run vendor setup: {ex.Message}");
+            return 1;
+        }
+    }
+
+    /// <summary>
     /// Launches naner.exe with the provided arguments.
     /// </summary>
     public int LaunchNaner(string[] args)

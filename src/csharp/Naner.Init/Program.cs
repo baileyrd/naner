@@ -88,10 +88,20 @@ class Program
                 return 1;
             }
 
-            // After first-time initialization, don't launch automatically
-            // Let the user run naner manually so it can do its own first-run setup
+            // After downloading naner.exe, run vendor setup
             ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Run 'naner' to complete setup and launch your terminal environment.");
+            ConsoleHelper.Info("Setting up vendor dependencies...");
+            ConsoleHelper.NewLine();
+
+            var vendorSetupResult = updater.RunVendorSetup();
+            if (vendorSetupResult != 0)
+            {
+                ConsoleHelper.Warning("Vendor setup encountered issues, but you can continue.");
+                ConsoleHelper.Info("Run 'naner setup-vendors' to retry vendor setup later.");
+            }
+
+            ConsoleHelper.NewLine();
+            ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
             return 0;
         }
 
