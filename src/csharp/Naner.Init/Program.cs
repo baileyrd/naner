@@ -88,16 +88,11 @@ class Program
                 return 1;
             }
 
+            // After first-time initialization, don't launch automatically
+            // Let the user run naner manually so it can do its own first-run setup
             ConsoleHelper.NewLine();
-            Console.Write("Launch Naner now? (Y/n): ");
-            response = Console.ReadLine()?.Trim().ToLower();
-
-            if (response != "" && response != "y" && response != "yes")
-            {
-                return 0;
-            }
-
-            ConsoleHelper.NewLine();
+            ConsoleHelper.Info("Run 'naner' to complete setup and launch your terminal environment.");
+            return 0;
         }
 
         // Check for updates (silently, only show if update available)
