@@ -21,6 +21,7 @@
     <PublishReadyToRun>false</PublishReadyToRun>
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
 
     <!-- Additional optimizations -->
     <InvariantGlobalization>true</InvariantGlobalization>
