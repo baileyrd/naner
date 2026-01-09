@@ -36,8 +36,8 @@ class Options
 
 class Program
 {
-    private const string Version = "0.1.0-alpha";
-    private const string PhaseName = "Phase 10.5 - First-Run Experience";
+    private const string Version = "1.0.0";
+    private const string PhaseName = "Production Release - Pure C# Implementation";
 
     static int Main(string[] args)
     {
