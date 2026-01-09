@@ -110,7 +110,7 @@ class Program
 
         Console.WriteLine("COMMANDS:");
         Console.WriteLine("  init [PATH]                Initialize Naner in specified directory");
-        Console.WriteLine("                             Options: --minimal, --quick, --skip-vendors");
+        Console.WriteLine("                             Options: --minimal, --quick, --skip-vendors, --with-vendors");
         Console.WriteLine("  setup-vendors              Download and install vendor dependencies");
         Console.WriteLine();
 
@@ -129,6 +129,7 @@ class Program
         Console.WriteLine("EXAMPLES:");
         Console.WriteLine("  naner.exe init                     # Interactive setup wizard");
         Console.WriteLine("  naner.exe init --minimal           # Quick setup in current dir");
+        Console.WriteLine("  naner.exe init --minimal --with-vendors  # Setup with auto vendor download");
         Console.WriteLine("  naner.exe init C:\\MyNaner          # Setup in specific directory");
         Console.WriteLine("  naner.exe                          # Launch default profile");
         Console.WriteLine("  naner.exe --profile PowerShell     # Launch PowerShell profile");
@@ -342,6 +343,7 @@ class Program
     {
         bool interactive = !args.Contains("--minimal") && !args.Contains("--quick");
         bool skipVendors = args.Contains("--skip-vendors") || args.Contains("--no-vendors");
+        bool withVendors = args.Contains("--with-vendors");
         string? targetPath = null;
 
         // Parse arguments
@@ -413,7 +415,7 @@ class Program
         }
         else
         {
-            // Non-interactive quick mode (minimal setup, no vendors)
+            // Non-interactive quick mode
             targetPath ??= Environment.CurrentDirectory;
             Logger.Header("Naner Quick Setup");
             Console.WriteLine();
@@ -436,6 +438,17 @@ class Program
                     return 1;
                 }
 
+                // Download vendors if --with-vendors flag is set
+                if (withVendors && !skipVendors)
+                {
+                    Logger.NewLine();
+                    Logger.Status("Downloading vendor dependencies...");
+                    Logger.NewLine();
+
+                    var downloader = new VendorDownloader(targetPath);
+                    await downloader.SetupRequiredVendorsAsync();
+                }
+
                 // Create initialization marker
                 FirstRunDetector.CreateInitializationMarker(targetPath, Version, PhaseName);
                 Logger.Success("Created initialization marker");
@@ -446,12 +459,16 @@ class Program
                 Console.WriteLine();
                 Console.WriteLine("Naner has been initialized successfully!");
                 Console.WriteLine();
-                Console.WriteLine("To download vendor dependencies:");
-                Console.WriteLine("  naner setup-vendors");
-                Console.WriteLine();
-                Console.WriteLine("Or install manually with PowerShell:");
-                Console.WriteLine("  .\\src\\powershell\\Setup-NanerVendor.ps1");
-                Console.WriteLine();
+
+                if (!withVendors && !skipVendors)
+                {
+                    Console.WriteLine("To download vendor dependencies:");
+                    Console.WriteLine("  naner setup-vendors");
+                    Console.WriteLine();
+                    Console.WriteLine("Or install manually with PowerShell:");
+                    Console.WriteLine("  .\\src\\powershell\\Setup-NanerVendor.ps1");
+                    Console.WriteLine();
+                }
 
                 return 0;
             }
