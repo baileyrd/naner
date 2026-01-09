@@ -188,9 +188,7 @@ public class VendorDownloader
             }
             else if (archivePath.EndsWith(".tar.xz", StringComparison.OrdinalIgnoreCase))
             {
-                Logger.Warning($"    .tar.xz extraction requires external tools");
-                Logger.Info($"    Please extract manually to: {targetDir}");
-                return false;
+                return ExtractTarXz(archivePath, targetDir, vendorName);
             }
             else
             {
@@ -295,6 +293,115 @@ public class VendorDownloader
         catch (Exception ex)
         {
             Logger.Failure($"    MSI extraction failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Extracts a .tar.xz archive using 7-Zip (must be installed first).
+    /// </summary>
+    private bool ExtractTarXz(string tarXzPath, string targetDir, string vendorName)
+    {
+        try
+        {
+            // Find 7z.exe (should be installed first)
+            var sevenZipPath = Path.Combine(_vendorDir, "7zip", "7z.exe");
+            if (!File.Exists(sevenZipPath))
+            {
+                Logger.Warning($"    7-Zip not found at {sevenZipPath}");
+                Logger.Info($"    {vendorName} downloaded to: {tarXzPath}");
+                Logger.Info($"    Please extract manually to: {targetDir}");
+                return false;
+            }
+
+            Directory.CreateDirectory(targetDir);
+
+            // Step 1: Extract .xz to get .tar (to same directory as .tar.xz)
+            Logger.Info($"    Extracting .xz archive...");
+            var tarPath = tarXzPath.Replace(".tar.xz", ".tar");
+
+            var xzStartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = sevenZipPath,
+                Arguments = $"e \"{tarXzPath}\" -o\"{Path.GetDirectoryName(tarXzPath)}\" -y",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (var xzProcess = System.Diagnostics.Process.Start(xzStartInfo))
+            {
+                xzProcess?.WaitForExit();
+                if (xzProcess?.ExitCode != 0)
+                {
+                    Logger.Warning($"    Failed to extract .xz (exit code {xzProcess?.ExitCode})");
+                    return false;
+                }
+            }
+
+            // Step 2: Extract .tar to target directory
+            Logger.Info($"    Extracting .tar archive...");
+
+            var tarStartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = sevenZipPath,
+                Arguments = $"x \"{tarPath}\" -o\"{targetDir}\" -y",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (var tarProcess = System.Diagnostics.Process.Start(tarStartInfo))
+            {
+                tarProcess?.WaitForExit();
+                if (tarProcess?.ExitCode != 0)
+                {
+                    Logger.Warning($"    Failed to extract .tar (exit code {tarProcess?.ExitCode})");
+                    return false;
+                }
+            }
+
+            // Cleanup intermediate .tar file
+            try
+            {
+                if (File.Exists(tarPath))
+                {
+                    File.Delete(tarPath);
+                }
+            }
+            catch { /* Ignore cleanup errors */ }
+
+            // Check if extraction created a single subdirectory and flatten
+            var entries = Directory.GetFileSystemEntries(targetDir);
+            if (entries.Length == 1 && Directory.Exists(entries[0]))
+            {
+                var subDir = entries[0];
+                var tempDir = targetDir + "_temp";
+
+                Directory.Move(subDir, tempDir);
+
+                foreach (var file in Directory.GetFiles(tempDir))
+                {
+                    var destFile = Path.Combine(targetDir, Path.GetFileName(file));
+                    File.Move(file, destFile, overwrite: true);
+                }
+
+                foreach (var dir in Directory.GetDirectories(tempDir))
+                {
+                    var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
+                    Directory.Move(dir, destDir);
+                }
+
+                Directory.Delete(tempDir, recursive: true);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Failure($"    .tar.xz extraction failed: {ex.Message}");
             return false;
         }
     }
