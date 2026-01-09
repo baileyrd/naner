@@ -311,12 +311,21 @@ public static class SetupManager
         Logger.Success("Naner setup complete!");
         Logger.Info($"Installation location: {nanerRoot}");
         Logger.NewLine();
-        Logger.Info("Next steps:");
-        Logger.Info("  1. Run 'naner --diagnose' to verify your setup");
-        Logger.Info("  2. Run 'naner' to launch your default terminal");
-        Logger.Info("  3. See 'naner --help' for more commands");
-        Logger.NewLine();
 
         return true;
+    }
+
+    /// <summary>
+    /// Prompts user whether to launch terminal after setup.
+    /// </summary>
+    /// <returns>True if user wants to launch, false otherwise.</returns>
+    public static bool PromptLaunchTerminal()
+    {
+        Console.WriteLine("Setup complete! Would you like to launch Naner now?");
+        Console.WriteLine();
+        Console.Write("Launch terminal? [Y/n]: ");
+
+        var response = Console.ReadLine()?.Trim().ToLower();
+        return string.IsNullOrEmpty(response) || response == "y" || response == "yes";
     }
 }

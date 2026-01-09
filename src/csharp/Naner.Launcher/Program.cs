@@ -369,7 +369,41 @@ class Program
 
                 // Run full interactive setup including vendors
                 var success = await SetupManager.RunInteractiveSetupAsync(targetPath, skipVendors);
-                return success ? 0 : 1;
+                if (!success)
+                {
+                    return 1;
+                }
+
+                // Ask if user wants to launch terminal
+                if (SetupManager.PromptLaunchTerminal())
+                {
+                    Logger.NewLine();
+                    Logger.Info("Launching Naner...");
+                    Logger.NewLine();
+
+                    // Launch terminal with default profile
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("NANER_ROOT", targetPath);
+                        var configManager = new ConfigurationManager(targetPath);
+                        var config = configManager.Load();
+                        var launcher = new TerminalLauncher(targetPath, config, false);
+                        return launcher.LaunchProfile(string.Empty, null);
+                    }
+                    catch (Exception launchEx)
+                    {
+                        Logger.Warning($"Could not launch terminal: {launchEx.Message}");
+                        Logger.Info("You can launch manually with: naner");
+                        return 0;
+                    }
+                }
+                else
+                {
+                    Logger.NewLine();
+                    Logger.Info("You can launch Naner anytime with: naner");
+                    Logger.NewLine();
+                    return 0;
+                }
             }
             catch (Exception ex)
             {
