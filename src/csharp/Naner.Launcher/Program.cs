@@ -37,7 +37,7 @@ class Options
 class Program
 {
     private const string Version = "0.1.0-alpha";
-    private const string PhaseName = "Phase 10.4 - Usability & Testing";
+    private const string PhaseName = "Phase 10.5 - First-Run Experience";
 
     static int Main(string[] args)
     {
@@ -65,6 +65,18 @@ class Program
             {
                 return RunDiagnostics();
             }
+
+            // Init command
+            if (firstArg == "init")
+            {
+                return RunInit(args.Skip(1).ToArray());
+            }
+        }
+
+        // Check for first run
+        if (FirstRunDetector.IsFirstRun())
+        {
+            return HandleFirstRun();
         }
 
         // Normal command parsing
@@ -90,6 +102,11 @@ class Program
         Console.WriteLine("  naner.exe [OPTIONS]");
         Console.WriteLine();
 
+        Console.WriteLine("COMMANDS:");
+        Console.WriteLine("  init [PATH]                Initialize Naner in specified directory");
+        Console.WriteLine("                             Options: --minimal, --quick, --path <PATH>");
+        Console.WriteLine();
+
         Console.WriteLine("OPTIONS:");
         Console.WriteLine("  -p, --profile <NAME>       Terminal profile to launch");
         Console.WriteLine("                             (Unified, PowerShell, Bash, CMD)");
@@ -103,6 +120,9 @@ class Program
         Console.WriteLine();
 
         Console.WriteLine("EXAMPLES:");
+        Console.WriteLine("  naner.exe init                     # Interactive setup wizard");
+        Console.WriteLine("  naner.exe init --minimal           # Quick setup in current dir");
+        Console.WriteLine("  naner.exe init C:\\MyNaner          # Setup in specific directory");
         Console.WriteLine("  naner.exe                          # Launch default profile");
         Console.WriteLine("  naner.exe --profile PowerShell     # Launch PowerShell profile");
         Console.WriteLine("  naner.exe -p Bash -d C:\\projects   # Launch Bash in specific dir");
@@ -304,5 +324,112 @@ class Program
             Logger.Debug(ex.ToString(), opts.Debug);
             return 1;
         }
+    }
+
+    static int RunInit(string[] args)
+    {
+        bool interactive = !args.Contains("--minimal") && !args.Contains("--quick");
+        string? targetPath = null;
+
+        // Parse arguments
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (args[i] == "--path" && i + 1 < args.Length)
+            {
+                targetPath = args[i + 1];
+                i++;
+            }
+            else if (!args[i].StartsWith("--"))
+            {
+                targetPath = args[i];
+            }
+        }
+
+        // Interactive mode
+        if (interactive)
+        {
+            SetupManager.ShowWelcome();
+            targetPath ??= SetupManager.PromptInstallLocation();
+        }
+        else
+        {
+            // Non-interactive mode
+            targetPath ??= Environment.CurrentDirectory;
+            Logger.Header("Naner Quick Setup");
+            Console.WriteLine();
+        }
+
+        try
+        {
+            targetPath = Path.GetFullPath(targetPath);
+            Logger.Info($"Installation path: {targetPath}");
+            Logger.NewLine();
+
+            // Create directory structure
+            if (!SetupManager.CreateDirectoryStructure(targetPath))
+            {
+                return 1;
+            }
+
+            // Create default configuration
+            if (!SetupManager.CreateDefaultConfiguration(targetPath))
+            {
+                return 1;
+            }
+
+            // Create initialization marker
+            FirstRunDetector.CreateInitializationMarker(targetPath, Version, PhaseName);
+            Logger.Success("Created initialization marker");
+            Logger.NewLine();
+
+            // Success message
+            Logger.Header("Setup Complete!");
+            Console.WriteLine();
+            Console.WriteLine("Naner has been initialized successfully!");
+            Console.WriteLine();
+            Console.WriteLine("Next steps:");
+            Console.WriteLine($"  1. cd {targetPath}");
+            Console.WriteLine("  2. Install vendors (optional):");
+            Console.WriteLine("     .\\src\\powershell\\Setup-NanerVendor.ps1");
+            Console.WriteLine("  3. Launch Naner:");
+            Console.WriteLine("     .\\vendor\\bin\\naner.exe");
+            Console.WriteLine();
+
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Failure($"Setup failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    static int HandleFirstRun()
+    {
+        Logger.Header("First Run Detected");
+        Console.WriteLine();
+        Console.WriteLine("It looks like this is your first time running Naner,");
+        Console.WriteLine("or the installation is incomplete.");
+        Console.WriteLine();
+        Console.WriteLine("Would you like to:");
+        Console.WriteLine("  1. Run setup wizard (recommended)");
+        Console.WriteLine("  2. Quick setup in current directory");
+        Console.WriteLine("  3. Exit and run manually: naner.exe init");
+        Console.WriteLine();
+        Console.Write("Enter choice (1-3) [1]: ");
+
+        var choice = Console.ReadLine()?.Trim();
+        if (string.IsNullOrEmpty(choice))
+        {
+            choice = "1";
+        }
+
+        return choice switch
+        {
+            "1" => RunInit(Array.Empty<string>()),
+            "2" => RunInit(new[] { "--minimal" }),
+            "3" => 0,
+            _ => RunInit(Array.Empty<string>())
+        };
     }
 }
