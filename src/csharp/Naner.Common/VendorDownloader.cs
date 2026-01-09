@@ -206,7 +206,7 @@ public class VendorDownloader
     }
 
     /// <summary>
-    /// Extracts a ZIP archive.
+    /// Extracts a ZIP archive and flattens single-directory structures.
     /// </summary>
     private bool ExtractZip(string zipPath, string targetDir)
     {
@@ -214,6 +214,35 @@ public class VendorDownloader
         {
             Directory.CreateDirectory(targetDir);
             ZipFile.ExtractToDirectory(zipPath, targetDir, overwriteFiles: true);
+
+            // Check if extraction created a single subdirectory (common with vendor ZIPs)
+            var entries = Directory.GetFileSystemEntries(targetDir);
+            if (entries.Length == 1 && Directory.Exists(entries[0]))
+            {
+                // Move contents of subdirectory up one level
+                var subDir = entries[0];
+                var tempDir = targetDir + "_temp";
+
+                // Move subdirectory to temp location
+                Directory.Move(subDir, tempDir);
+
+                // Move all contents from temp to target
+                foreach (var file in Directory.GetFiles(tempDir))
+                {
+                    var destFile = Path.Combine(targetDir, Path.GetFileName(file));
+                    File.Move(file, destFile, overwrite: true);
+                }
+
+                foreach (var dir in Directory.GetDirectories(tempDir))
+                {
+                    var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
+                    Directory.Move(dir, destDir);
+                }
+
+                // Remove temp directory
+                Directory.Delete(tempDir, recursive: true);
+            }
+
             return true;
         }
         catch (Exception ex)
