@@ -91,6 +91,9 @@ public class VendorDownloader
                     continue;
                 }
 
+                // Post-install configuration
+                PostInstallConfiguration(vendor.Name, targetDir);
+
                 Logger.Success($"  Installed {vendor.Name}");
                 Logger.NewLine();
             }
@@ -403,6 +406,28 @@ public class VendorDownloader
         {
             Logger.Failure($"    .tar.xz extraction failed: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Performs post-installation configuration for specific vendors.
+    /// </summary>
+    private void PostInstallConfiguration(string vendorName, string targetDir)
+    {
+        try
+        {
+            // Windows Terminal: Create .portable file for portable mode
+            if (vendorName.Contains("Windows Terminal", StringComparison.OrdinalIgnoreCase))
+            {
+                var portableFile = Path.Combine(targetDir, ".portable");
+                File.WriteAllText(portableFile, "");
+                Logger.Info($"    Created .portable file for portable mode");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning($"    Post-install configuration warning: {ex.Message}");
+            // Non-critical, don't fail the installation
         }
     }
 
