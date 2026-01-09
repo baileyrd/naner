@@ -1,0 +1,57 @@
+{
+  "$schema": "../../config/plugin-schema.json",
+  "id": "postgres-client",
+  "name": "PostgreSQL Client Tools",
+  "version": "1.0.0",
+  "description": "Portable PostgreSQL client tools (psql, pg_dump, pg_restore)",
+  "author": "Naner",
+  "homepage": "https://github.com/yourusername/naner",
+  "license": "MIT",
+  "enabled": false,
+  "nanerVersion": "1.0.0",
+  "dependencies": [],
+  "vendors": [
+    {
+      "name": "PostgreSQL Client",
+      "description": "PostgreSQL database client tools",
+      "extractDir": "postgres",
+      "releaseSource": {
+        "type": "static",
+        "url": "https://get.enterprisedb.com/postgresql/postgresql-16.1-1-windows-x64-binaries.zip",
+        "fallback": {
+          "version": "16.1",
+          "url": "https://get.enterprisedb.com/postgresql/postgresql-16.1-1-windows-x64-binaries.zip",
+          "fileName": "postgresql-16.1-1-windows-x64-binaries.zip",
+          "size": "~150"
+        }
+      },
+      "postInstallFunction": "PostgresClient.PostInstall"
+    }
+  ],
+  "environment": {
+    "variables": {
+      "PGDATA": "%NANER_ROOT%\\home\\.pgdata",
+      "PGUSER": "%USERNAME%"
+    },
+    "pathPrecedence": [
+      "%NANER_ROOT%\\vendor\\postgres\\pgsql\\bin"
+    ]
+  },
+  "hooks": {
+    "install": false,
+    "uninstall": false,
+    "enable": true,
+    "disable": true,
+    "envSetup": true
+  },
+  "configuration": {
+    "defaultHost": "localhost",
+    "defaultPort": 5432
+  },
+  "tags": [
+    "database",
+    "postgresql",
+    "client",
+    "psql"
+  ]
+}

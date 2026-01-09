@@ -1,0 +1,178 @@
+# Naner Portable Git Configuration
+# This file is automatically used when Git runs in Naner
+# Location: %NANER_ROOT%\home\.gitconfig
+
+[user]
+	# Set your identity (REQUIRED - update these!)
+	name = Your Name
+	email = your.email@example.com
+
+[core]
+	# Use LF line endings in the repository, CRLF in working directory
+	autocrlf = true
+
+	# Ensure consistent file permissions
+	filemode = false
+
+	# Default editor (uses Nano from MSYS2, change to 'code --wait' for VS Code)
+	editor = nano
+
+	# Handle long paths on Windows
+	longpaths = true
+
+[init]
+	# Default branch name for new repositories
+	defaultBranch = main
+
+[pull]
+	# Default pull strategy (rebase to keep linear history)
+	rebase = false
+
+[push]
+	# Push current branch to upstream by default
+	default = simple
+
+	# Automatically set up remote tracking
+	autoSetupRemote = true
+
+[fetch]
+	# Automatically prune deleted remote branches
+	prune = true
+
+[credential]
+	# Use Windows Credential Manager (recommended for Windows)
+	helper = manager-core
+
+	# Or use portable credential storage (less secure but portable)
+	# Uncomment the line below and comment out the line above
+	# helper = store --file ~/.git-credentials
+
+[color]
+	# Enable colored output
+	ui = auto
+
+[color "branch"]
+	current = yellow reverse
+	local = yellow
+	remote = green
+
+[color "diff"]
+	meta = yellow bold
+	frag = magenta bold
+	old = red bold
+	new = green bold
+
+[color "status"]
+	added = green
+	changed = yellow
+	untracked = red
+
+[alias]
+	# Short status
+	s = status -sb
+
+	# Pretty log
+	l = log --oneline --graph --decorate --all
+	lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+
+	# Amend last commit
+	amend = commit --amend --no-edit
+
+	# Undo last commit (keep changes)
+	undo = reset HEAD~1 --soft
+
+	# Discard all local changes
+	discard = reset --hard HEAD
+
+	# List branches by date
+	branches = branch --sort=-committerdate
+
+	# Show what would be pushed
+	preview = !git diff @{u}...
+
+	# Interactive rebase
+	rb = rebase -i
+
+	# Checkout
+	co = checkout
+
+	# Create and checkout new branch
+	cob = checkout -b
+
+	# Commit
+	ci = commit
+
+	# Commit with message
+	cm = commit -m
+
+	# Add all and commit
+	ac = !git add -A && git commit
+
+	# Pull with rebase
+	pr = pull --rebase
+
+	# Show contributors
+	contributors = shortlog -sn
+
+	# Show last commit
+	last = log -1 HEAD --stat
+
+	# Show current branch
+	current = rev-parse --abbrev-ref HEAD
+
+	# Delete merged branches (except main/master/develop)
+	cleanup = !git branch --merged | grep -v '\\*\\|main\\|master\\|develop' | xargs -n 1 git branch -d
+
+[diff]
+	# Better diff algorithm
+	algorithm = patience
+
+	# Detect renames
+	renames = copies
+
+[merge]
+	# Show common ancestor in conflict markers
+	conflictstyle = diff3
+
+	# Default merge tool (can be changed to kdiff3, meld, etc.)
+	tool = vimdiff
+
+[rerere]
+	# Remember how merge conflicts were resolved
+	enabled = true
+
+[help]
+	# Autocorrect typos after 1 second
+	autocorrect = 10
+
+[filter "lfs"]
+	# Git LFS support (if you use large files)
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+
+# URL rewrites for shorter clone commands
+[url "git@github.com:"]
+	insteadOf = gh:
+	# Usage: git clone gh:username/repo
+
+[url "git@gitlab.com:"]
+	insteadOf = gl:
+	# Usage: git clone gl:username/repo
+
+[url "git@bitbucket.org:"]
+	insteadOf = bb:
+	# Usage: git clone bb:username/repo
+
+# Include additional config files (optional)
+# Uncomment to use work-specific or personal configs
+# [include]
+#     path = ~/.config/git/config-work
+#     path = ~/.config/git/config-personal
+
+# Conditional includes based on directory
+# [includeIf "gitdir:~/work/"]
+#     path = ~/.config/git/config-work
+# [includeIf "gitdir:~/personal/"]
+#     path = ~/.config/git/config-personal

@@ -1,0 +1,112 @@
+# User-specific configuration
+config/user-settings.json
+
+# Vendor dependencies (except bin/)
+vendor/*
+!vendor/bin/
+
+# Test files (keep examples)
+config/test-*.json
+
+# Build outputs
+dist/
+*.zip
+
+# C# build artifacts
+src/csharp/**/bin/
+src/csharp/**/obj/
+
+# User binaries (bin/ is for user-added executables after deployment)
+bin/*
+!bin/.gitkeep
+
+# Temporary files
+*.tmp
+*.log
+
+# OS-specific
+Thumbs.db
+.DS_Store
+
+# SSH - Protect private keys and sensitive files
+home/.ssh/id_rsa
+home/.ssh/id_dsa
+home/.ssh/id_ecdsa
+home/.ssh/id_ed25519
+home/.ssh/*_rsa
+home/.ssh/*_dsa
+home/.ssh/*_ecdsa
+home/.ssh/*_ed25519
+home/.ssh/known_hosts
+home/.ssh/known_hosts.old
+home/.ssh/authorized_keys
+
+# SSH - Allow public keys, config, and documentation
+!home/.ssh/*.pub
+!home/.ssh/config
+!home/.ssh/README.md
+!home/.ssh/.gitkeep
+
+# PowerShell - Module cache and temporary files
+home/.local/share/powershell/
+home/Documents/PowerShell/Modules/*/
+!home/Documents/PowerShell/Modules/.gitkeep
+home/.cache/powershell/
+*.nupkg
+
+# PowerShell - Allow profile and custom scripts
+!home/.config/powershell/profile.ps1
+!home/Documents/PowerShell/Scripts/*.ps1
+
+# Git - Protect credentials and sensitive data
+home/.git-credentials
+home/.gitconfig.local
+home/.config/git/credentials
+
+# Git - Allow main config and global ignore
+!home/.gitconfig
+!home/.config/git/ignore
+!home/.config/git/.gitkeep
+
+# Bash - Protect history and session data
+home/.bash_history
+home/.bash_sessions/
+
+# Bash - Allow profile and aliases
+!home/.bashrc
+!home/.bash_profile
+!home/.bash_aliases
+
+# Node.js / npm - Protect cache and installed modules
+home/.npm-cache/
+home/.npm-global/
+home/.npm/
+home/.node_repl_history
+
+# Python / Conda - Protect cache and environments
+home/.conda/
+home/.local/lib/python*/
+home/.local/share/jupyter/
+home/.jupyter/
+home/.ipython/
+*.pyc
+__pycache__/
+
+# Go - Protect cache and downloaded modules
+home/.cache/go-build/
+home/go/pkg/
+home/go/bin/
+
+# Rust - Protect cargo cache and rustup data
+home/.cargo/registry/
+home/.cargo/git/
+home/.cargo/.package-cache
+home/.cargo/bin/
+home/.rustup/
+
+# Ruby - Protect gem cache and installed gems
+home/.gem/cache/
+home/.gem/doc/
+home/.gem/extensions/
+home/.gem/specifications/
+home/.gem/bin/

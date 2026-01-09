@@ -1,0 +1,233 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  build:
+    uses: ./.github/workflows/build.yml
+    needs: test
+
+  quality-check:
+    name: Code Quality Analysis
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: Run comprehensive PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Write-Host "Running comprehensive code quality analysis..." -ForegroundColor Cyan
+
+          $analysisSettings = @{
+            Path = ".\src\powershell\"
+            Recurse = $true
+            Settings = "PSGallery"
+          }
+
+          $results = Invoke-ScriptAnalyzer @analysisSettings
+
+          # Save results to file
+          $results | ConvertTo-Json -Depth 10 | Out-File ".\pssa-results.json"
+
+          # Display summary
+          if ($results) {
+            $grouped = $results | Group-Object -Property Severity
+
+            Write-Host ""
+            Write-Host "=== Code Quality Summary ===" -ForegroundColor Cyan
+
+            foreach ($group in $grouped) {
+              $color = switch ($group.Name) {
+                "Error" { "Red" }
+                "Warning" { "Yellow" }
+                default { "Gray" }
+              }
+              Write-Host "$($group.Name): $($group.Count)" -ForegroundColor $color
+            }
+
+            # Show top issues
+            Write-Host ""
+            Write-Host "Top Issues:" -ForegroundColor Cyan
+            $results | Group-Object -Property RuleName | Sort-Object -Property Count -Descending | Select-Object -First 5 | ForEach-Object {
+              Write-Host "  $($_.Name): $($_.Count) occurrences" -ForegroundColor Gray
+            }
+
+            # Fail on errors
+            $errors = $results | Where-Object { $_.Severity -eq "Error" }
+            if ($errors.Count -gt 0) {
+              Write-Host ""
+              Write-Host "Build failed due to $($errors.Count) error(s)" -ForegroundColor Red
+              exit 1
+            }
+          } else {
+            Write-Host "No issues found!" -ForegroundColor Green
+          }
+
+      - name: Upload analysis results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-quality-analysis
+          path: pssa-results.json
+          retention-days: 30
+
+  documentation-check:
+    name: Documentation Check
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check documentation completeness
+        shell: pwsh
+        run: |
+          Write-Host "Checking documentation completeness..." -ForegroundColor Cyan
+
+          $requiredDocs = @(
+            "README.md",
+            "docs/ARCHITECTURE.md",
+            "docs/IMPLEMENTATION-GUIDE.md",
+            "docs/QUICK-START.md",
+            "tests/README.md"
+          )
+
+          $missing = @()
+
+          foreach ($doc in $requiredDocs) {
+            if (Test-Path $doc) {
+              $size = (Get-Item $doc).Length
+              Write-Host "  [OK] $doc ($size bytes)" -ForegroundColor Green
+            } else {
+              Write-Host "  [✗] Missing: $doc" -ForegroundColor Red
+              $missing += $doc
+            }
+          }
+
+          if ($missing.Count -gt 0) {
+            Write-Host ""
+            Write-Host "Missing documentation files:" -ForegroundColor Red
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "All documentation files present" -ForegroundColor Green
+
+      - name: Check for broken links in markdown
+        shell: pwsh
+        run: |
+          Write-Host "Checking for broken internal links..." -ForegroundColor Cyan
+
+          $mdFiles = Get-ChildItem -Path . -Filter *.md -Recurse
+
+          $brokenLinks = @()
+
+          foreach ($file in $mdFiles) {
+            $content = Get-Content $file.FullName -Raw
+
+            # Find markdown links [text](path)
+            $links = [regex]::Matches($content, '\[([^\]]+)\]\(([^\)]+)\)')
+
+            foreach ($link in $links) {
+              $linkPath = $link.Groups[2].Value
+
+              # Skip external URLs
+              if ($linkPath -match '^https?://') {
+                continue
+              }
+
+              # Skip anchors
+              if ($linkPath -match '^#') {
+                continue
+              }
+
+              # Resolve relative path
+              $basePath = Split-Path $file.FullName -Parent
+              $fullPath = Join-Path $basePath $linkPath
+
+              if (-not (Test-Path $fullPath)) {
+                $brokenLinks += @{
+                  File = $file.FullName
+                  Link = $linkPath
+                }
+              }
+            }
+          }
+
+          if ($brokenLinks.Count -gt 0) {
+            Write-Host "Found $($brokenLinks.Count) broken link(s):" -ForegroundColor Yellow
+            $brokenLinks | ForEach-Object {
+              Write-Host "  $($_.File): $($_.Link)" -ForegroundColor Gray
+            }
+          } else {
+            Write-Host "No broken internal links found" -ForegroundColor Green
+          }
+
+  security-check:
+    name: Security Scan
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan for sensitive data
+        shell: pwsh
+        run: |
+          Write-Host "Scanning for potentially sensitive data..." -ForegroundColor Cyan
+
+          $patterns = @(
+            @{Name = "API Keys"; Pattern = '(?i)(api[_-]?key|apikey)\s*[:=]\s*[''"]?[a-zA-Z0-9]{20,}'},
+            @{Name = "Tokens"; Pattern = '(?i)(token|auth|secret)\s*[:=]\s*[''"]?[a-zA-Z0-9]{20,}'},
+            @{Name = "Passwords"; Pattern = '(?i)(password|passwd|pwd)\s*[:=]\s*[''"]?[^\s''",]{8,}'},
+            @{Name = "Private Keys"; Pattern = '-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----'}
+          )
+
+          $findings = @()
+
+          $files = Get-ChildItem -Path . -Recurse -File |
+            Where-Object { $_.Extension -match '\.(ps1|psm1|json|md|txt|yml|yaml)$' } |
+            Where-Object { $_.FullName -notmatch '(node_modules|\.git|vendor)' }
+
+          foreach ($file in $files) {
+            $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+
+            if ($content) {
+              foreach ($pattern in $patterns) {
+                if ($content -match $pattern.Pattern) {
+                  $findings += @{
+                    File = $file.FullName
+                    Type = $pattern.Name
+                  }
+                }
+              }
+            }
+          }
+
+          if ($findings.Count -gt 0) {
+            Write-Host "⚠️  Found $($findings.Count) potential sensitive data occurrence(s):" -ForegroundColor Yellow
+            $findings | ForEach-Object {
+              Write-Host "  $($_.Type) in $($_.File)" -ForegroundColor Gray
+            }
+            Write-Host ""
+            Write-Host "Please review these files to ensure no actual secrets are committed" -ForegroundColor Yellow
+          } else {
+            Write-Host "✓ No sensitive patterns detected" -ForegroundColor Green
+          }

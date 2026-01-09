@@ -1,0 +1,62 @@
+{
+  "$schema": "../../config/plugin-schema.json",
+  "id": "dotnet-sdk",
+  "name": ".NET SDK",
+  "version": "1.0.0",
+  "description": "Portable .NET SDK for C#, F#, and VB.NET development",
+  "author": "Naner",
+  "homepage": "https://github.com/yourusername/naner",
+  "license": "MIT",
+  "enabled": false,
+  "nanerVersion": "1.0.0",
+  "dependencies": [],
+  "vendors": [
+    {
+      "name": ".NET SDK",
+      "description": "Microsoft .NET Software Development Kit",
+      "extractDir": "dotnet",
+      "releaseSource": {
+        "type": "static",
+        "url": "https://download.visualstudio.microsoft.com/download/pr/0a1b3cbd-b4af-4d0d-9ed7-0054f0e200b4/4bcc533c66379caaa91770236667aacb/dotnet-sdk-8.0.100-win-x64.zip",
+        "fallback": {
+          "version": "8.0.100",
+          "url": "https://download.visualstudio.microsoft.com/download/pr/0a1b3cbd-b4af-4d0d-9ed7-0054f0e200b4/4bcc533c66379caaa91770236667aacb/dotnet-sdk-8.0.100-win-x64.zip",
+          "fileName": "dotnet-sdk-8.0.100-win-x64.zip",
+          "size": "~220"
+        }
+      },
+      "postInstallFunction": "DotNetSDK.PostInstall"
+    }
+  ],
+  "environment": {
+    "variables": {
+      "DOTNET_ROOT": "%NANER_ROOT%\\vendor\\dotnet",
+      "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+      "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+      "DOTNET_MULTILEVEL_LOOKUP": "0",
+      "NUGET_PACKAGES": "%NANER_ROOT%\\home\\.nuget\\packages"
+    },
+    "pathPrecedence": [
+      "%NANER_ROOT%\\vendor\\dotnet",
+      "%NANER_ROOT%\\home\\.dotnet\\tools"
+    ]
+  },
+  "hooks": {
+    "install": false,
+    "uninstall": false,
+    "enable": true,
+    "disable": true,
+    "envSetup": true
+  },
+  "configuration": {
+    "dotnetVersion": "8.0",
+    "disableTelemetry": true
+  },
+  "tags": [
+    "dotnet",
+    "csharp",
+    "fsharp",
+    "development",
+    "compiler"
+  ]
+}

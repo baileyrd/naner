@@ -1,0 +1,226 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'src/powershell/**'
+      - 'tests/**'
+      - '.github/workflows/test.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'src/powershell/**'
+      - 'tests/**'
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run PowerShell Tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell 7
+        uses: actions/setup-powershell@v1
+
+      - name: Display PowerShell version
+        shell: pwsh
+        run: |
+          Write-Host "PowerShell Version:" -ForegroundColor Cyan
+          $PSVersionTable
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Write-Host "Installing Pester 5.x..." -ForegroundColor Cyan
+          Install-Module -Name Pester -MinimumVersion 5.0.0 -Scope CurrentUser -Force -SkipPublisherCheck
+          Write-Host "Pester installed successfully" -ForegroundColor Green
+          Get-Module -ListAvailable -Name Pester
+
+      - name: Run unit tests
+        shell: pwsh
+        run: |
+          Write-Host "Running unit tests..." -ForegroundColor Cyan
+          .\tests\Run-Tests.ps1 -Output Detailed
+
+      - name: Run tests with code coverage
+        shell: pwsh
+        run: |
+          Write-Host "Running tests with code coverage..." -ForegroundColor Cyan
+          .\tests\Run-Tests.ps1 -CodeCoverage -Output Normal
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: tests/coverage.xml
+          retention-days: 30
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: tests/*.xml
+          retention-days: 30
+
+  lint:
+    name: PowerShell Script Analyzer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Write-Host "Installing PSScriptAnalyzer..." -ForegroundColor Cyan
+          Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+          Write-Host "PSScriptAnalyzer installed successfully" -ForegroundColor Green
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Write-Host "Running PSScriptAnalyzer..." -ForegroundColor Cyan
+
+          $results = Invoke-ScriptAnalyzer -Path .\src\powershell\ -Recurse -Settings PSGallery
+
+          if ($results) {
+            Write-Host "PSScriptAnalyzer found $($results.Count) issues:" -ForegroundColor Yellow
+            $results | Format-Table -AutoSize
+
+            $errors = $results | Where-Object { $_.Severity -eq 'Error' }
+            $warnings = $results | Where-Object { $_.Severity -eq 'Warning' }
+            $info = $results | Where-Object { $_.Severity -eq 'Information' }
+
+            Write-Host ""
+            Write-Host "Summary:" -ForegroundColor Cyan
+            Write-Host "  Errors: $($errors.Count)" -ForegroundColor Red
+            Write-Host "  Warnings: $($warnings.Count)" -ForegroundColor Yellow
+            Write-Host "  Information: $($info.Count)" -ForegroundColor Gray
+
+            if ($errors.Count -gt 0) {
+              Write-Host ""
+              Write-Host "Failing due to errors found" -ForegroundColor Red
+              exit 1
+            }
+          } else {
+            Write-Host "No issues found" -ForegroundColor Green
+          }
+
+  test-installation:
+    name: Test Naner Installation
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run installation test
+        shell: pwsh
+        run: |
+          Write-Host "Testing Naner installation script..." -ForegroundColor Cyan
+
+          # Test that main scripts can be parsed
+          $scripts = @(
+            ".\src\powershell\Invoke-Naner.ps1",
+            ".\src\powershell\Setup-NanerVendor.ps1",
+            ".\src\powershell\Test-NanerInstallation.ps1"
+          )
+
+          foreach ($script in $scripts) {
+            Write-Host "Validating: $script" -ForegroundColor Gray
+
+            $errors = $null
+            $null = [System.Management.Automation.PSParser]::Tokenize(
+              (Get-Content $script -Raw),
+              [ref]$errors
+            )
+
+            if ($errors) {
+              Write-Host "  [✗] Parse errors found:" -ForegroundColor Red
+              $errors | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+              exit 1
+            } else {
+              Write-Host "  [OK] No parse errors" -ForegroundColor Green
+            }
+          }
+
+          Write-Host ""
+          Write-Host "All scripts validated successfully" -ForegroundColor Green
+
+  build-check:
+    name: Check Build Process
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate configuration files
+        shell: pwsh
+        run: |
+          Write-Host "Validating JSON configuration files..." -ForegroundColor Cyan
+
+          $configFiles = @(
+            ".\config\naner.json",
+            ".\config\vendors.json",
+            ".\config\vendors-schema.json"
+          )
+
+          foreach ($file in $configFiles) {
+            Write-Host "Validating: $file" -ForegroundColor Gray
+
+            try {
+              $content = Get-Content $file -Raw
+              $json = $content | ConvertFrom-Json
+              Write-Host "  [OK] Valid JSON" -ForegroundColor Green
+            } catch {
+              Write-Host "  [✗] Invalid JSON: $_" -ForegroundColor Red
+              exit 1
+            }
+          }
+
+          Write-Host ""
+          Write-Host "All configuration files are valid" -ForegroundColor Green
+
+      - name: Check for required directories
+        shell: pwsh
+        run: |
+          Write-Host "Checking required directories..." -ForegroundColor Cyan
+
+          $requiredDirs = @(
+            ".\bin",
+            ".\config",
+            ".\docs",
+            ".\home",
+            ".\src\powershell",
+            ".\vendor"
+          )
+
+          $missing = @()
+
+          foreach ($dir in $requiredDirs) {
+            if (Test-Path $dir) {
+              Write-Host "  [OK] $dir" -ForegroundColor Green
+            } else {
+              Write-Host "  [✗] Missing: $dir" -ForegroundColor Red
+              $missing += $dir
+            }
+          }
+
+          if ($missing.Count -gt 0) {
+            Write-Host ""
+            Write-Host "Missing required directories:" -ForegroundColor Red
+            $missing | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "All required directories present" -ForegroundColor Green

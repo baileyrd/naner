@@ -1,0 +1,86 @@
+# Naner Sync Ignore Patterns
+# Files and directories listed here will NOT be synced to cloud storage
+# Use glob patterns (* = any characters, ? = single character)
+
+# Package Caches (DO NOT SYNC - Large and platform-specific)
+.cargo/registry/*
+.cargo/git/*
+.conda/pkgs/*
+.conda/envs/*
+.gem/ruby/*/cache/*
+.npm-cache/*
+.npm-global/lib/*
+go/pkg/*
+go/bin/*
+
+# Build Artifacts & Temporary Files
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Shell History & Sessions
+.bash_history
+.bash_sessions/*
+.zsh_history
+.lesshst
+.viminfo
+
+# SSH Private Keys (SECURITY - Do not sync unless explicitly requested)
+.ssh/id_rsa
+.ssh/id_ed25519
+.ssh/id_ecdsa
+.ssh/id_dsa
+.ssh/*.pem
+.ssh/known_hosts
+.ssh/authorized_keys
+
+# Git Credentials (SECURITY)
+.git-credentials
+
+# Editor State Files (Local preferences)
+.vscode/.ropeproject/*
+.vscode/**/*.code-workspace
+.vim/.netrwhist
+.vim/session/*
+
+# Lock Files (Platform-specific)
+*.lock
+Gemfile.lock
+package-lock.json
+yarn.lock
+Cargo.lock
+go.sum
+
+# Large Binary Files
+*.exe
+*.dll
+*.so
+*.dylib
+*.zip
+*.tar.gz
+*.7z
+
+# PowerShell Module Cache
+Documents/PowerShell/Modules/*/cache/*
+
+# Template Node Modules (If users customize templates)
+Templates/*/node_modules/*
+Templates/*/venv/*
+Templates/*/.venv/*
+Templates/*/target/*
+
+# Backup Files
+*.bak
+*.backup
+*~
+
+# OS-Specific Files
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Custom Exclusions
+# Add your own patterns below:

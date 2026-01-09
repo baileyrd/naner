@@ -1,0 +1,115 @@
+name: Testing Issue
+description: Report an issue found during testing
+title: "[Test]: "
+labels: ["testing", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to report issues discovered during testing of Naner.
+
+  - type: dropdown
+    id: test-type
+    attributes:
+      label: Test Type
+      description: What type of testing revealed this issue?
+      options:
+        - Manual Testing
+        - Automated Test Failure
+        - Integration Testing
+        - Performance Testing
+        - Regression Testing
+        - User Acceptance Testing
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-scenario
+    attributes:
+      label: Test Scenario
+      description: What were you testing?
+      placeholder: Describe the test scenario or test case
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Issue Found
+      description: What issue did you discover?
+      placeholder: Describe the issue in detail
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Assessment
+      description: How does this impact functionality?
+      placeholder: |
+        - Does it block core functionality?
+        - Is it a cosmetic issue?
+        - Does it affect specific configurations only?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: How can this be reproduced?
+      placeholder: |
+        1. Configure '...'
+        2. Run command '...'
+        3. Observe issue
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version Tested
+      description: What version were you testing?
+      placeholder: e.g., 1.0.0, main branch commit abc123
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this issue?
+      options:
+        - Critical - Crashes or data loss
+        - High - Major functionality broken
+        - Medium - Feature works but has issues
+        - Low - Minor cosmetic or edge case
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Output or Logs
+      description: Include any error messages, diagnostics, or logs
+      placeholder: Paste error output here
+      render: shell
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Known Workaround
+      description: Is there a workaround for this issue?
+      placeholder: Describe any workaround if available
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have verified this is reproducible
+          required: true
+        - label: I have checked this isn't already reported
+          required: true
+        - label: I have included diagnostic output if applicable
+          required: false
