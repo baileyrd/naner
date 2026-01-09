@@ -88,17 +88,18 @@ class Program
                 return 1;
             }
 
-            // After downloading naner.exe, run vendor setup
+            // Download essential vendors (PowerShell at minimum)
             ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Setting up vendor dependencies...");
+            ConsoleHelper.Info("Setting up essential dependencies...");
             ConsoleHelper.NewLine();
 
-            var vendorSetupResult = updater.RunVendorSetup();
-            if (vendorSetupResult != 0)
-            {
-                ConsoleHelper.Warning("Vendor setup encountered issues, but you can continue.");
-                ConsoleHelper.Info("Run 'naner setup-vendors' to retry vendor setup later.");
-            }
+            var vendorDownloader = new EssentialVendorDownloader(nanerRoot);
+            await vendorDownloader.DownloadPowerShellAsync();
+
+            // Optionally run full vendor setup for additional tools
+            ConsoleHelper.NewLine();
+            ConsoleHelper.Info("Additional vendors (Windows Terminal, MSYS2/Git) can be installed later.");
+            ConsoleHelper.Info("Run 'naner setup-vendors' to install additional tools.");
 
             ConsoleHelper.NewLine();
             ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
