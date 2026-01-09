@@ -27,9 +27,118 @@ public class EssentialVendorDownloader
     }
 
     /// <summary>
+    /// Downloads all essential vendors for a minimal working setup.
+    /// </summary>
+    public async Task<bool> DownloadAllEssentialsAsync()
+    {
+        ConsoleHelper.Info("Downloading essential vendors...");
+        ConsoleHelper.NewLine();
+
+        var success = true;
+
+        // Download 7-Zip first (needed for extracting other archives)
+        if (!await Download7ZipAsync())
+        {
+            ConsoleHelper.Warning("7-Zip download failed, will use fallback for other vendors");
+            success = false;
+        }
+
+        // Download PowerShell
+        if (!await DownloadPowerShellAsync())
+        {
+            ConsoleHelper.Warning("PowerShell download failed");
+            success = false;
+        }
+
+        // Download Windows Terminal
+        if (!await DownloadWindowsTerminalAsync())
+        {
+            ConsoleHelper.Warning("Windows Terminal download failed");
+            success = false;
+        }
+
+        return success;
+    }
+
+    /// <summary>
+    /// Downloads 7-Zip (needed for extracting .tar.xz archives).
+    /// </summary>
+    private async Task<bool> Download7ZipAsync()
+    {
+        const string url = "https://www.7-zip.org/a/7z2408-x64.msi";
+        const string fileName = "7z2408-x64.msi";
+        var extractDir = Path.Combine(_vendorDir, "7zip");
+
+        if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "7z.exe")))
+        {
+            ConsoleHelper.Info("7-Zip already installed, skipping...");
+            return true;
+        }
+
+        ConsoleHelper.Status("Downloading 7-Zip...");
+
+        try
+        {
+            var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
+
+            if (!await DownloadFileAsync(url, downloadPath, "7-Zip"))
+            {
+                return false;
+            }
+
+            ConsoleHelper.Status("Extracting 7-Zip from MSI...");
+            Directory.CreateDirectory(extractDir);
+
+            // Extract MSI using msiexec
+            var msiextractPath = Path.Combine(_vendorDir, ".downloads", "7zip-temp");
+            Directory.CreateDirectory(msiextractPath);
+
+            var startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "msiexec",
+                Arguments = $"/a \"{downloadPath}\" /qn TARGETDIR=\"{msiextractPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (var process = System.Diagnostics.Process.Start(startInfo))
+            {
+                process?.WaitForExit();
+            }
+
+            // MSI extracts to Files/7-Zip subdirectory
+            var filesDir = Path.Combine(msiextractPath, "Files", "7-Zip");
+            if (Directory.Exists(filesDir))
+            {
+                // Move all files from Files/7-Zip to vendor/7zip
+                foreach (var file in Directory.GetFiles(filesDir, "*", SearchOption.AllDirectories))
+                {
+                    var relativePath = Path.GetRelativePath(filesDir, file);
+                    var destPath = Path.Combine(extractDir, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+                    File.Copy(file, destPath, overwrite: true);
+                }
+            }
+
+            // Clean up
+            File.Delete(downloadPath);
+            Directory.Delete(msiextractPath, recursive: true);
+
+            ConsoleHelper.Success("7-Zip installed");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ConsoleHelper.Error($"Failed to download 7-Zip: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Downloads PowerShell (essential for terminal functionality).
     /// </summary>
-    public async Task<bool> DownloadPowerShellAsync()
+    private async Task<bool> DownloadPowerShellAsync()
     {
         const string url = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.zip";
         const string fileName = "PowerShell-7.4.6-win-x64.zip";
@@ -66,6 +175,57 @@ public class EssentialVendorDownloader
         catch (Exception ex)
         {
             ConsoleHelper.Error($"Failed to download PowerShell: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Downloads Windows Terminal (recommended terminal for best experience).
+    /// </summary>
+    private async Task<bool> DownloadWindowsTerminalAsync()
+    {
+        const string url = "https://github.com/microsoft/terminal/releases/download/v1.21.2361.0/Microsoft.WindowsTerminal_1.21.2361.0_x64.zip";
+        const string fileName = "Microsoft.WindowsTerminal_1.21.2361.0_x64.zip";
+        var extractDir = Path.Combine(_vendorDir, "terminal");
+
+        if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "wt.exe")))
+        {
+            ConsoleHelper.Info("Windows Terminal already installed, skipping...");
+            return true;
+        }
+
+        ConsoleHelper.Status("Downloading Windows Terminal...");
+
+        try
+        {
+            var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
+
+            if (!await DownloadFileAsync(url, downloadPath, "Windows Terminal"))
+            {
+                return false;
+            }
+
+            ConsoleHelper.Status("Extracting Windows Terminal...");
+            Directory.CreateDirectory(extractDir);
+            ZipFile.ExtractToDirectory(downloadPath, extractDir, overwriteFiles: true);
+
+            // Create .portable file for portable mode
+            File.WriteAllText(Path.Combine(extractDir, ".portable"), "");
+
+            // Create settings directory
+            var settingsDir = Path.Combine(extractDir, "settings");
+            Directory.CreateDirectory(settingsDir);
+
+            // Clean up download
+            File.Delete(downloadPath);
+
+            ConsoleHelper.Success("Windows Terminal installed");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ConsoleHelper.Error($"Failed to download Windows Terminal: {ex.Message}");
             return false;
         }
     }
