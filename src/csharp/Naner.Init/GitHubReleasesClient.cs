@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Naner.Init;
@@ -27,17 +28,43 @@ public class GitHubReleasesClient
         };
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+
+        // Add GitHub token if available (for private repos)
+        var token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
+        if (!string.IsNullOrEmpty(token))
+        {
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+        }
     }
 
     /// <summary>
-    /// Gets the latest release information.
+    /// Gets the latest release information (including prereleases).
     /// </summary>
     public async Task<GitHubRelease?> GetLatestReleaseAsync()
     {
         try
         {
+            // Try to get the latest non-prerelease first
             var url = $"https://api.github.com/repos/{_owner}/{_repo}/releases/latest";
             var response = await _httpClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var release = JsonSerializer.Deserialize<GitHubRelease>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (release != null)
+                {
+                    return release;
+                }
+            }
+
+            // Fallback: get all releases and return the most recent one (including prereleases)
+            url = $"https://api.github.com/repos/{_owner}/{_repo}/releases";
+            response = await _httpClient.GetAsync(url);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -45,13 +72,14 @@ public class GitHubReleasesClient
                 return null;
             }
 
-            var json = await response.Content.ReadAsStringAsync();
-            var release = JsonSerializer.Deserialize<GitHubRelease>(json, new JsonSerializerOptions
+            var releasesJson = await response.Content.ReadAsStringAsync();
+            var releases = JsonSerializer.Deserialize<List<GitHubRelease>>(releasesJson, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            return release;
+            // Return the first release (most recent)
+            return releases?.FirstOrDefault();
         }
         catch (Exception ex)
         {
@@ -69,7 +97,16 @@ public class GitHubReleasesClient
         {
             ConsoleHelper.Status($"Downloading {assetName}...");
 
-            using var response = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+            // For private repos, use the API URL with Accept header for octet-stream
+            using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+            if (downloadUrl.StartsWith("https://api.github.com/"))
+            {
+                // Override Accept header to get the binary content
+                request.Headers.Remove("Accept");
+                request.Headers.Add("Accept", "application/octet-stream");
+            }
+
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
@@ -162,11 +199,22 @@ public class GitHubReleasesClient
 /// </summary>
 public class GitHubRelease
 {
+    [JsonPropertyName("tag_name")]
     public string? TagName { get; set; }
+
+    [JsonPropertyName("name")]
     public string? Name { get; set; }
+
+    [JsonPropertyName("prerelease")]
     public bool Prerelease { get; set; }
+
+    [JsonPropertyName("assets")]
     public List<GitHubAsset>? Assets { get; set; }
+
+    [JsonPropertyName("body")]
     public string? Body { get; set; }
+
+    [JsonPropertyName("published_at")]
     public DateTime PublishedAt { get; set; }
 }
 
@@ -175,7 +223,15 @@ public class GitHubRelease
 /// </summary>
 public class GitHubAsset
 {
+    [JsonPropertyName("name")]
     public string? Name { get; set; }
+
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
+
+    [JsonPropertyName("browser_download_url")]
     public string? BrowserDownloadUrl { get; set; }
+
+    [JsonPropertyName("size")]
     public long Size { get; set; }
 }

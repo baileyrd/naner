@@ -13,7 +13,7 @@ namespace Naner.Init;
 /// </summary>
 public class NanerUpdater
 {
-    private const string GithubOwner = "baile320"; // TODO: Update with your actual GitHub username
+    private const string GithubOwner = "baileyrd";
     private const string GithubRepo = "naner";
     private const string NanerExeName = "naner.exe";
     private const string NanerConfigName = "naner.json";
@@ -134,6 +134,14 @@ public class NanerUpdater
                 return false;
             }
 
+            // Use API URL if available (for private repos), otherwise browser download URL
+            var downloadUrl = nanerAsset.Url ?? nanerAsset.BrowserDownloadUrl;
+            if (string.IsNullOrEmpty(downloadUrl))
+            {
+                ConsoleHelper.Error($"Download URL for {NanerExeName} is missing");
+                return false;
+            }
+
             // Create directories
             Directory.CreateDirectory(_vendorBinDir);
             Directory.CreateDirectory(_configDir);
@@ -143,7 +151,7 @@ public class NanerUpdater
             var nanerPath = Path.Combine(_vendorBinDir, NanerExeName);
 
             if (!await _githubClient.DownloadAssetAsync(
-                nanerAsset.BrowserDownloadUrl!,
+                downloadUrl,
                 tempNanerPath,
                 NanerExeName))
             {
@@ -176,11 +184,15 @@ public class NanerUpdater
 
                 if (configAsset != null)
                 {
-                    ConsoleHelper.NewLine();
-                    await _githubClient.DownloadAssetAsync(
-                        configAsset.BrowserDownloadUrl!,
-                        configPath,
-                        NanerConfigName);
+                    var configDownloadUrl = configAsset.Url ?? configAsset.BrowserDownloadUrl;
+                    if (!string.IsNullOrEmpty(configDownloadUrl))
+                    {
+                        ConsoleHelper.NewLine();
+                        await _githubClient.DownloadAssetAsync(
+                            configDownloadUrl,
+                            configPath,
+                            NanerConfigName);
+                    }
                 }
             }
 
@@ -251,7 +263,6 @@ public class NanerUpdater
 
         ConsoleHelper.NewLine();
         ConsoleHelper.Success("Naner initialization completed!");
-        ConsoleHelper.Info("Run 'naner-init' again to launch Naner");
 
         return true;
     }
