@@ -424,10 +424,14 @@ public class VendorDownloader
                 File.WriteAllText(portableFile, "");
                 Logger.Info($"    Created .portable file for portable mode");
 
-                // Create default settings.json with Naner profiles
-                var settingsFile = Path.Combine(targetDir, "settings.json");
+                // Create settings directory and settings.json with Naner profiles
+                // Note: Windows Terminal portable mode looks for settings/settings.json
+                var settingsDir = Path.Combine(targetDir, "settings");
+                Directory.CreateDirectory(settingsDir);
+
+                var settingsFile = Path.Combine(settingsDir, "settings.json");
                 CreateWindowsTerminalSettings(settingsFile);
-                Logger.Info($"    Created settings.json with Naner profiles");
+                Logger.Info($"    Created settings/settings.json with Naner profiles");
             }
         }
         catch (Exception ex)
