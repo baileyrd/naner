@@ -341,6 +341,21 @@ class Program
 
     static async System.Threading.Tasks.Task<int> RunInitAsync(string[] args)
     {
+        // Show deprecation notice
+        Logger.NewLine();
+        Logger.Warning("NOTICE: The 'naner init' command is deprecated.");
+        Logger.Info("Please use 'naner-init' for initialization and updates.");
+        Logger.Info("naner-init automatically downloads the latest version from GitHub.");
+        Logger.NewLine();
+        Console.Write("Continue with legacy init? (y/N): ");
+        var response = Console.ReadLine()?.Trim().ToLower();
+        if (response != "y" && response != "yes")
+        {
+            Logger.Info("Cancelled. Please use 'naner-init' instead.");
+            return 0;
+        }
+        Logger.NewLine();
+
         bool interactive = !args.Contains("--minimal") && !args.Contains("--quick");
         bool skipVendors = args.Contains("--skip-vendors") || args.Contains("--no-vendors");
         bool withVendors = args.Contains("--with-vendors");
@@ -445,7 +460,7 @@ class Program
                     Logger.Status("Downloading vendor dependencies...");
                     Logger.NewLine();
 
-                    var downloader = new VendorDownloader(targetPath);
+                    var downloader = new DynamicVendorDownloader(targetPath);
                     await downloader.SetupRequiredVendorsAsync();
                 }
 
@@ -487,10 +502,17 @@ class Program
         Console.WriteLine("It looks like this is your first time running Naner,");
         Console.WriteLine("or the installation is incomplete.");
         Console.WriteLine();
+        Logger.Warning("IMPORTANT: Please use 'naner-init' for initialization!");
+        Console.WriteLine();
+        Console.WriteLine("naner-init provides:");
+        Console.WriteLine("  • Automatic download of latest Naner from GitHub");
+        Console.WriteLine("  • Automatic updates when new versions are available");
+        Console.WriteLine("  • Simpler setup process");
+        Console.WriteLine();
         Console.WriteLine("Would you like to:");
-        Console.WriteLine("  1. Run setup wizard (recommended)");
-        Console.WriteLine("  2. Quick setup in current directory");
-        Console.WriteLine("  3. Exit and run manually: naner.exe init");
+        Console.WriteLine("  1. Exit and run 'naner-init' (recommended)");
+        Console.WriteLine("  2. Run legacy setup wizard");
+        Console.WriteLine("  3. Quick setup in current directory (legacy)");
         Console.WriteLine();
         Console.Write("Enter choice (1-3) [1]: ");
 
@@ -502,10 +524,10 @@ class Program
 
         return choice switch
         {
-            "1" => RunInit(Array.Empty<string>()),
-            "2" => RunInit(new[] { "--minimal" }),
-            "3" => 0,
-            _ => RunInit(Array.Empty<string>())
+            "1" => 0,
+            "2" => RunInit(Array.Empty<string>()),
+            "3" => RunInit(new[] { "--minimal" }),
+            _ => 0
         };
     }
 
@@ -541,8 +563,8 @@ class Program
             Logger.Info($"Naner Root: {nanerRoot}");
             Logger.NewLine();
 
-            // Run vendor download
-            var downloader = new VendorDownloader(nanerRoot);
+            // Run vendor download using dynamic fetcher
+            var downloader = new DynamicVendorDownloader(nanerRoot);
             await downloader.SetupRequiredVendorsAsync();
 
             Logger.NewLine();
