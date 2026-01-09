@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Naner.Common;
@@ -24,10 +25,13 @@ public static class PathUtilities
         startPath ??= AppContext.BaseDirectory;
 
         var currentPath = Path.GetFullPath(startPath);
+        var searchedPaths = new System.Collections.Generic.List<string>();
         var depth = 0;
 
         while (depth < maxDepth)
         {
+            searchedPaths.Add(currentPath);
+
             // Check for marker directories
             var binPath = Path.Combine(currentPath, "bin");
             var vendorPath = Path.Combine(currentPath, "vendor");
@@ -51,9 +55,23 @@ public static class PathUtilities
             depth++;
         }
 
+        // Enhanced error message with search details
+        var pathsList = string.Join("\n", searchedPaths.Select(p => $"    - {p}"));
         throw new DirectoryNotFoundException(
-            "Could not locate Naner root directory. " +
-            "Ensure bin/, vendor/, and config/ folders exist in the Naner installation.");
+            $"Could not locate Naner root directory.\n\n" +
+            $"Search Details:\n" +
+            $"  Starting path: {startPath}\n" +
+            $"  Executable location: {AppContext.BaseDirectory}\n" +
+            $"  Paths searched ({searchedPaths.Count}):\n{pathsList}\n\n" +
+            $"Requirements:\n" +
+            $"  Naner root must contain:\n" +
+            $"    - bin/      (binaries directory)\n" +
+            $"    - vendor/   (vendor dependencies)\n" +
+            $"    - config/   (configuration files)\n\n" +
+            $"Solutions:\n" +
+            $"  1. Copy naner.exe to vendor/bin/ in your Naner installation\n" +
+            $"  2. Run from within the Naner directory structure\n" +
+            $"  3. Set NANER_ROOT environment variable to your Naner directory");
     }
 
     /// <summary>
