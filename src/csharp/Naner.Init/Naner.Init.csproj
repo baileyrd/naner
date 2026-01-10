@@ -29,13 +29,9 @@
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <IlcOptimizationPreference>Size</IlcOptimizationPreference>
 
-    <!-- Version information -->
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <!-- Version information (managed in Directory.Build.props) -->
     <Product>Naner Initializer</Product>
     <Description>Standalone initializer and launcher for Naner terminal environment</Description>
-    <Copyright>Copyright © 2026</Copyright>
   </PropertyGroup>
 
   <ItemGroup>

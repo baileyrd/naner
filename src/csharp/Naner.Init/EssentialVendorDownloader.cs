@@ -15,15 +15,17 @@ public class EssentialVendorDownloader
 {
     private readonly string _nanerRoot;
     private readonly string _vendorDir;
+    private readonly bool _forceUpdate;
     private static readonly HttpClient _httpClient = new HttpClient
     {
         Timeout = TimeSpan.FromMinutes(10)
     };
 
-    public EssentialVendorDownloader(string nanerRoot)
+    public EssentialVendorDownloader(string nanerRoot, bool forceUpdate = false)
     {
         _nanerRoot = nanerRoot;
         _vendorDir = Path.Combine(nanerRoot, "vendor");
+        _forceUpdate = forceUpdate;
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
     }
 
@@ -73,8 +75,6 @@ public class EssentialVendorDownloader
     /// </summary>
     private async Task<bool> Download7ZipAsync()
     {
-        const string url = "https://www.7-zip.org/a/7z2408-x64.msi";
-        const string fileName = "7z2408-x64.msi";
         var extractDir = Path.Combine(_vendorDir, "7zip");
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "7z.exe")))
@@ -87,6 +87,16 @@ public class EssentialVendorDownloader
 
         try
         {
+            // Fetch the latest 7-Zip download URL
+            var (url, fileName) = await GetLatest7ZipUrlAsync();
+            if (url == null || fileName == null)
+            {
+                Logger.Failure("Failed to find latest 7-Zip release");
+                return false;
+            }
+
+            Logger.Info($"Latest 7-Zip package: {fileName}");
+
             var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
 
@@ -144,26 +154,100 @@ public class EssentialVendorDownloader
     }
 
     /// <summary>
+    /// Fetches the latest 7-Zip download URL by parsing the 7-zip.org download page.
+    /// </summary>
+    private async Task<(string? Url, string? FileName)> GetLatest7ZipUrlAsync()
+    {
+        try
+        {
+            const string downloadPage = "https://www.7-zip.org/download.html";
+            var response = await _httpClient.GetStringAsync(downloadPage);
+
+            // Look for patterns like: 7z2408-x64.msi
+            // The pattern matches version like 24.08 (year.month format)
+            var pattern = @"a/(7z\d{4}-x64\.msi)";
+            var matches = System.Text.RegularExpressions.Regex.Matches(response, pattern);
+
+            if (matches.Count == 0)
+            {
+                return (null, null);
+            }
+
+            // Take the first match (should be the latest)
+            var fileName = matches[0].Groups[1].Value;
+            var url = $"https://www.7-zip.org/a/{fileName}";
+
+            return (url, fileName);
+        }
+        catch
+        {
+            return (null, null);
+        }
+    }
+
+    /// <summary>
     /// Downloads PowerShell (essential for terminal functionality).
     /// </summary>
     private async Task<bool> DownloadPowerShellAsync()
     {
-        const string url = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.zip";
-        const string fileName = "PowerShell-7.4.6-win-x64.zip";
         var extractDir = Path.Combine(_vendorDir, "powershell");
-
-        if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "pwsh.exe")))
-        {
-            Logger.Info("PowerShell already installed, skipping...");
-            return true;
-        }
-
-        Logger.Status("Downloading PowerShell...");
+        var pwshExe = Path.Combine(extractDir, "pwsh.exe");
 
         try
         {
+            // Fetch latest PowerShell release from GitHub
+            var githubClient = new GitHubReleasesClient("PowerShell", "PowerShell");
+            var latestRelease = await githubClient.GetLatestReleaseAsync();
+
+            if (latestRelease == null)
+            {
+                Logger.Failure("Failed to fetch latest PowerShell release");
+                return false;
+            }
+
+            var latestVersion = latestRelease.TagName?.TrimStart('v');
+
+            // Check if already installed and up to date
+            if (!_forceUpdate && Directory.Exists(extractDir) && File.Exists(pwshExe))
+            {
+                var installedVersion = GetPowerShellVersion(pwshExe);
+                if (installedVersion != null && installedVersion == latestVersion)
+                {
+                    Logger.Info($"PowerShell {installedVersion} already installed (latest)");
+                    return true;
+                }
+                else if (installedVersion != null)
+                {
+                    Logger.Info($"PowerShell {installedVersion} installed, updating to {latestVersion}...");
+                }
+            }
+
+            Logger.Status("Downloading PowerShell...");
+
+            // Find the win-x64.zip asset
+            var asset = latestRelease.Assets?.FirstOrDefault(a =>
+                a.Name != null && a.Name.Contains("win-x64.zip", StringComparison.OrdinalIgnoreCase) &&
+                !a.Name.Contains("arm", StringComparison.OrdinalIgnoreCase));
+
+            if (asset == null)
+            {
+                Logger.Failure("PowerShell win-x64.zip asset not found in release");
+                return false;
+            }
+
+            var url = asset.BrowserDownloadUrl;
+            var fileName = asset.Name!;
+
+            if (string.IsNullOrEmpty(url))
+            {
+                Logger.Failure("PowerShell download URL is missing");
+                return false;
+            }
+
             var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
+
+            Logger.Info($"Latest PowerShell version: {latestVersion}");
 
             if (!await DownloadFileAsync(url, downloadPath, "PowerShell"))
             {
@@ -171,13 +255,20 @@ public class EssentialVendorDownloader
             }
 
             Logger.Status("Extracting PowerShell...");
+
+            // Delete old installation if exists
+            if (Directory.Exists(extractDir))
+            {
+                Directory.Delete(extractDir, recursive: true);
+            }
+
             Directory.CreateDirectory(extractDir);
             ZipFile.ExtractToDirectory(downloadPath, extractDir, overwriteFiles: true);
 
             // Clean up download
             File.Delete(downloadPath);
 
-            Logger.Success("PowerShell installed");
+            Logger.Success($"PowerShell {latestVersion} installed");
             return true;
         }
         catch (Exception ex)
@@ -188,12 +279,26 @@ public class EssentialVendorDownloader
     }
 
     /// <summary>
+    /// Gets the installed PowerShell version.
+    /// </summary>
+    private string? GetPowerShellVersion(string pwshExe)
+    {
+        try
+        {
+            var versionInfo = System.Diagnostics.FileVersionInfo.GetVersionInfo(pwshExe);
+            return versionInfo.ProductVersion?.Split('+')[0]; // Remove git hash if present
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Downloads Windows Terminal (recommended terminal for best experience).
     /// </summary>
     private async Task<bool> DownloadWindowsTerminalAsync()
     {
-        const string url = "https://github.com/microsoft/terminal/releases/download/v1.21.2361.0/Microsoft.WindowsTerminal_1.21.2361.0_x64.zip";
-        const string fileName = "Microsoft.WindowsTerminal_1.21.2361.0_x64.zip";
         var extractDir = Path.Combine(_vendorDir, "terminal");
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "wt.exe")))
@@ -206,8 +311,40 @@ public class EssentialVendorDownloader
 
         try
         {
+            // Fetch latest Windows Terminal release from GitHub
+            var githubClient = new GitHubReleasesClient("microsoft", "terminal");
+            var latestRelease = await githubClient.GetLatestReleaseAsync();
+
+            if (latestRelease == null)
+            {
+                Logger.Failure("Failed to fetch latest Windows Terminal release");
+                return false;
+            }
+
+            // Find the x64.zip asset (not the .msixbundle)
+            var asset = latestRelease.Assets?.FirstOrDefault(a =>
+                a.Name != null && a.Name.Contains("x64.zip", StringComparison.OrdinalIgnoreCase) &&
+                !a.Name.Contains("arm", StringComparison.OrdinalIgnoreCase));
+
+            if (asset == null)
+            {
+                Logger.Failure("Windows Terminal x64.zip asset not found in release");
+                return false;
+            }
+
+            var url = asset.BrowserDownloadUrl;
+            var fileName = asset.Name!;
+
+            if (string.IsNullOrEmpty(url))
+            {
+                Logger.Failure("Windows Terminal download URL is missing");
+                return false;
+            }
+
             var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
+
+            Logger.Info($"Latest Windows Terminal version: {latestRelease.TagName}");
 
             if (!await DownloadFileAsync(url, downloadPath, "Windows Terminal"))
             {
@@ -260,8 +397,6 @@ public class EssentialVendorDownloader
     /// </summary>
     private async Task<bool> DownloadMSYS2Async()
     {
-        const string url = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz";
-        const string fileName = "msys2-base-x86_64-20240727.tar.xz";
         var extractDir = Path.Combine(_vendorDir, "msys64");
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "usr", "bin", "bash.exe")))
@@ -274,6 +409,16 @@ public class EssentialVendorDownloader
 
         try
         {
+            // Fetch the latest MSYS2 base archive URL
+            var (url, fileName) = await GetLatestMSYS2UrlAsync();
+            if (url == null || fileName == null)
+            {
+                Logger.Failure("Failed to find latest MSYS2 release");
+                return false;
+            }
+
+            Logger.Info($"Latest MSYS2 package: {fileName}");
+
             var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
             Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
 
@@ -293,7 +438,8 @@ public class EssentialVendorDownloader
             Logger.Status("Extracting MSYS2 (this may take a while)...");
 
             // First extraction: .tar.xz -> .tar
-            var tarPath = Path.Combine(_vendorDir, ".downloads", "msys2-base-x86_64-20240727.tar");
+            var tarFileName = fileName.Replace(".tar.xz", ".tar");
+            var tarPath = Path.Combine(_vendorDir, ".downloads", tarFileName);
             var extractStartInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = sevenZipPath,
@@ -337,6 +483,54 @@ public class EssentialVendorDownloader
         {
             Logger.Failure($"Failed to download MSYS2: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Fetches the latest MSYS2 base archive URL by parsing the repo directory listing.
+    /// </summary>
+    private async Task<(string? Url, string? FileName)> GetLatestMSYS2UrlAsync()
+    {
+        try
+        {
+            const string repoUrl = "https://repo.msys2.org/distrib/x86_64/";
+            var response = await _httpClient.GetStringAsync(repoUrl);
+
+            // Parse HTML to find msys2-base-x86_64-*.tar.xz files
+            // Look for patterns like: msys2-base-x86_64-20240727.tar.xz
+            var pattern = @"msys2-base-x86_64-(\d{8})\.tar\.xz";
+            var matches = System.Text.RegularExpressions.Regex.Matches(response, pattern);
+
+            if (matches.Count == 0)
+            {
+                return (null, null);
+            }
+
+            // Find the most recent date
+            string? latestFileName = null;
+            int latestDate = 0;
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var dateStr = match.Groups[1].Value;
+                if (int.TryParse(dateStr, out var date) && date > latestDate)
+                {
+                    latestDate = date;
+                    latestFileName = match.Value;
+                }
+            }
+
+            if (latestFileName == null)
+            {
+                return (null, null);
+            }
+
+            var url = $"{repoUrl}{latestFileName}";
+            return (url, latestFileName);
+        }
+        catch
+        {
+            return (null, null);
         }
     }
 

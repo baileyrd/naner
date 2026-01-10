@@ -29,6 +29,7 @@ public class GitHubReleasesClient
         };
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+        _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
         // Add GitHub token if available (for private repos)
         var token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
@@ -162,6 +163,7 @@ public class GitHubReleasesClient
             using var client = new HttpClient();
             client.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+            client.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
             var url = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
             var response = await client.GetAsync(url);

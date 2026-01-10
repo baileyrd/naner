@@ -66,6 +66,9 @@ class Program
                     case "check-update":
                         return await CheckForUpdatesAsync(nanerRoot);
 
+                    case "update-vendors":
+                        return await UpdateVendorsAsync(nanerRoot);
+
                     default:
                         // Pass through to naner.exe
                         break;
@@ -271,6 +274,31 @@ class Program
     }
 
     /// <summary>
+    /// Handles 'update-vendors' command.
+    /// </summary>
+    static async Task<int> UpdateVendorsAsync(string nanerRoot)
+    {
+        var updater = new NanerUpdater(nanerRoot);
+
+        if (!updater.IsInitialized())
+        {
+            Logger.Failure("Naner is not initialized yet.");
+            Logger.Info("Run 'naner-init' to initialize first.");
+            return 1;
+        }
+
+        Logger.Header("Updating Essential Vendors");
+        Logger.NewLine();
+
+        var vendorDownloader = new EssentialVendorDownloader(nanerRoot, forceUpdate: true);
+        await vendorDownloader.DownloadAllEssentialsAsync();
+
+        Logger.NewLine();
+        Logger.Success("Vendor updates completed!");
+        return 0;
+    }
+
+    /// <summary>
     /// Finds the Naner root directory.
     /// </summary>
     static string FindNanerRoot()
@@ -294,21 +322,23 @@ class Program
         Console.WriteLine("Naner Initializer - Standalone launcher for Naner");
         Console.WriteLine();
         Console.WriteLine("USAGE:");
-        Console.WriteLine("  naner-init              Launch Naner (auto-initialize if needed)");
-        Console.WriteLine("  naner-init init         Initialize Naner (download from GitHub)");
-        Console.WriteLine("  naner-init update       Update Naner to the latest version");
-        Console.WriteLine("  naner-init check-update Check if an update is available");
-        Console.WriteLine("  naner-init [args]       Pass arguments to naner.exe");
+        Console.WriteLine("  naner-init                Launch Naner (auto-initialize if needed)");
+        Console.WriteLine("  naner-init init           Initialize Naner (download from GitHub)");
+        Console.WriteLine("  naner-init update         Update Naner to the latest version");
+        Console.WriteLine("  naner-init check-update   Check if an update is available");
+        Console.WriteLine("  naner-init update-vendors Update all vendor software to latest versions");
+        Console.WriteLine("  naner-init [args]         Pass arguments to naner.exe");
         Console.WriteLine();
         Console.WriteLine("OPTIONS:");
-        Console.WriteLine("  --version, -v           Show version information");
-        Console.WriteLine("  --help, -h              Show this help message");
+        Console.WriteLine("  --version, -v             Show version information");
+        Console.WriteLine("  --help, -h                Show this help message");
         Console.WriteLine();
         Console.WriteLine("EXAMPLES:");
-        Console.WriteLine("  naner-init              # Launch Naner");
-        Console.WriteLine("  naner-init Unified      # Launch Naner with Unified profile");
-        Console.WriteLine("  naner-init --version    # Show version");
-        Console.WriteLine("  naner-init update       # Update to latest version");
+        Console.WriteLine("  naner-init                # Launch Naner");
+        Console.WriteLine("  naner-init Unified        # Launch Naner with Unified profile");
+        Console.WriteLine("  naner-init --version      # Show version");
+        Console.WriteLine("  naner-init update         # Update to latest version");
+        Console.WriteLine("  naner-init update-vendors # Update PowerShell, Terminal, etc.");
     }
 
     /// <summary>
@@ -332,6 +362,7 @@ class Program
             "init" => true,
             "update" => true,
             "check-update" => true,
+            "update-vendors" => true,
             _ => false // Passing args to naner.exe, no console needed
         };
     }
