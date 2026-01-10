@@ -4,13 +4,14 @@ using System.IO;
 using System.Text;
 using Naner.Common;
 using Naner.Configuration;
+using Naner.Launcher.Abstractions;
 
 namespace Naner.Launcher;
 
 /// <summary>
 /// Handles launching Windows Terminal with configured profiles.
 /// </summary>
-public class TerminalLauncher
+public class TerminalLauncher : ITerminalLauncher
 {
     private readonly string _nanerRoot;
     private readonly NanerConfig _config;

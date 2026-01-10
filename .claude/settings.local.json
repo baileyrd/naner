@@ -65,7 +65,9 @@
       "Bash(./7zr.exe x 7z-installer.exe -o../7zip)",
       "Bash(../7zip/7z.exe x msys2.tar.xz)",
       "Bash(../7zip/7z.exe x msys2.tar -o..)",
-      "Bash(vendor/bin/naner.exe:*)"
+      "Bash(vendor/bin/naner.exe:*)",
+      "Bash(find:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

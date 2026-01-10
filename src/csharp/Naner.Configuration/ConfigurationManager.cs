@@ -2,13 +2,14 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Naner.Common;
+using Naner.Configuration.Abstractions;
 
 namespace Naner.Configuration;
 
 /// <summary>
 /// Manages loading and processing Naner configuration files.
 /// </summary>
-public class ConfigurationManager
+public class ConfigurationManager : IConfigurationManager
 {
     private readonly string _nanerRoot;
     private NanerConfig? _config;

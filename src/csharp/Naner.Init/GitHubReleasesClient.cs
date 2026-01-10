@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Naner.Common;
 
 namespace Naner.Init;
 
@@ -68,7 +69,7 @@ public class GitHubReleasesClient
 
             if (!response.IsSuccessStatusCode)
             {
-                ConsoleHelper.Warning($"Failed to fetch latest release: {response.StatusCode}");
+                Logger.Warning($"Failed to fetch latest release: {response.StatusCode}");
                 return null;
             }
 
@@ -83,7 +84,7 @@ public class GitHubReleasesClient
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Error fetching latest release: {ex.Message}");
+            Logger.Failure($"Error fetching latest release: {ex.Message}");
             return null;
         }
     }
@@ -95,7 +96,7 @@ public class GitHubReleasesClient
     {
         try
         {
-            ConsoleHelper.Status($"Downloading {assetName}...");
+            Logger.Status($"Downloading {assetName}...");
 
             // For private repos, use the API URL with Accept header for octet-stream
             using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
@@ -141,12 +142,12 @@ public class GitHubReleasesClient
                 Console.WriteLine();
             }
 
-            ConsoleHelper.Success($"Downloaded {assetName}");
+            Logger.Success($"Downloaded {assetName}");
             return true;
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Download failed: {ex.Message}");
+            Logger.Failure($"Download failed: {ex.Message}");
             return false;
         }
     }
