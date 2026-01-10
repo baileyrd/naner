@@ -48,7 +48,24 @@
       "Bash(Select-Object -Last 20)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File build-all.ps1 -Configuration Release)",
       "Bash(./vendor/bin/naner-init.exe --version)",
-      "Bash(./vendor/bin/naner-init.exe:*)"
+      "Bash(./vendor/bin/naner-init.exe:*)",
+      "Bash(.vendorbinnaner-init.exe)",
+      "Bash(gh auth:*)",
+      "Bash(curl:*)",
+      "Bash(./test-init.bat)",
+      "Bash(gh api:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh release create:*)",
+      "Bash(../bin/naner-init.exe)",
+      "Bash(/c/Users/baile/dev/naner/bin/naner-init.exe init:*)",
+      "Bash(vendor/bin/naner-init.exe:*)",
+      "Bash(vendor/bin/naner.exe setup-vendors:*)",
+      "Bash(./7zr.exe x 7z2408-x64.msi -o7zip-msi)",
+      "Bash(./7zr.exe x 7z-installer.exe -o../7zip)",
+      "Bash(../7zip/7z.exe x msys2.tar.xz)",
+      "Bash(../7zip/7z.exe x msys2.tar -o..)",
+      "Bash(vendor/bin/naner.exe:*)"
     ]
   }
 }
