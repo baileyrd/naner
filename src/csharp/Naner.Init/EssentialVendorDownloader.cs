@@ -57,6 +57,13 @@ public class EssentialVendorDownloader
             success = false;
         }
 
+        // Download MSYS2 (Git Bash) - requires 7-Zip for extraction
+        if (!await DownloadMSYS2Async())
+        {
+            ConsoleHelper.Warning("MSYS2/Git Bash download failed");
+            success = false;
+        }
+
         return success;
     }
 
@@ -207,8 +214,24 @@ public class EssentialVendorDownloader
             }
 
             ConsoleHelper.Status("Extracting Windows Terminal...");
-            Directory.CreateDirectory(extractDir);
-            ZipFile.ExtractToDirectory(downloadPath, extractDir, overwriteFiles: true);
+            var tempExtractDir = Path.Combine(_vendorDir, ".downloads", "terminal-temp");
+            Directory.CreateDirectory(tempExtractDir);
+            ZipFile.ExtractToDirectory(downloadPath, tempExtractDir, overwriteFiles: true);
+
+            // Find the subdirectory containing the terminal files
+            var terminalSubDir = Directory.GetDirectories(tempExtractDir).FirstOrDefault();
+            if (terminalSubDir != null && Directory.Exists(terminalSubDir))
+            {
+                // Move all files from subdirectory to vendor/terminal
+                Directory.CreateDirectory(extractDir);
+                foreach (var file in Directory.GetFiles(terminalSubDir, "*", SearchOption.AllDirectories))
+                {
+                    var relativePath = Path.GetRelativePath(terminalSubDir, file);
+                    var destPath = Path.Combine(extractDir, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destPath)!);
+                    File.Copy(file, destPath, overwrite: true);
+                }
+            }
 
             // Create .portable file for portable mode
             File.WriteAllText(Path.Combine(extractDir, ".portable"), "");
@@ -217,8 +240,9 @@ public class EssentialVendorDownloader
             var settingsDir = Path.Combine(extractDir, "settings");
             Directory.CreateDirectory(settingsDir);
 
-            // Clean up download
+            // Clean up
             File.Delete(downloadPath);
+            Directory.Delete(tempExtractDir, recursive: true);
 
             ConsoleHelper.Success("Windows Terminal installed");
             return true;
@@ -226,6 +250,91 @@ public class EssentialVendorDownloader
         catch (Exception ex)
         {
             ConsoleHelper.Error($"Failed to download Windows Terminal: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Downloads MSYS2 (Git Bash and UNIX tools).
+    /// </summary>
+    private async Task<bool> DownloadMSYS2Async()
+    {
+        const string url = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz";
+        const string fileName = "msys2-base-x86_64-20240727.tar.xz";
+        var extractDir = Path.Combine(_vendorDir, "msys64");
+
+        if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "usr", "bin", "bash.exe")))
+        {
+            ConsoleHelper.Info("MSYS2 already installed, skipping...");
+            return true;
+        }
+
+        ConsoleHelper.Status("Downloading MSYS2 (Git Bash)...");
+
+        try
+        {
+            var downloadPath = Path.Combine(_vendorDir, ".downloads", fileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(downloadPath)!);
+
+            if (!await DownloadFileAsync(url, downloadPath, "MSYS2"))
+            {
+                return false;
+            }
+
+            // Check if 7-Zip is available
+            var sevenZipPath = Path.Combine(_vendorDir, "7zip", "7z.exe");
+            if (!File.Exists(sevenZipPath))
+            {
+                ConsoleHelper.Warning("7-Zip not found, cannot extract MSYS2 archive");
+                return false;
+            }
+
+            ConsoleHelper.Status("Extracting MSYS2 (this may take a while)...");
+
+            // First extraction: .tar.xz -> .tar
+            var tarPath = Path.Combine(_vendorDir, ".downloads", "msys2-base-x86_64-20240727.tar");
+            var extractStartInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = sevenZipPath,
+                Arguments = $"x \"{downloadPath}\" -o\"{Path.Combine(_vendorDir, ".downloads")}\" -y",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+
+            using (var process = System.Diagnostics.Process.Start(extractStartInfo))
+            {
+                process?.WaitForExit();
+                if (process?.ExitCode != 0)
+                {
+                    ConsoleHelper.Error("Failed to extract .tar.xz archive");
+                    return false;
+                }
+            }
+
+            // Second extraction: .tar -> files
+            extractStartInfo.Arguments = $"x \"{tarPath}\" -o\"{_vendorDir}\" -y";
+            using (var process = System.Diagnostics.Process.Start(extractStartInfo))
+            {
+                process?.WaitForExit();
+                if (process?.ExitCode != 0)
+                {
+                    ConsoleHelper.Error("Failed to extract .tar archive");
+                    return false;
+                }
+            }
+
+            // Clean up downloads
+            File.Delete(downloadPath);
+            File.Delete(tarPath);
+
+            ConsoleHelper.Success("MSYS2 installed");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            ConsoleHelper.Error($"Failed to download MSYS2: {ex.Message}");
             return false;
         }
     }

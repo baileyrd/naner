@@ -98,8 +98,8 @@ class Program
 
             // Note about optional additional tools
             ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Additional tools (MSYS2/Git Bash) can be installed later.");
-            ConsoleHelper.Info("Run 'naner setup-vendors' for additional development tools.");
+            ConsoleHelper.Info("Additional development tools can be installed later.");
+            ConsoleHelper.Info("Run 'naner setup-vendors' for more optional tools.");
 
             ConsoleHelper.NewLine();
             ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
@@ -142,7 +142,27 @@ class Program
             return 0;
         }
 
-        return await updater.InitializeAsync() ? 0 : 1;
+        if (!await updater.InitializeAsync())
+        {
+            return 1;
+        }
+
+        // Download essential vendors (7-Zip, PowerShell, Windows Terminal, MSYS2)
+        ConsoleHelper.NewLine();
+        ConsoleHelper.Info("Setting up essential dependencies...");
+        ConsoleHelper.NewLine();
+
+        var vendorDownloader = new EssentialVendorDownloader(nanerRoot);
+        await vendorDownloader.DownloadAllEssentialsAsync();
+
+        // Note about optional additional tools
+        ConsoleHelper.NewLine();
+        ConsoleHelper.Info("Additional development tools can be installed later.");
+        ConsoleHelper.Info("Run 'naner setup-vendors' for more optional tools.");
+
+        ConsoleHelper.NewLine();
+        ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
+        return 0;
     }
 
     /// <summary>

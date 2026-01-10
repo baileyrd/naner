@@ -77,7 +77,11 @@
       "StartingDirectory": "%USERPROFILE%",
       "Icon": "%NANER_ROOT%\\icons\\naner.ico",
       "ColorScheme": "Campbell",
-      "UseVendorPath": true
+      "UseVendorPath": true,
+      "CustomShell": {
+        "ExecutablePath": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
+        "Arguments": "-NoProfile -NoLogo -Command \"& { . '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'; Invoke-Command { Set-Location $env:USERPROFILE } }\""
+      }
     },
     "PowerShell": {
       "Name": "PowerShell 7",
@@ -86,7 +90,11 @@
       "StartingDirectory": "%USERPROFILE%",
       "Icon": "%NANER_ROOT%\\icons\\powershell.ico",
       "ColorScheme": "Campbell",
-      "UseVendorPath": true
+      "UseVendorPath": true,
+      "CustomShell": {
+        "ExecutablePath": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
+        "Arguments": "-NoProfile -NoLogo -Command \"& { . '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'; Invoke-Command { Set-Location $env:USERPROFILE } }\""
+      }
     },
     "Bash": {
       "Name": "Bash",

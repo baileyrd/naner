@@ -198,6 +198,35 @@ class Program
                     Logger.Info($"  Default Profile: {config.DefaultProfile}");
                     Logger.Info($"  Vendor Paths: {config.VendorPaths.Count}");
                     Logger.Info($"  Profiles: {config.Profiles.Count}");
+                    Logger.NewLine();
+                    Logger.Status("Vendor Paths:");
+                    if (config.VendorPaths.TryGetValue("WindowsTerminal", out var wtPath))
+                    {
+                        var exists = File.Exists(wtPath);
+                        var symbol = exists ? "✓" : "✗";
+                        var color = exists ? ConsoleColor.Green : ConsoleColor.Red;
+                        Console.ForegroundColor = color;
+                        Console.WriteLine($"  {symbol} WindowsTerminal: {wtPath}");
+                        Console.ResetColor();
+                    }
+                    if (config.VendorPaths.TryGetValue("PowerShell", out var pwshPath))
+                    {
+                        var exists = File.Exists(pwshPath);
+                        var symbol = exists ? "✓" : "✗";
+                        var color = exists ? ConsoleColor.Green : ConsoleColor.Red;
+                        Console.ForegroundColor = color;
+                        Console.WriteLine($"  {symbol} PowerShell: {pwshPath}");
+                        Console.ResetColor();
+                    }
+                    if (config.VendorPaths.TryGetValue("GitBash", out var bashPath))
+                    {
+                        var exists = File.Exists(bashPath);
+                        var symbol = exists ? "✓" : "✗";
+                        var color = exists ? ConsoleColor.Green : ConsoleColor.Red;
+                        Console.ForegroundColor = color;
+                        Console.WriteLine($"  {symbol} GitBash: {bashPath}");
+                        Console.ResetColor();
+                    }
                 }
                 catch (Exception ex)
                 {
