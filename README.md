@@ -47,13 +47,13 @@ naner/
 ├── bin/                          # User executables (high PATH priority)
 ├── config/
 │   ├── naner.json               # Main configuration
+│   ├── vendors.json             # Vendor definitions
+│   ├── plugin-schema.json       # Plugin schema
 │   └── user-settings.json       # User overrides (gitignored)
-├── home/                         # Portable home directory
+├── home/                         # Portable home directory (created by init)
 │   ├── .config/                 # Application configurations
 │   ├── .ssh/                    # SSH keys (gitignored)
-│   ├── Documents/PowerShell/    # PowerShell modules
-│   └── Templates/               # Project templates
-├── plugins/                      # Optional vendor plugins
+│   └── Documents/PowerShell/    # PowerShell modules
 ├── src/csharp/                  # C# source code
 │   ├── Naner.Common/            # Common utilities
 │   ├── Naner.Configuration/     # Configuration management
@@ -61,18 +61,19 @@ naner/
 ├── tests/                        # Test suites
 ├── docs/                         # Documentation
 │   ├── guides/                  # User guides
-│   ├── reference/               # Technical reference
 │   ├── development/             # Developer docs
-│   └── archived/                # Historical docs
+│   ├── archived/                # Historical docs
+│   ├── RELEASE-NOTES-v1.0.0.md # Release notes
+│   └── ISSUES.md                # Issue tracking guide
 ├── naner.bat                     # Windows entry point
-└── RELEASE-NOTES-v1.0.0.md      # Release notes
+└── README.md                     # This file
 ```
 
 ## Documentation
 
 **Getting Started:**
 - [Quick Start Guide](docs/guides/QUICK-START.md) - Get up and running
-- [Release Notes](RELEASE-NOTES-v1.0.0.md) - v1.0.0 release information
+- [Release Notes](docs/RELEASE-NOTES-v1.0.0.md) - v1.0.0 release information
 - [Documentation Index](docs/README.md) - Complete documentation guide
 
 **User Guides:**
@@ -138,7 +139,7 @@ dotnet test
 - Self-bootstrapping with `naner init` command
 - Smart NANER_ROOT detection
 - Enhanced error messages and diagnostics
-- See [RELEASE-NOTES-v1.0.0.md](RELEASE-NOTES-v1.0.0.md) for details
+- See [RELEASE-NOTES-v1.0.0.md](docs/RELEASE-NOTES-v1.0.0.md) for details
 
 For earlier versions and PowerShell implementation history, see [archived documentation](docs/archived/).
 

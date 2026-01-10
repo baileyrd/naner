@@ -1,467 +1,234 @@
-# Naner Quick Start Guide
+# Quick Start: New Two-Executable Architecture
 
-Welcome to Naner! This guide will help you get started with your new portable terminal environment.
+## What Changed?
 
-## First Time Setup
+Naner now uses two executables instead of one:
 
-### 1. Download and Extract
-Extract the Naner archive to any location on your system. No installation required!
+| Executable | Size | Purpose |
+|------------|------|---------|
+| **naner-init.exe** | ~10 MB | Initializer, updater, and launcher |
+| **naner.exe** | ~11 MB | Main terminal launcher |
 
-```
-C:\tools\naner\          # Example location
-├── bin/
-├── config/
-├── icons/
-├── opt/
-└── vendor/
-```
+## Quick Start
 
-### 2. Run Setup (First Time Only)
-Open PowerShell in the Naner directory and run:
+### For New Users
 
-```powershell
-.\Setup-NanerVendor.ps1
-```
+1. **Download `naner-init.exe`** (only file you need!)
+2. **Run it:**
+   ```bash
+   naner-init
+   ```
+3. It will automatically:
+   - Download latest `naner.exe` from GitHub
+   - Download config template
+   - Set up directory structure
+   - Launch Naner
 
-This downloads and configures:
-- PowerShell 7.x
-- Windows Terminal
-- MSYS2 (with Git and Unix tools)
+### For Existing Users
 
-**Note**: This requires an internet connection and takes 5-10 minutes.
+1. **Build the new executables:**
+   ```powershell
+   cd src\csharp
+   .\build-all.ps1
+   ```
 
-### 3. Launch Naner
-```powershell
-.\Invoke-Naner.ps1
-```
+2. **Use `naner-init` instead of `naner`:**
+   ```bash
+   # Old way
+   naner
 
-That's it! You now have a unified environment with PowerShell, Git, and Unix tools.
+   # New way (recommended)
+   naner-init
+   ```
 
-## Understanding the Unified Environment
+## Key Commands
 
-### What You Get
-
-When you launch Naner, you get **one environment** with access to all these tools:
-
-#### Unix/Linux Tools
-```bash
-# Version control
-git clone https://github.com/user/repo.git
-git status
-
-# File operations
-ls -la
-grep -r "pattern" .
-find . -name "*.txt"
-
-# Text processing
-sed 's/old/new/g' file.txt
-awk '{print $1}' data.txt
-
-# Archives
-tar -xzf archive.tar.gz
-zip -r backup.zip folder/
-```
-
-#### Compilers & Build Tools
-```bash
-# C/C++ compilation
-gcc -o program program.c
-g++ -o app main.cpp
-
-# Make
-make build
-make install
-```
-
-#### PowerShell
-```powershell
-# PowerShell commands
-Get-ChildItem -Recurse
-Get-Process | Where-Object CPU -gt 100
-
-# .NET commands
-[System.Environment]::OSVersion
-```
-
-#### Windows Commands
-```cmd
-where git
-ipconfig
-netstat -an
-```
-
-### The Magic of Unified Environment
-
-**Old way** (Cmder/Git Bash):
-- Switch between terminals for different tools
-- CMD for Windows commands
-- Git Bash for Unix tools
-- PowerShell for .NET
-
-**Naner way**:
-- Everything in one place
-- No switching needed
-- Mix and match tools freely
-
-## Common Usage Patterns
-
-### Development Workflow
-
-```powershell
-# Start in your project directory
-cd C:\Projects\myapp
-
-# Use Git
-git checkout -b new-feature
-git pull origin main
-
-# Build with make
-make clean
-make build
-
-# Run tests with PowerShell
-.\run-tests.ps1
-
-# Package with Unix tools
-tar -czf release.tar.gz dist/
-```
-
-### System Administration
-
-```powershell
-# Mix PowerShell and Unix tools
-Get-Process | grep "chrome"
-
-# Use sed with PowerShell output
-Get-Content log.txt | sed 's/ERROR/⚠️ ERROR/g'
-
-# Batch process files
-ls *.log | xargs grep "error"
-```
-
-### Web Development
+### naner-init (New!)
 
 ```bash
-# Node.js development
-npm install
-npm run build
+# Launch Naner (checks for updates automatically)
+naner-init
 
-# Git workflow
-git add .
-git commit -m "Add feature"
-git push
+# Initialize fresh installation
+naner-init init
 
-# Check disk usage
-du -sh node_modules/
+# Update to latest version
+naner-init update
+
+# Check if update available
+naner-init check-update
+
+# Pass arguments through to naner.exe
+naner-init --profile PowerShell
+naner-init Unified
 ```
 
-## Configuration
+### naner.exe (Still works!)
 
-### Customizing Your Environment
+All existing commands still work:
 
-Edit `config/naner.json` to customize:
+```bash
+# Launch terminal
+naner
 
-#### Change Starting Directory
-```json
-{
-  "Profiles": {
-    "Unified": {
-      "StartingDirectory": "C:\\Projects"
-    }
-  }
-}
+# Launch specific profile
+naner --profile Bash
+
+# Download vendors (now uses latest versions!)
+naner setup-vendors
+
+# Diagnostics
+naner --diagnose
 ```
 
-#### Add Custom Environment Variables
-```json
-{
-  "Environment": {
-    "EnvironmentVariables": {
-      "MY_API_KEY": "your-key-here",
-      "PROJECT_ROOT": "C:\\Projects\\main"
-    }
-  }
-}
+## What's Better?
+
+### ✅ Always Latest Versions
+
+**Before:**
+- PowerShell 7.4.6 (hardcoded, outdated)
+- Windows Terminal 1.21.2361.0 (hardcoded, outdated)
+- You kept getting "update available" messages
+
+**Now:**
+- PowerShell 7.x.x (fetched from GitHub, always latest)
+- Windows Terminal 1.x.x (fetched from GitHub, always latest)
+- No more update messages!
+
+### ✅ Automatic Updates
+
+**Before:**
+- Had to rebuild naner.exe for updates
+- No way to check for new versions
+
+**Now:**
+- `naner-init update` downloads latest from GitHub
+- Automatic update check on launch
+- No rebuilding needed
+
+### ✅ Simpler Distribution
+
+**Before:**
+- Needed entire naner repository to use
+
+**Now:**
+- Just download `naner-init.exe`
+- It downloads everything else
+
+## Build Commands
+
+```powershell
+# Build both executables
+.\src\csharp\build-all.ps1
+
+# Build just naner-init.exe
+.\src\csharp\build-all.ps1 -InitOnly
+
+# Build just naner.exe
+.\src\csharp\build-all.ps1 -NanerOnly
+
+# Build in Debug mode
+.\src\csharp\build-all.ps1 -Configuration Debug
 ```
 
-#### Modify PATH Order
-```json
-{
-  "Environment": {
-    "PathPrecedence": [
-      "%NANER_ROOT%\\bin",
-      "C:\\MyTools",                          // Your custom tools first
-      "%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin",
-      "%NANER_ROOT%\\vendor\\msys64\\usr\\bin"
-    ]
-  }
-}
+## Important Notes
+
+### ⚠️ Before Publishing to GitHub
+
+Update the GitHub repository information in:
+
+**File:** `src\csharp\Naner.Init\NanerUpdater.cs` (lines 15-16)
+
+```csharp
+private const string GithubOwner = "your-username";  // Update this!
+private const string GithubRepo = "naner";
 ```
 
-### Adding Your Own Tools
+### 📦 GitHub Release Requirements
 
-Place executables in the `opt/` directory:
+When creating a release, include these assets:
+- `naner.exe` (required)
+- `naner.json` (optional, but recommended)
+
+Example release:
+```
+Tag: v1.0.0
+Assets:
+  - naner.exe
+  - naner.json
+```
+
+## Workflow Diagram
 
 ```
-opt/
-├── ffmpeg/
-│   └── ffmpeg.exe
-└── my-scripts/
-    ├── deploy.ps1
-    └── backup.sh
+┌─────────────────┐
+│  naner-init.exe │  (You run this)
+└────────┬────────┘
+         │
+         ├─→ First time? ─→ Download naner.exe from GitHub
+         │                  Download naner.json
+         │                  Create directories
+         │
+         ├─→ Update available? ─→ Show notification
+         │
+         └─→ Launch naner.exe with your arguments
+                    │
+                    ├─→ Load config
+                    ├─→ Setup environment
+                    └─→ Launch Windows Terminal
 ```
-
-They'll automatically be available in your environment!
-
-## Profiles Explained
-
-While Naner defaults to a unified environment, you can use different profiles:
-
-### Unified (Default)
-- PowerShell with full Unix tool access
-- Best for most users
-- Launch: `.\Invoke-Naner.ps1`
-
-### PowerShell
-- Pure PowerShell 7 with vendored tools in PATH
-- Launch: `.\Invoke-Naner.ps1 -Profile PowerShell`
-
-### Bash
-- Native Bash environment (MSYS2)
-- Unix-first, Windows-aware
-- Launch: `.\Invoke-Naner.ps1 -Profile Bash`
-
-### CMD
-- Windows Command Prompt with Unix tools in PATH
-- Launch: `.\Invoke-Naner.ps1 -Profile CMD`
 
 ## Troubleshooting
 
-### "Command not found" Error
+### Can't reach GitHub?
 
-**Check which command is being used**:
-```bash
-which git          # Unix way
-where.exe git      # Windows way
-```
+naner-init will warn you but continue launching. You can still use naner.exe directly.
 
-**Check your PATH**:
-```powershell
-$env:PATH -split ';'
-```
+### Update fails?
 
-### Tool Version Conflicts
+Your current version keeps working. Try `naner-init update` manually later.
 
-If you have Git or other tools installed system-wide, Naner's versions take precedence.
-
-**To use system version instead**:
-1. Remove from Naner PATH
-2. Edit `config/naner.json`:
-```json
-{
-  "Environment": {
-    "PathPrecedence": [
-      // Remove the conflicting path
-    ]
-  }
-}
-```
-
-### MSYS2 Path Issues
-
-Some Unix tools expect POSIX paths. Convert Windows paths:
+### Want to force update?
 
 ```bash
-# Windows path
-C:\Users\Name\file.txt
-
-# MSYS2 path
-/c/Users/Name/file.txt
-
-# Use cygpath to convert
-cygpath -u 'C:\Users\Name\file.txt'
+naner-init update
 ```
 
-### Reset to Defaults
+## Documentation
 
-```powershell
-# Re-run setup to restore defaults
-.\Setup-NanerVendor.ps1 -ForceDownload
+Detailed documentation:
+- [Two-Executable Architecture](docs/development/TWO-EXECUTABLE-ARCHITECTURE.md)
+- [Implementation Summary](docs/development/IMPLEMENTATION-SUMMARY-2026-01-09.md)
 
-# Or manually restore config
-Copy-Item config\naner.json.default config\naner.json
-```
+## Migration Checklist
 
-## Tips & Tricks
+- [ ] Build new executables with `build-all.ps1`
+- [ ] Update GitHub repo info in `NanerUpdater.cs`
+- [ ] Test `naner-init --version`
+- [ ] Test `naner-init --help`
+- [ ] Create first GitHub release (v1.0.0)
+- [ ] Upload naner.exe and naner.json as release assets
+- [ ] Test full initialization: `naner-init init`
+- [ ] Test update workflow: `naner-init update`
+- [ ] Update main README with new instructions
 
-### Create Command Aliases
+## Questions?
 
-**PowerShell** (`$PROFILE` or `config/profile.ps1`):
-```powershell
-Set-Alias g git
-Set-Alias ll 'ls -la'
+**Q: Do I need both executables?**
+A: For end users, just `naner-init.exe`. It downloads `naner.exe` automatically.
 
-function proj { cd C:\Projects }
-```
+**Q: Can I still use `naner.exe` directly?**
+A: Yes! All existing functionality works. But `naner-init` gives you auto-updates.
 
-**Bash** (`~/.bashrc`):
-```bash
-alias g='git'
-alias ll='ls -la'
-alias proj='cd /c/Projects'
-```
+**Q: What if GitHub is down?**
+A: naner-init will skip the update check and launch naner.exe normally.
 
-### Quick Directory Navigation
+**Q: How do I disable update checks?**
+A: Currently always-on. A config file for this is a future enhancement.
 
-```bash
-# Bash
-cd /c/Projects/myapp
-cd ../other-app
-
-# PowerShell
-cd C:\Projects\myapp
-cd ..\other-app
-```
-
-### Combine Tools Creatively
-
-```powershell
-# Use Unix grep with PowerShell
-Get-ChildItem -Recurse | Select-Object FullName | grep "test"
-
-# Use PowerShell formatting with Unix tools
-git log --oneline | Select-Object -First 10
-
-# Chain commands
-curl https://api.example.com/data | jq '.items' | ConvertFrom-Json
-```
-
-### Background Jobs
-
-```powershell
-# PowerShell jobs
-Start-Job { .\long-running-task.ps1 }
-Get-Job
-Receive-Job -Id 1
-
-# Unix background jobs
-./build.sh &
-jobs
-fg %1
-```
-
-## Advanced Usage
-
-### Custom Profiles
-
-Create your own profile in `config/naner.json`:
-
-```json
-{
-  "CustomProfiles": {
-    "Development": {
-      "Name": "Development Environment",
-      "Shell": "PowerShell",
-      "StartingDirectory": "C:\\Dev",
-      "Icon": "%NANER_ROOT%\\icons\\dev.ico",
-      "UseVendorPath": true,
-      "CustomShell": {
-        "ExecutablePath": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
-        "Arguments": "-NoExit -ExecutionPolicy Bypass -File %NANER_ROOT%\\config\\dev-init.ps1"
-      }
-    }
-  }
-}
-```
-
-Launch with:
-```powershell
-.\Invoke-Naner.ps1 -Profile Development
-```
-
-### Initialization Scripts
-
-**PowerShell**: Create `config/init.ps1`:
-```powershell
-# Custom prompt
-function prompt {
-    "Naner $(Get-Location)> "
-}
-
-# Environment setup
-$env:PROJECT_ROOT = "C:\Projects"
-
-# Load modules
-Import-Module posh-git
-```
-
-**Bash**: Create `config/bashrc`:
-```bash
-# Custom prompt
-PS1='\[\033[01;32m\]naner\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-
-# Environment
-export PROJECT_ROOT="/c/Projects"
-
-# Aliases
-alias gs='git status'
-```
-
-### Integration with IDEs
-
-**VS Code**: Add to `settings.json`:
-```json
-{
-  "terminal.integrated.profiles.windows": {
-    "Naner": {
-      "path": "C:\\tools\\naner\\vendor\\powershell\\pwsh.exe",
-      "args": ["-NoExit", "-Command", "& { $env:PATH = 'C:\\tools\\naner\\vendor\\msys64\\usr\\bin;' + $env:PATH }"]
-    }
-  },
-  "terminal.integrated.defaultProfile.windows": "Naner"
-}
-```
-
-## Getting Help
-
-### Documentation
-- `README-VENDOR.md`: Detailed vendor system documentation
-- `config/naner.json`: Configuration reference (with comments)
-
-### Commands
-```powershell
-# Check configuration
-.\Invoke-Naner.ps1 -DebugMode
-
-# List installed versions
-.\Manage-NanerVendor.ps1 -ListVersions
-
-# Check for updates
-.\Manage-NanerVendor.ps1 -CheckUpdates
-```
-
-### Community
-- Report issues: [Your repository]
-- Discussions: [Your forum/Discord]
-- Contributing: See CONTRIBUTING.md
-
-## What's Next?
-
-### Explore
-- Try mixing PowerShell and Unix commands
-- Set up your development workflow
-- Customize your environment
-- Add your favorite tools to `opt/`
-
-### Learn More
-- PowerShell: https://docs.microsoft.com/powershell/
-- Git: https://git-scm.com/doc
-- MSYS2: https://www.msys2.org/
-
-### Share
-If you find Naner useful, share it with others!
+**Q: Can I use this in CI/CD?**
+A: Yes! naner-init has non-interactive mode. Use `naner.exe` directly in CI/CD if you prefer.
 
 ---
 
-**Happy terminal-ing!** 🚀
+**TL;DR:** Use `naner-init` instead of `naner`. It handles updates automatically and always downloads the latest vendor versions. 🚀

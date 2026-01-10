@@ -110,7 +110,8 @@ Documentation improvements are welcome! Please ensure:
 
 - **Commands:** Run `naner --help` for command-line help
 - **Diagnostics:** Run `naner --diagnose` to troubleshoot issues
-- **Release Notes:** See [RELEASE-NOTES-v1.0.0.md](../RELEASE-NOTES-v1.0.0.md) in the repository root
+- **Release Notes:** See [RELEASE-NOTES-v1.0.0.md](RELEASE-NOTES-v1.0.0.md)
+- **Issues:** See [ISSUES.md](ISSUES.md) for issue tracking guidance
 
 ## External Resources
 
