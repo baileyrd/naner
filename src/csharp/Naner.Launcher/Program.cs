@@ -6,6 +6,8 @@ using CommandLine;
 using Naner.Common;
 using Naner.Configuration;
 using Naner.Launcher;
+using Naner.Launcher.Services;
+using Naner.Common.Services;
 
 // Command-line options
 class Options
@@ -52,42 +54,29 @@ class Program
     static int Main(string[] args)
     {
         // Determine if we need console output
-        bool needsConsole = NeedsConsole(args);
+        var consoleManager = new ConsoleManager();
+        bool needsConsole = CommandRouter.NeedsConsole(args) || FirstRunDetector.IsFirstRun() ||
+                           args.Any(a => a.ToLower() == "--debug");
 
         if (needsConsole)
         {
-            // Attach to parent console if launched from command line
-            // or allocate a new console if double-clicked
-            if (!AttachConsole(ATTACH_PARENT_PROCESS))
-            {
-                AllocConsole();
-            }
+            consoleManager.EnsureConsoleAttached();
         }
 
-        // Handle special commands that don't need NANER_ROOT
+        // Route commands using command pattern
+        var router = new CommandRouter();
+        var result = router.Route(args);
+
+        // If router returns -1, it means no command was matched, proceed with normal launcher
+        if (result != -1)
+        {
+            return result;
+        }
+
+        // Handle legacy commands not yet converted to command pattern
         if (args.Length > 0)
         {
             var firstArg = args[0].ToLower();
-
-            // Version command
-            if (firstArg == "--version" || firstArg == "-v")
-            {
-                ShowVersion();
-                return 0;
-            }
-
-            // Help command
-            if (firstArg == "--help" || firstArg == "-h" || firstArg == "/?")
-            {
-                ShowHelp();
-                return 0;
-            }
-
-            // Diagnostic command
-            if (firstArg == "--diagnose")
-            {
-                return RunDiagnostics();
-            }
 
             // Init command
             if (firstArg == "init")
