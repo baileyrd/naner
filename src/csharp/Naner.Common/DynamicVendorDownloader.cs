@@ -14,6 +14,11 @@ namespace Naner.Common;
 /// <summary>
 /// Handles downloading and installing vendor dependencies using dynamic GitHub API.
 /// </summary>
+/// <remarks>
+/// TODO [Phase 2]: This class is 95% duplicate of VendorDownloader.
+/// Both should be consolidated into a unified VendorInstaller using the
+/// VendorDefinition model. See REFACTORING_PLAN.md Phase 2.1.
+/// </remarks>
 public class DynamicVendorDownloader
 {
     private readonly string _nanerRoot;
