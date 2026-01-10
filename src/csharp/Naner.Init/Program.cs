@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Naner.Common;
 
 namespace Naner.Init;
 
@@ -76,7 +77,7 @@ class Program
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Fatal error: {ex.Message}");
+            Logger.Failure($"Fatal error: {ex.Message}");
             return 1;
         }
     }
@@ -94,18 +95,18 @@ class Program
             // Need console for initialization prompts
             EnsureConsoleAttached();
 
-            ConsoleHelper.Header("Naner Initializer");
-            ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Naner is not initialized yet.");
-            ConsoleHelper.Info("This will download the latest version of Naner from GitHub.");
-            ConsoleHelper.NewLine();
+            Logger.Header("Naner Initializer");
+            Logger.NewLine();
+            Logger.Info("Naner is not initialized yet.");
+            Logger.Info("This will download the latest version of Naner from GitHub.");
+            Logger.NewLine();
 
             Console.Write("Initialize Naner now? (Y/n): ");
             var response = Console.ReadLine()?.Trim().ToLower();
 
             if (response != "" && response != "y" && response != "yes")
             {
-                ConsoleHelper.Info("Initialization cancelled.");
+                Logger.Info("Initialization cancelled.");
                 return 0;
             }
 
@@ -115,20 +116,20 @@ class Program
             }
 
             // Download essential vendors (7-Zip, PowerShell, Windows Terminal)
-            ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Setting up essential dependencies...");
-            ConsoleHelper.NewLine();
+            Logger.NewLine();
+            Logger.Info("Setting up essential dependencies...");
+            Logger.NewLine();
 
             var vendorDownloader = new EssentialVendorDownloader(nanerRoot);
             await vendorDownloader.DownloadAllEssentialsAsync();
 
             // Note about optional additional tools
-            ConsoleHelper.NewLine();
-            ConsoleHelper.Info("Additional development tools can be installed later.");
-            ConsoleHelper.Info("Run 'naner setup-vendors' for more optional tools.");
+            Logger.NewLine();
+            Logger.Info("Additional development tools can be installed later.");
+            Logger.Info("Run 'naner setup-vendors' for more optional tools.");
 
-            ConsoleHelper.NewLine();
-            ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
+            Logger.NewLine();
+            Logger.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
             return 0;
         }
 
@@ -153,9 +154,9 @@ class Program
         if (showUpdateNotification)
         {
             EnsureConsoleAttached();
-            ConsoleHelper.Warning($"A new version of Naner is available: {latestVersion}");
-            ConsoleHelper.Info("Run 'naner-init update' to update");
-            ConsoleHelper.NewLine();
+            Logger.Warning($"A new version of Naner is available: {latestVersion}");
+            Logger.Info("Run 'naner-init update' to update");
+            Logger.NewLine();
         }
 
         // Launch naner.exe (will use GUI mode, no window flash)
@@ -171,9 +172,9 @@ class Program
 
         if (updater.IsInitialized())
         {
-            ConsoleHelper.Warning("Naner is already initialized.");
-            ConsoleHelper.Info($"Current version: {updater.GetInstalledVersion()}");
-            ConsoleHelper.Info("Use 'naner-init update' to update to the latest version.");
+            Logger.Warning("Naner is already initialized.");
+            Logger.Info($"Current version: {updater.GetInstalledVersion()}");
+            Logger.Info("Use 'naner-init update' to update to the latest version.");
             return 0;
         }
 
@@ -183,20 +184,20 @@ class Program
         }
 
         // Download essential vendors (7-Zip, PowerShell, Windows Terminal, MSYS2)
-        ConsoleHelper.NewLine();
-        ConsoleHelper.Info("Setting up essential dependencies...");
-        ConsoleHelper.NewLine();
+        Logger.NewLine();
+        Logger.Info("Setting up essential dependencies...");
+        Logger.NewLine();
 
         var vendorDownloader = new EssentialVendorDownloader(nanerRoot);
         await vendorDownloader.DownloadAllEssentialsAsync();
 
         // Note about optional additional tools
-        ConsoleHelper.NewLine();
-        ConsoleHelper.Info("Additional development tools can be installed later.");
-        ConsoleHelper.Info("Run 'naner setup-vendors' for more optional tools.");
+        Logger.NewLine();
+        Logger.Info("Additional development tools can be installed later.");
+        Logger.Info("Run 'naner setup-vendors' for more optional tools.");
 
-        ConsoleHelper.NewLine();
-        ConsoleHelper.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
+        Logger.NewLine();
+        Logger.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
         return 0;
     }
 
@@ -209,31 +210,31 @@ class Program
 
         if (!updater.IsInitialized())
         {
-            ConsoleHelper.Error("Naner is not initialized yet.");
-            ConsoleHelper.Info("Run 'naner-init' to initialize first.");
+            Logger.Failure("Naner is not initialized yet.");
+            Logger.Info("Run 'naner-init' to initialize first.");
             return 1;
         }
 
         var currentVersion = updater.GetInstalledVersion();
-        ConsoleHelper.Info($"Current version: {currentVersion}");
+        Logger.Info($"Current version: {currentVersion}");
 
         var (updateAvailable, latestVersion) = await updater.CheckForUpdateAsync();
 
         if (!updateAvailable)
         {
-            ConsoleHelper.Success("Naner is already up to date!");
+            Logger.Success("Naner is already up to date!");
             return 0;
         }
 
-        ConsoleHelper.Info($"Latest version: {latestVersion}");
-        ConsoleHelper.NewLine();
+        Logger.Info($"Latest version: {latestVersion}");
+        Logger.NewLine();
 
         Console.Write("Update now? (Y/n): ");
         var response = Console.ReadLine()?.Trim().ToLower();
 
         if (response != "" && response != "y" && response != "yes")
         {
-            ConsoleHelper.Info("Update cancelled.");
+            Logger.Info("Update cancelled.");
             return 0;
         }
 
@@ -249,23 +250,23 @@ class Program
 
         if (!updater.IsInitialized())
         {
-            ConsoleHelper.Error("Naner is not initialized yet.");
+            Logger.Failure("Naner is not initialized yet.");
             return 1;
         }
 
         var currentVersion = updater.GetInstalledVersion();
-        ConsoleHelper.Info($"Current version: {currentVersion}");
+        Logger.Info($"Current version: {currentVersion}");
 
         var (updateAvailable, latestVersion) = await updater.CheckForUpdateAsync();
 
         if (updateAvailable && latestVersion != null)
         {
-            ConsoleHelper.Warning($"Update available: {latestVersion}");
-            ConsoleHelper.Info("Run 'naner-init update' to update");
+            Logger.Warning($"Update available: {latestVersion}");
+            Logger.Info("Run 'naner-init update' to update");
             return 0;
         }
 
-        ConsoleHelper.Success("Naner is up to date!");
+        Logger.Success("Naner is up to date!");
         return 0;
     }
 
@@ -274,38 +275,15 @@ class Program
     /// </summary>
     static string FindNanerRoot()
     {
-        // Check NANER_ROOT environment variable
-        var nanerRoot = Environment.GetEnvironmentVariable("NANER_ROOT");
-        if (!string.IsNullOrEmpty(nanerRoot) && Directory.Exists(nanerRoot))
+        try
         {
-            return nanerRoot;
+            return PathUtilities.FindNanerRoot();
         }
-
-        // Check current directory and parent directories
-        var currentDir = Directory.GetCurrentDirectory();
-        var searchDir = currentDir;
-
-        for (int i = 0; i < 10; i++)
+        catch (DirectoryNotFoundException)
         {
-            // Look for markers: vendor/, config/, bin/ directories
-            if (Directory.Exists(Path.Combine(searchDir, "vendor")) ||
-                Directory.Exists(Path.Combine(searchDir, "config")) ||
-                File.Exists(Path.Combine(searchDir, ".naner-initialized")))
-            {
-                return searchDir;
-            }
-
-            var parent = Directory.GetParent(searchDir);
-            if (parent == null)
-            {
-                break;
-            }
-
-            searchDir = parent.FullName;
+            // Fallback: current directory
+            return Directory.GetCurrentDirectory();
         }
-
-        // Default to current directory
-        return currentDir;
     }
 
     /// <summary>

@@ -38,4 +38,8 @@
     <Copyright>Copyright © 2026</Copyright>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
+  </ItemGroup>
+
 </Project>

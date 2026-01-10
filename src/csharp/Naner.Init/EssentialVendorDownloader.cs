@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Naner.Common;
 
 namespace Naner.Init;
 
@@ -31,36 +32,36 @@ public class EssentialVendorDownloader
     /// </summary>
     public async Task<bool> DownloadAllEssentialsAsync()
     {
-        ConsoleHelper.Info("Downloading essential vendors...");
-        ConsoleHelper.NewLine();
+        Logger.Info("Downloading essential vendors...");
+        Logger.NewLine();
 
         var success = true;
 
         // Download 7-Zip first (needed for extracting other archives)
         if (!await Download7ZipAsync())
         {
-            ConsoleHelper.Warning("7-Zip download failed, will use fallback for other vendors");
+            Logger.Warning("7-Zip download failed, will use fallback for other vendors");
             success = false;
         }
 
         // Download PowerShell
         if (!await DownloadPowerShellAsync())
         {
-            ConsoleHelper.Warning("PowerShell download failed");
+            Logger.Warning("PowerShell download failed");
             success = false;
         }
 
         // Download Windows Terminal
         if (!await DownloadWindowsTerminalAsync())
         {
-            ConsoleHelper.Warning("Windows Terminal download failed");
+            Logger.Warning("Windows Terminal download failed");
             success = false;
         }
 
         // Download MSYS2 (Git Bash) - requires 7-Zip for extraction
         if (!await DownloadMSYS2Async())
         {
-            ConsoleHelper.Warning("MSYS2/Git Bash download failed");
+            Logger.Warning("MSYS2/Git Bash download failed");
             success = false;
         }
 
@@ -78,11 +79,11 @@ public class EssentialVendorDownloader
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "7z.exe")))
         {
-            ConsoleHelper.Info("7-Zip already installed, skipping...");
+            Logger.Info("7-Zip already installed, skipping...");
             return true;
         }
 
-        ConsoleHelper.Status("Downloading 7-Zip...");
+        Logger.Status("Downloading 7-Zip...");
 
         try
         {
@@ -94,7 +95,7 @@ public class EssentialVendorDownloader
                 return false;
             }
 
-            ConsoleHelper.Status("Extracting 7-Zip from MSI...");
+            Logger.Status("Extracting 7-Zip from MSI...");
             Directory.CreateDirectory(extractDir);
 
             // Extract MSI using msiexec
@@ -132,12 +133,12 @@ public class EssentialVendorDownloader
             File.Delete(downloadPath);
             Directory.Delete(msiextractPath, recursive: true);
 
-            ConsoleHelper.Success("7-Zip installed");
+            Logger.Success("7-Zip installed");
             return true;
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Failed to download 7-Zip: {ex.Message}");
+            Logger.Failure($"Failed to download 7-Zip: {ex.Message}");
             return false;
         }
     }
@@ -153,11 +154,11 @@ public class EssentialVendorDownloader
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "pwsh.exe")))
         {
-            ConsoleHelper.Info("PowerShell already installed, skipping...");
+            Logger.Info("PowerShell already installed, skipping...");
             return true;
         }
 
-        ConsoleHelper.Status("Downloading PowerShell...");
+        Logger.Status("Downloading PowerShell...");
 
         try
         {
@@ -169,19 +170,19 @@ public class EssentialVendorDownloader
                 return false;
             }
 
-            ConsoleHelper.Status("Extracting PowerShell...");
+            Logger.Status("Extracting PowerShell...");
             Directory.CreateDirectory(extractDir);
             ZipFile.ExtractToDirectory(downloadPath, extractDir, overwriteFiles: true);
 
             // Clean up download
             File.Delete(downloadPath);
 
-            ConsoleHelper.Success("PowerShell installed");
+            Logger.Success("PowerShell installed");
             return true;
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Failed to download PowerShell: {ex.Message}");
+            Logger.Failure($"Failed to download PowerShell: {ex.Message}");
             return false;
         }
     }
@@ -197,11 +198,11 @@ public class EssentialVendorDownloader
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "wt.exe")))
         {
-            ConsoleHelper.Info("Windows Terminal already installed, skipping...");
+            Logger.Info("Windows Terminal already installed, skipping...");
             return true;
         }
 
-        ConsoleHelper.Status("Downloading Windows Terminal...");
+        Logger.Status("Downloading Windows Terminal...");
 
         try
         {
@@ -213,7 +214,7 @@ public class EssentialVendorDownloader
                 return false;
             }
 
-            ConsoleHelper.Status("Extracting Windows Terminal...");
+            Logger.Status("Extracting Windows Terminal...");
             var tempExtractDir = Path.Combine(_vendorDir, ".downloads", "terminal-temp");
             Directory.CreateDirectory(tempExtractDir);
             ZipFile.ExtractToDirectory(downloadPath, tempExtractDir, overwriteFiles: true);
@@ -244,12 +245,12 @@ public class EssentialVendorDownloader
             File.Delete(downloadPath);
             Directory.Delete(tempExtractDir, recursive: true);
 
-            ConsoleHelper.Success("Windows Terminal installed");
+            Logger.Success("Windows Terminal installed");
             return true;
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Failed to download Windows Terminal: {ex.Message}");
+            Logger.Failure($"Failed to download Windows Terminal: {ex.Message}");
             return false;
         }
     }
@@ -265,11 +266,11 @@ public class EssentialVendorDownloader
 
         if (Directory.Exists(extractDir) && File.Exists(Path.Combine(extractDir, "usr", "bin", "bash.exe")))
         {
-            ConsoleHelper.Info("MSYS2 already installed, skipping...");
+            Logger.Info("MSYS2 already installed, skipping...");
             return true;
         }
 
-        ConsoleHelper.Status("Downloading MSYS2 (Git Bash)...");
+        Logger.Status("Downloading MSYS2 (Git Bash)...");
 
         try
         {
@@ -285,11 +286,11 @@ public class EssentialVendorDownloader
             var sevenZipPath = Path.Combine(_vendorDir, "7zip", "7z.exe");
             if (!File.Exists(sevenZipPath))
             {
-                ConsoleHelper.Warning("7-Zip not found, cannot extract MSYS2 archive");
+                Logger.Warning("7-Zip not found, cannot extract MSYS2 archive");
                 return false;
             }
 
-            ConsoleHelper.Status("Extracting MSYS2 (this may take a while)...");
+            Logger.Status("Extracting MSYS2 (this may take a while)...");
 
             // First extraction: .tar.xz -> .tar
             var tarPath = Path.Combine(_vendorDir, ".downloads", "msys2-base-x86_64-20240727.tar");
@@ -308,7 +309,7 @@ public class EssentialVendorDownloader
                 process?.WaitForExit();
                 if (process?.ExitCode != 0)
                 {
-                    ConsoleHelper.Error("Failed to extract .tar.xz archive");
+                    Logger.Failure("Failed to extract .tar.xz archive");
                     return false;
                 }
             }
@@ -320,7 +321,7 @@ public class EssentialVendorDownloader
                 process?.WaitForExit();
                 if (process?.ExitCode != 0)
                 {
-                    ConsoleHelper.Error("Failed to extract .tar archive");
+                    Logger.Failure("Failed to extract .tar archive");
                     return false;
                 }
             }
@@ -329,12 +330,12 @@ public class EssentialVendorDownloader
             File.Delete(downloadPath);
             File.Delete(tarPath);
 
-            ConsoleHelper.Success("MSYS2 installed");
+            Logger.Success("MSYS2 installed");
             return true;
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Failed to download MSYS2: {ex.Message}");
+            Logger.Failure($"Failed to download MSYS2: {ex.Message}");
             return false;
         }
     }
@@ -385,7 +386,7 @@ public class EssentialVendorDownloader
         }
         catch (Exception ex)
         {
-            ConsoleHelper.Error($"Download failed: {ex.Message}");
+            Logger.Failure($"Download failed: {ex.Message}");
             return false;
         }
     }
