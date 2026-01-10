@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace Naner.Init;
@@ -9,10 +10,32 @@ class Program
 {
     private const string Version = "1.0.0";
 
+    // Import Windows API for console attachment
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AttachConsole(int dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AllocConsole();
+
+    private const int ATTACH_PARENT_PROCESS = -1;
+
     static async Task<int> Main(string[] args)
     {
         try
         {
+            // Determine if we need to show console output
+            bool needsConsole = NeedsConsole(args);
+
+            if (needsConsole)
+            {
+                // Attach to parent console if launched from command line
+                // or allocate a new console if double-clicked
+                if (!AttachConsole(ATTACH_PARENT_PROCESS))
+                {
+                    AllocConsole();
+                }
+            }
+
             // Find or set Naner root directory
             var nanerRoot = FindNanerRoot();
 
@@ -68,6 +91,9 @@ class Program
         // Check if initialized
         if (!updater.IsInitialized())
         {
+            // Need console for initialization prompts
+            EnsureConsoleAttached();
+
             ConsoleHelper.Header("Naner Initializer");
             ConsoleHelper.NewLine();
             ConsoleHelper.Info("Naner is not initialized yet.");
@@ -107,15 +133,15 @@ class Program
         }
 
         // Check for updates (silently, only show if update available)
+        bool showUpdateNotification = false;
+        string? latestVersion = null;
         try
         {
-            var (updateAvailable, latestVersion) = await updater.CheckForUpdateAsync();
-
-            if (updateAvailable && latestVersion != null)
+            var (updateAvailable, version) = await updater.CheckForUpdateAsync();
+            if (updateAvailable && version != null)
             {
-                ConsoleHelper.Warning($"A new version of Naner is available: {latestVersion}");
-                ConsoleHelper.Info("Run 'naner-init update' to update");
-                ConsoleHelper.NewLine();
+                showUpdateNotification = true;
+                latestVersion = version;
             }
         }
         catch
@@ -123,7 +149,16 @@ class Program
             // Silently ignore update check failures
         }
 
-        // Launch naner.exe
+        // If update available, attach console to show notification
+        if (showUpdateNotification)
+        {
+            EnsureConsoleAttached();
+            ConsoleHelper.Warning($"A new version of Naner is available: {latestVersion}");
+            ConsoleHelper.Info("Run 'naner-init update' to update");
+            ConsoleHelper.NewLine();
+        }
+
+        // Launch naner.exe (will use GUI mode, no window flash)
         return updater.LaunchNaner(args);
     }
 
@@ -296,5 +331,42 @@ class Program
         Console.WriteLine("  naner-init Unified      # Launch Naner with Unified profile");
         Console.WriteLine("  naner-init --version    # Show version");
         Console.WriteLine("  naner-init update       # Update to latest version");
+    }
+
+    /// <summary>
+    /// Determines if the command needs console output.
+    /// </summary>
+    static bool NeedsConsole(string[] args)
+    {
+        // No arguments = just launching naner, no console needed
+        if (args.Length == 0)
+        {
+            return false;
+        }
+
+        var firstArg = args[0].ToLower();
+
+        // Commands that need console output
+        return firstArg switch
+        {
+            "--version" or "-v" => true,
+            "--help" or "-h" => true,
+            "init" => true,
+            "update" => true,
+            "check-update" => true,
+            _ => false // Passing args to naner.exe, no console needed
+        };
+    }
+
+    /// <summary>
+    /// Ensures a console is attached for output (used when we need to show messages dynamically).
+    /// </summary>
+    static void EnsureConsoleAttached()
+    {
+        // Try to attach to parent console, or allocate new one
+        if (!AttachConsole(ATTACH_PARENT_PROCESS))
+        {
+            AllocConsole();
+        }
     }
 }

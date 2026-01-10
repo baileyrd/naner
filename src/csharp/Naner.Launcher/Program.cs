@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using CommandLine;
 using Naner.Common;
 using Naner.Configuration;
@@ -39,8 +40,30 @@ class Program
     private const string Version = "1.0.0";
     private const string PhaseName = "Production Release - Pure C# Implementation";
 
+    // Import Windows API for console attachment
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AttachConsole(int dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool AllocConsole();
+
+    private const int ATTACH_PARENT_PROCESS = -1;
+
     static int Main(string[] args)
     {
+        // Determine if we need console output
+        bool needsConsole = NeedsConsole(args);
+
+        if (needsConsole)
+        {
+            // Attach to parent console if launched from command line
+            // or allocate a new console if double-clicked
+            if (!AttachConsole(ATTACH_PARENT_PROCESS))
+            {
+                AllocConsole();
+            }
+        }
+
         // Handle special commands that don't need NANER_ROOT
         if (args.Length > 0)
         {
@@ -293,15 +316,24 @@ class Program
                 return 0;
             }
 
-            // Display header (unless in quiet mode)
-            Logger.Header("Naner Terminal Launcher");
-            Logger.Debug($"Version: {Version}", opts.Debug);
-            Logger.Debug($"Phase: {PhaseName}", opts.Debug);
+            // Quiet mode: suppress output unless debug is enabled
+            bool quietMode = !opts.Debug;
+
+            // Display header only in debug mode
+            if (!quietMode)
+            {
+                Logger.Header("Naner Terminal Launcher");
+                Logger.Debug($"Version: {Version}", opts.Debug);
+                Logger.Debug($"Phase: {PhaseName}", opts.Debug);
+            }
 
             // 1. Find NANER_ROOT
             Logger.Debug("Finding Naner root directory...", opts.Debug);
             var nanerRoot = PathResolver.FindNanerRoot();
-            Logger.Success($"Naner Root: {nanerRoot}");
+            if (!quietMode)
+            {
+                Logger.Success($"Naner Root: {nanerRoot}");
+            }
 
             // 2. Load configuration
             var configPath = opts.ConfigPath ?? Path.Combine(nanerRoot, "config", "naner.json");
@@ -310,18 +342,27 @@ class Program
             var configManager = new ConfigurationManager(nanerRoot);
             var config = configManager.Load(configPath);
 
-            Logger.Success($"Configuration loaded");
+            if (!quietMode)
+            {
+                Logger.Success($"Configuration loaded");
+            }
             Logger.Debug($"Default profile: {config.DefaultProfile}", opts.Debug);
 
             // 3. Setup environment variables
-            Logger.Status("Setting up environment...");
+            if (!quietMode)
+            {
+                Logger.Status("Setting up environment...");
+            }
             PathResolver.SetupEnvironment(nanerRoot, opts.Environment);
             configManager.SetupEnvironmentVariables();
 
             var unifiedPath = configManager.BuildUnifiedPath(config.Advanced.InheritSystemPath);
             Environment.SetEnvironmentVariable("PATH", unifiedPath, EnvironmentVariableTarget.Process);
 
-            Logger.Success("Environment configured");
+            if (!quietMode)
+            {
+                Logger.Success("Environment configured");
+            }
 
             if (opts.Debug)
             {
@@ -335,7 +376,10 @@ class Program
             Logger.Debug($"Selected profile: {profileName}", opts.Debug);
 
             // 5. Launch terminal with profile
-            Logger.NewLine();
+            if (!quietMode)
+            {
+                Logger.NewLine();
+            }
             var launcher = new TerminalLauncher(nanerRoot, config, opts.Debug);
             var exitCode = launcher.LaunchProfile(profileName, opts.Directory);
 
@@ -607,5 +651,45 @@ class Program
             Logger.Failure($"Vendor setup failed: {ex.Message}");
             return 1;
         }
+    }
+
+    /// <summary>
+    /// Determines if the command needs console output.
+    /// </summary>
+    static bool NeedsConsole(string[] args)
+    {
+        // Commands that need console output
+        if (args.Length > 0)
+        {
+            var firstArg = args[0].ToLower();
+
+            switch (firstArg)
+            {
+                case "--version":
+                case "-v":
+                case "--help":
+                case "-h":
+                case "/?":
+                case "--diagnose":
+                case "init":
+                case "setup-vendors":
+                    return true;
+            }
+        }
+
+        // Check if this is first run (needs console for prompts)
+        if (FirstRunDetector.IsFirstRun())
+        {
+            return true;
+        }
+
+        // Normal launch with options - check if debug mode is enabled
+        if (args.Any(a => a.ToLower() == "--debug"))
+        {
+            return true;
+        }
+
+        // Default: no console needed for terminal launch
+        return false;
     }
 }

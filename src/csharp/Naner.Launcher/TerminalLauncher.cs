@@ -80,7 +80,10 @@ public class TerminalLauncher
         // Launch Windows Terminal
         try
         {
-            Logger.Status($"Launching {profile.Name}...");
+            if (_debugMode)
+            {
+                Logger.Status($"Launching {profile.Name}...");
+            }
 
             var startInfo = new ProcessStartInfo
             {
@@ -98,7 +101,10 @@ public class TerminalLauncher
                 return 1;
             }
 
-            Logger.Success($"Launched: {profile.Name}");
+            if (_debugMode)
+            {
+                Logger.Success($"Launched: {profile.Name}");
+            }
             return 0;
         }
         catch (Exception ex)
