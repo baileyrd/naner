@@ -131,9 +131,10 @@ public class TarXzExtractor : IArchiveExtractor
                 File.Delete(tarPath);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Non-critical - ignore cleanup errors
+            // Non-critical - ignore cleanup errors but log for diagnostics
+            Logger.Debug($"Could not delete temporary tar file '{tarPath}': {ex.Message}", debugMode: false);
         }
     }
 

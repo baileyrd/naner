@@ -316,9 +316,10 @@ public class TerminalLauncher : ITerminalLauncher
                     return fullPath;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore invalid paths
+                // Ignore invalid paths in PATH - log for diagnostics
+                Logger.Debug($"Skipping invalid PATH entry '{dir}': {ex.Message}", debugMode: false);
             }
         }
 

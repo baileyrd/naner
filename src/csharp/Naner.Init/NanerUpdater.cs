@@ -54,9 +54,10 @@ public class NanerUpdater
             {
                 return File.ReadAllText(versionFile).Trim();
             }
-            catch
+            catch (Exception ex)
             {
-                // Fall through to use file version
+                // Fall through to use file version as fallback
+                Logger.Debug($"Could not read version file: {ex.Message}", debugMode: false);
             }
         }
 

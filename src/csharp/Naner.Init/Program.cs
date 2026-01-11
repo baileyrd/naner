@@ -136,9 +136,10 @@ class Program
                 latestVersion = version;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently ignore update check failures
+            // Silently ignore update check failures - not critical to naner-init operation
+            Logger.Debug($"Update check failed: {ex.Message}", debugMode: false);
         }
 
         // If update available, attach console to show notification
