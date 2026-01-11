@@ -5,7 +5,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Naner.Common;
 
 namespace Naner.Init;
 

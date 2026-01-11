@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Text.Json;
-using Naner.Common;
 using Naner.Configuration.Abstractions;
 
 namespace Naner.Configuration;

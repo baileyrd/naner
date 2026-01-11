@@ -1,7 +1,7 @@
 using System;
 using Xunit;
 using FluentAssertions;
-using Naner.Launcher.Services;
+using Naner.Commands.Services;
 using Naner.Tests.Helpers;
 
 namespace Naner.Tests.Services;
@@ -16,13 +16,13 @@ public class CommandRouterTests : IDisposable
     public CommandRouterTests()
     {
         _testLogger = new TestLogger();
-        Common.Logger.SetLogger(_testLogger);
+        Logger.SetLogger(_testLogger);
     }
 
     public void Dispose()
     {
         // Reset logger to console logger after tests
-        Common.Logger.SetLogger(new Common.Abstractions.ConsoleLogger());
+        Logger.SetLogger(new ConsoleLogger());
     }
 
     [Fact]

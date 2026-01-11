@@ -1,6 +1,6 @@
 using Xunit;
 using FluentAssertions;
-using Naner.Launcher;
+using Naner.Commands;
 
 namespace Naner.Tests;
 

@@ -1,6 +1,6 @@
 using System.IO;
 using FluentAssertions;
-using Naner.Common.Services;
+using Naner.Vendors.Services;
 using Naner.Tests.Helpers;
 using Xunit;
 
