@@ -522,8 +522,9 @@ class Program
                     Logger.Status("Downloading vendor dependencies...");
                     Logger.NewLine();
 
-                    var downloader = new DynamicVendorDownloader(targetPath);
-                    await downloader.SetupRequiredVendorsAsync();
+                    var vendors = VendorDefinitionFactory.GetEssentialVendors();
+                    var installer = new UnifiedVendorInstaller(targetPath, vendors);
+                    await installer.InstallAllVendorsAsync();
                 }
 
                 // Create initialization marker
@@ -625,9 +626,10 @@ class Program
             Logger.Info($"Naner Root: {nanerRoot}");
             Logger.NewLine();
 
-            // Run vendor download using dynamic fetcher
-            var downloader = new DynamicVendorDownloader(nanerRoot);
-            await downloader.SetupRequiredVendorsAsync();
+            // Run vendor download using unified installer
+            var vendors = VendorDefinitionFactory.GetEssentialVendors();
+            var installer = new UnifiedVendorInstaller(nanerRoot, vendors);
+            await installer.InstallAllVendorsAsync();
 
             Logger.NewLine();
             Logger.Success("Vendor setup complete!");

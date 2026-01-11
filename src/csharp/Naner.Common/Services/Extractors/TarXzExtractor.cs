@@ -1,0 +1,168 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using Naner.Common.Abstractions;
+
+namespace Naner.Common.Services.Extractors;
+
+/// <summary>
+/// Extractor for .tar.xz archives.
+/// Requires 7-Zip to be installed first (two-stage extraction: .xz -> .tar -> files).
+/// </summary>
+public class TarXzExtractor : IArchiveExtractor
+{
+    private readonly string _sevenZipPath;
+
+    public TarXzExtractor(string sevenZipPath)
+    {
+        _sevenZipPath = sevenZipPath ?? throw new ArgumentNullException(nameof(sevenZipPath));
+    }
+
+    public bool CanExtract(string archivePath)
+    {
+        return archivePath.EndsWith(".tar.xz", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool Extract(string archivePath, string targetDir, string vendorName)
+    {
+        try
+        {
+            if (!File.Exists(_sevenZipPath))
+            {
+                Logger.Warning($"    7-Zip not found at {_sevenZipPath}");
+                Logger.Info($"    {vendorName} downloaded to: {archivePath}");
+                Logger.Info($"    Please extract manually to: {targetDir}");
+                return false;
+            }
+
+            Directory.CreateDirectory(targetDir);
+
+            // Step 1: Extract .xz to get .tar
+            Logger.Info($"    Extracting .xz archive...");
+            var tarPath = archivePath.Replace(".tar.xz", ".tar");
+
+            if (!ExtractXz(archivePath, tarPath))
+            {
+                return false;
+            }
+
+            // Step 2: Extract .tar to target directory
+            Logger.Info($"    Extracting .tar archive...");
+
+            if (!ExtractTar(tarPath, targetDir))
+            {
+                return false;
+            }
+
+            // Cleanup intermediate .tar file
+            CleanupTarFile(tarPath);
+
+            // Flatten single subdirectory if present
+            FlattenSingleSubdirectory(targetDir);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Failure($"    .tar.xz extraction failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Extracts .xz archive to .tar file.
+    /// </summary>
+    private bool ExtractXz(string xzPath, string tarPath)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = _sevenZipPath,
+            Arguments = $"e \"{xzPath}\" -o\"{Path.GetDirectoryName(xzPath)}\" -y",
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        process?.WaitForExit();
+
+        if (process?.ExitCode != 0)
+        {
+            Logger.Warning($"    Failed to extract .xz (exit code {process?.ExitCode})");
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Extracts .tar archive to target directory.
+    /// </summary>
+    private bool ExtractTar(string tarPath, string targetDir)
+    {
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = _sevenZipPath,
+            Arguments = $"x \"{tarPath}\" -o\"{targetDir}\" -y",
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var process = Process.Start(startInfo);
+        process?.WaitForExit();
+
+        if (process?.ExitCode != 0)
+        {
+            Logger.Warning($"    Failed to extract .tar (exit code {process?.ExitCode})");
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Removes intermediate .tar file after extraction.
+    /// </summary>
+    private static void CleanupTarFile(string tarPath)
+    {
+        try
+        {
+            if (File.Exists(tarPath))
+            {
+                File.Delete(tarPath);
+            }
+        }
+        catch
+        {
+            // Non-critical - ignore cleanup errors
+        }
+    }
+
+    /// <summary>
+    /// Flattens a single subdirectory by moving its contents up one level.
+    /// </summary>
+    private static void FlattenSingleSubdirectory(string targetDir)
+    {
+        var entries = Directory.GetFileSystemEntries(targetDir);
+        if (entries.Length == 1 && Directory.Exists(entries[0]))
+        {
+            var subDir = entries[0];
+            var tempDir = targetDir + "_temp";
+
+            Directory.Move(subDir, tempDir);
+
+            foreach (var file in Directory.GetFiles(tempDir))
+            {
+                var destFile = Path.Combine(targetDir, Path.GetFileName(file));
+                File.Move(file, destFile, overwrite: true);
+            }
+
+            foreach (var dir in Directory.GetDirectories(tempDir))
+            {
+                var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
+                Directory.Move(dir, destDir);
+            }
+
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+}
