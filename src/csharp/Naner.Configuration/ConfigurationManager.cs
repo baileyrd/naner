@@ -48,6 +48,28 @@ public class ConfigurationManager : IConfigurationManager
         // Expand all paths in the configuration
         ExpandConfigPaths();
 
+        // Validate configuration
+        var validator = new ConfigurationValidator(_nanerRoot);
+        if (!validator.Validate(_config))
+        {
+            // Log warnings but don't fail
+            foreach (var warning in validator.Warnings)
+            {
+                Logger.Warning($"Configuration validation warning: {warning}");
+            }
+
+            // Throw if there are errors
+            validator.ThrowIfInvalid();
+        }
+        else if (validator.Warnings.Count > 0)
+        {
+            // Log warnings even if validation succeeded
+            foreach (var warning in validator.Warnings)
+            {
+                Logger.Warning($"Configuration validation warning: {warning}");
+            }
+        }
+
         return _config;
     }
 
@@ -61,9 +83,10 @@ public class ConfigurationManager : IConfigurationManager
     /// Checks both standard profiles and custom profiles.
     /// </summary>
     /// <param name="profileName">Name of the profile to retrieve</param>
+    /// <param name="useDefaultOnNotFound">If true, returns the default profile when the requested profile is not found</param>
     /// <returns>Profile configuration</returns>
-    /// <exception cref="InvalidOperationException">Thrown when profile doesn't exist</exception>
-    public ProfileConfig GetProfile(string profileName)
+    /// <exception cref="InvalidOperationException">Thrown when profile doesn't exist and no default fallback available</exception>
+    public ProfileConfig GetProfile(string profileName, bool useDefaultOnNotFound = false)
     {
         if (_config == null)
         {
@@ -82,6 +105,15 @@ public class ConfigurationManager : IConfigurationManager
             return customProfile;
         }
 
+        // Try default profile if fallback is enabled
+        if (useDefaultOnNotFound &&
+            !string.IsNullOrEmpty(_config.DefaultProfile) &&
+            _config.Profiles.TryGetValue(_config.DefaultProfile, out var defaultProfile))
+        {
+            Logger.Warning($"Profile '{profileName}' not found, using default: {_config.DefaultProfile}");
+            return defaultProfile;
+        }
+
         throw new InvalidOperationException($"Profile '{profileName}' not found in configuration");
     }
 
@@ -97,37 +129,13 @@ public class ConfigurationManager : IConfigurationManager
             throw new InvalidOperationException("Configuration not loaded");
         }
 
-        var pathBuilder = new System.Text.StringBuilder();
+        // Respect the Advanced.InheritSystemPath configuration setting
+        var shouldIncludeSystemPath = includeSystemPath && _config.Advanced.InheritSystemPath;
 
-        // Add configured paths in precedence order
-        foreach (var path in _config.Environment.PathPrecedence)
-        {
-            var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
-            if (Directory.Exists(expandedPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(expandedPath);
-            }
-        }
-
-        // Optionally append system PATH
-        if (includeSystemPath && _config.Advanced.InheritSystemPath)
-        {
-            var systemPath = Environment.GetEnvironmentVariable("PATH");
-            if (!string.IsNullOrEmpty(systemPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(systemPath);
-            }
-        }
-
-        return pathBuilder.ToString();
+        return PathBuilder.BuildUnifiedPath(
+            _config.Environment.PathPrecedence,
+            _nanerRoot,
+            shouldIncludeSystemPath);
     }
 
     /// <summary>

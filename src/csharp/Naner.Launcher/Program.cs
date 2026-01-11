@@ -39,17 +39,6 @@ class Options
 
 class Program
 {
-    private const string Version = "1.0.0";
-    private const string PhaseName = "Production Release - Pure C# Implementation";
-
-    // Import Windows API for console attachment
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AttachConsole(int dwProcessId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AllocConsole();
-
-    private const int ATTACH_PARENT_PROCESS = -1;
 
     static int Main(string[] args)
     {
@@ -106,14 +95,14 @@ class Program
 
     static void ShowVersion()
     {
-        Console.WriteLine($"naner {Version}");
-        Console.WriteLine($"{PhaseName}");
+        Console.WriteLine($"naner {NanerConstants.Version}");
+        Console.WriteLine($"{NanerConstants.PhaseName}");
     }
 
     static void ShowHelp()
     {
         Logger.Header("Naner Terminal Launcher");
-        Console.WriteLine($"Version {Version} - {PhaseName}");
+        Console.WriteLine($"Version {NanerConstants.Version} - {NanerConstants.PhaseName}");
         Console.WriteLine();
 
         Console.WriteLine("USAGE:");
@@ -163,8 +152,8 @@ class Program
     static int RunDiagnostics()
     {
         Logger.Header("Naner Diagnostics");
-        Console.WriteLine($"Version: {Version}");
-        Console.WriteLine($"Phase: {PhaseName}");
+        Console.WriteLine($"Version: {NanerConstants.Version}");
+        Console.WriteLine($"Phase: {NanerConstants.PhaseName}");
         Logger.NewLine();
 
         // Executable location
@@ -312,8 +301,8 @@ class Program
             if (!quietMode)
             {
                 Logger.Header("Naner Terminal Launcher");
-                Logger.Debug($"Version: {Version}", opts.Debug);
-                Logger.Debug($"Phase: {PhaseName}", opts.Debug);
+                Logger.Debug($"Version: {NanerConstants.Version}", opts.Debug);
+                Logger.Debug($"Phase: {NanerConstants.PhaseName}", opts.Debug);
             }
 
             // 1. Find NANER_ROOT
@@ -369,7 +358,7 @@ class Program
             {
                 Logger.NewLine();
             }
-            var launcher = new TerminalLauncher(nanerRoot, config, opts.Debug);
+            var launcher = new TerminalLauncher(nanerRoot, configManager, opts.Debug);
             var exitCode = launcher.LaunchProfile(profileName, opts.Directory);
 
             return exitCode;
@@ -465,8 +454,8 @@ class Program
                     {
                         Environment.SetEnvironmentVariable("NANER_ROOT", targetPath);
                         var configManager = new ConfigurationManager(targetPath);
-                        var config = configManager.Load();
-                        var launcher = new TerminalLauncher(targetPath, config, false);
+                        configManager.Load();
+                        var launcher = new TerminalLauncher(targetPath, configManager, false);
                         return launcher.LaunchProfile(string.Empty, null);
                     }
                     catch (Exception launchEx)
@@ -528,7 +517,7 @@ class Program
                 }
 
                 // Create initialization marker
-                FirstRunDetector.CreateInitializationMarker(targetPath, Version, PhaseName);
+                FirstRunDetector.CreateInitializationMarker(targetPath, NanerConstants.Version, NanerConstants.PhaseName);
                 Logger.Success("Created initialization marker");
                 Logger.NewLine();
 

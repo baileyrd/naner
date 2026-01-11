@@ -25,9 +25,9 @@ public class GitHubReleasesClient
         _repo = repo;
         _httpClient = new HttpClient
         {
-            Timeout = TimeSpan.FromMinutes(10)
+            Timeout = TimeSpan.FromMinutes(NanerConstants.DefaultHttpTimeoutMinutes)
         };
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", NanerConstants.DefaultUserAgent);
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
         _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 
@@ -129,7 +129,7 @@ public class GitHubReleasesClient
                 if (totalBytes > 0)
                 {
                     var percent = (int)((totalRead * 100) / totalBytes);
-                    if (percent != lastPercent && percent % 10 == 0)
+                    if (percent != lastPercent && percent % NanerConstants.ProgressUpdateInterval == 0)
                     {
                         Console.Write($"\r  Progress: {percent}%");
                         lastPercent = percent;

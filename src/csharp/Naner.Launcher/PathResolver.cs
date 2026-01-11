@@ -16,7 +16,7 @@ public static class PathResolver
     /// <param name="maxDepth">Maximum number of parent directories to search</param>
     /// <returns>Absolute path to Naner root</returns>
     /// <exception cref="DirectoryNotFoundException">Thrown when root cannot be found</exception>
-    public static string FindNanerRoot(string? startPath = null, int maxDepth = 10)
+    public static string FindNanerRoot(string? startPath = null, int maxDepth = NanerConstants.MaxNanerRootSearchDepth)
     {
         return PathUtilities.FindNanerRoot(startPath, maxDepth);
     }

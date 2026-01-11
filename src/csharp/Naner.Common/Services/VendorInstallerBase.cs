@@ -16,26 +16,19 @@ public abstract class VendorInstallerBase : IVendorInstaller
     protected readonly string NanerRoot;
     protected readonly string VendorDir;
     protected readonly string DownloadDir;
-    protected static readonly HttpClient HttpClient = new HttpClient
-    {
-        Timeout = TimeSpan.FromMinutes(10)
-    };
+    protected readonly IHttpClientWrapper HttpClient;
 
-    protected VendorInstallerBase(string nanerRoot)
+    /// <summary>
+    /// Creates a new vendor installer with dependency injection support.
+    /// </summary>
+    /// <param name="nanerRoot">Naner root directory</param>
+    /// <param name="httpClient">Optional HTTP client wrapper for dependency injection</param>
+    protected VendorInstallerBase(string nanerRoot, IHttpClientWrapper? httpClient = null)
     {
         NanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
         VendorDir = Path.Combine(nanerRoot, "vendor");
         DownloadDir = Path.Combine(VendorDir, ".downloads");
-
-        // Configure HttpClient headers if not already set
-        if (!HttpClient.DefaultRequestHeaders.Contains("User-Agent"))
-        {
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", "Naner/1.0.0");
-        }
-        if (!HttpClient.DefaultRequestHeaders.Contains("Accept"))
-        {
-            HttpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-        }
+        HttpClient = httpClient ?? new HttpClientWrapper();
     }
 
     public abstract Task<bool> InstallVendorAsync(string vendorName);
@@ -81,7 +74,7 @@ public abstract class VendorInstallerBase : IVendorInstaller
                 if (totalBytes > 0)
                 {
                     var percent = (int)((totalRead * 100) / totalBytes);
-                    if (percent != lastPercent && percent % 10 == 0)
+                    if (percent != lastPercent && percent % NanerConstants.ProgressUpdateInterval == 0)
                     {
                         Console.Write($"\r    Progress: {percent}%");
                         lastPercent = percent;

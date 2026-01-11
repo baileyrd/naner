@@ -25,9 +25,10 @@ public interface IConfigurationManager
     /// Checks both standard profiles and custom profiles.
     /// </summary>
     /// <param name="profileName">Name of the profile to retrieve</param>
+    /// <param name="useDefaultOnNotFound">If true, returns the default profile when the requested profile is not found</param>
     /// <returns>Profile configuration</returns>
-    /// <exception cref="InvalidOperationException">Thrown when profile doesn't exist</exception>
-    ProfileConfig GetProfile(string profileName);
+    /// <exception cref="InvalidOperationException">Thrown when profile doesn't exist and no default fallback available</exception>
+    ProfileConfig GetProfile(string profileName, bool useDefaultOnNotFound = false);
 
     /// <summary>
     /// Builds the unified PATH string from configuration.

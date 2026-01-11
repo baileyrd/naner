@@ -4,21 +4,12 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Naner.Common;
+using Naner.Common.Services;
 
 namespace Naner.Init;
 
 class Program
 {
-    private const string Version = "1.0.0";
-
-    // Import Windows API for console attachment
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AttachConsole(int dwProcessId);
-
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool AllocConsole();
-
-    private const int ATTACH_PARENT_PROCESS = -1;
 
     static async Task<int> Main(string[] args)
     {
@@ -29,12 +20,9 @@ class Program
 
             if (needsConsole)
             {
-                // Attach to parent console if launched from command line
-                // or allocate a new console if double-clicked
-                if (!AttachConsole(ATTACH_PARENT_PROCESS))
-                {
-                    AllocConsole();
-                }
+                // Use ConsoleManager to attach console
+                var consoleManager = new ConsoleManager();
+                consoleManager.EnsureConsoleAttached();
             }
 
             // Find or set Naner root directory
@@ -49,7 +37,7 @@ class Program
                 {
                     case "--version":
                     case "-v":
-                        Console.WriteLine($"naner-init {Version}");
+                        Console.WriteLine($"naner-init {NanerConstants.Version}");
                         return 0;
 
                     case "--help":
@@ -148,9 +136,10 @@ class Program
                 latestVersion = version;
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently ignore update check failures
+            // Silently ignore update check failures - not critical to naner-init operation
+            Logger.Debug($"Update check failed: {ex.Message}", debugMode: false);
         }
 
         // If update available, attach console to show notification
@@ -372,10 +361,7 @@ class Program
     /// </summary>
     static void EnsureConsoleAttached()
     {
-        // Try to attach to parent console, or allocate new one
-        if (!AttachConsole(ATTACH_PARENT_PROCESS))
-        {
-            AllocConsole();
-        }
+        var consoleManager = new ConsoleManager();
+        consoleManager.EnsureConsoleAttached();
     }
 }

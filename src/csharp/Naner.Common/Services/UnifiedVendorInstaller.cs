@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Naner.Common.Abstractions;
 using Naner.Common.Models;
 
 namespace Naner.Common.Services;
@@ -18,8 +19,11 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 {
     private readonly Dictionary<string, VendorDefinition> _vendorDefinitions;
 
-    public UnifiedVendorInstaller(string nanerRoot, IEnumerable<VendorDefinition> vendorDefinitions)
-        : base(nanerRoot)
+    public UnifiedVendorInstaller(
+        string nanerRoot,
+        IEnumerable<VendorDefinition> vendorDefinitions,
+        IHttpClientWrapper? httpClient = null)
+        : base(nanerRoot, httpClient)
     {
         _vendorDefinitions = vendorDefinitions.ToDictionary(v => v.Name, v => v, StringComparer.OrdinalIgnoreCase);
     }

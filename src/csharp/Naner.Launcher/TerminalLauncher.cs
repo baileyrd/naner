@@ -15,18 +15,35 @@ public class TerminalLauncher : ITerminalLauncher
 {
     private readonly string _nanerRoot;
     private readonly NanerConfig _config;
+    private readonly ConfigurationManager _configManager;
     private readonly bool _debugMode;
 
     /// <summary>
     /// Creates a new terminal launcher.
     /// </summary>
     /// <param name="nanerRoot">Naner root directory</param>
+    /// <param name="configManager">Configuration manager for profile lookup</param>
+    /// <param name="debugMode">Enable debug output</param>
+    public TerminalLauncher(string nanerRoot, ConfigurationManager configManager, bool debugMode = false)
+    {
+        _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _config = configManager.Config;
+        _debugMode = debugMode;
+    }
+
+    /// <summary>
+    /// Legacy constructor for backward compatibility.
+    /// </summary>
+    /// <param name="nanerRoot">Naner root directory</param>
     /// <param name="config">Loaded Naner configuration</param>
     /// <param name="debugMode">Enable debug output</param>
+    [Obsolete("Use constructor with ConfigurationManager parameter instead")]
     public TerminalLauncher(string nanerRoot, NanerConfig config, bool debugMode = false)
     {
         _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
         _config = config ?? throw new ArgumentNullException(nameof(config));
+        _configManager = null!; // Will use local GetProfile implementation
         _debugMode = debugMode;
     }
 
@@ -121,9 +138,17 @@ public class TerminalLauncher : ITerminalLauncher
 
     /// <summary>
     /// Gets a profile by name from configuration.
+    /// Delegates to ConfigurationManager when available, otherwise uses local implementation.
     /// </summary>
     private ProfileConfig GetProfile(string profileName)
     {
+        // Use ConfigurationManager if available (new code path)
+        if (_configManager != null)
+        {
+            return _configManager.GetProfile(profileName, useDefaultOnNotFound: true);
+        }
+
+        // Legacy implementation for backward compatibility
         // Check standard profiles
         if (_config.Profiles.TryGetValue(profileName, out var profile))
         {
@@ -257,43 +282,15 @@ public class TerminalLauncher : ITerminalLauncher
     /// </summary>
     private void SetupPathEnvironment()
     {
-        // Build unified PATH from configuration
-        var pathBuilder = new StringBuilder();
-
-        // Add configured paths in precedence order
-        foreach (var path in _config.Environment.PathPrecedence)
-        {
-            var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
-            if (Directory.Exists(expandedPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(expandedPath);
-            }
-        }
-
-        // Optionally append system PATH
-        if (_config.Advanced.InheritSystemPath)
-        {
-            var systemPath = Environment.GetEnvironmentVariable("PATH");
-            if (!string.IsNullOrEmpty(systemPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(systemPath);
-            }
-        }
-
-        var unifiedPath = pathBuilder.ToString();
-        Environment.SetEnvironmentVariable("PATH", unifiedPath, EnvironmentVariableTarget.Process);
+        // Use PathBuilder to construct unified PATH
+        var unifiedPath = PathBuilder.BuildAndSetPath(
+            _config.Environment.PathPrecedence,
+            _nanerRoot,
+            _config.Advanced.InheritSystemPath);
 
         if (_debugMode)
         {
-            Logger.Debug($"PATH set to: {unifiedPath.Substring(0, Math.Min(200, unifiedPath.Length))}...", true);
+            Logger.Debug($"PATH set to: {unifiedPath.Substring(0, Math.Min(NanerConstants.MaxPathDisplayLength, unifiedPath.Length))}...", true);
         }
     }
 
@@ -319,9 +316,10 @@ public class TerminalLauncher : ITerminalLauncher
                     return fullPath;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore invalid paths
+                // Ignore invalid paths in PATH - log for diagnostics
+                Logger.Debug($"Skipping invalid PATH entry '{dir}': {ex.Message}", debugMode: false);
             }
         }
 

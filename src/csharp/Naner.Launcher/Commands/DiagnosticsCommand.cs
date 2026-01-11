@@ -10,14 +10,11 @@ namespace Naner.Launcher.Commands;
 /// </summary>
 public class DiagnosticsCommand : ICommand
 {
-    private const string Version = "1.0.0";
-    private const string PhaseName = "Production Release - Pure C# Implementation";
-
     public int Execute(string[] args)
     {
         Logger.Header("Naner Diagnostics");
-        Console.WriteLine($"Version: {Version}");
-        Console.WriteLine($"Phase: {PhaseName}");
+        Console.WriteLine($"Version: {NanerConstants.Version}");
+        Console.WriteLine($"Phase: {NanerConstants.PhaseName}");
         Logger.NewLine();
 
         // Executable location
