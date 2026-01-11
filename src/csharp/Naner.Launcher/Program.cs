@@ -7,36 +7,9 @@ using Naner.Common;
 using Naner.Configuration;
 using Naner.Launcher;
 using Naner.Launcher.Commands;
+using Naner.Launcher.Models;
 using Naner.Launcher.Services;
 using Naner.Common.Services;
-
-// Command-line options
-class Options
-{
-    [Option('p', "profile", Required = false,
-        HelpText = "Terminal profile to launch (Unified, PowerShell, Bash, CMD)")]
-    public string? Profile { get; set; }
-
-    [Option('e', "environment", Required = false,
-        HelpText = "Environment name (default, work, personal, etc.)")]
-    public string Environment { get; set; } = "default";
-
-    [Option('d', "directory", Required = false,
-        HelpText = "Starting directory for terminal session")]
-    public string? Directory { get; set; }
-
-    [Option('c', "config", Required = false,
-        HelpText = "Path to naner.json config file")]
-    public string? ConfigPath { get; set; }
-
-    [Option("debug", Required = false,
-        HelpText = "Enable debug/verbose output")]
-    public bool Debug { get; set; }
-
-    [Option('v', "version", Required = false,
-        HelpText = "Display version information")]
-    public bool Version { get; set; }
-}
 
 class Program
 {
@@ -73,7 +46,7 @@ class Program
         }
 
         // Normal command parsing
-        return Parser.Default.ParseArguments<Options>(args)
+        return Parser.Default.ParseArguments<LaunchOptions>(args)
             .MapResult(
                 opts => RunLauncher(opts),
                 errs => 1);
@@ -269,7 +242,7 @@ class Program
         }
     }
 
-    static int RunLauncher(Options opts)
+    static int RunLauncher(LaunchOptions opts)
     {
         try
         {
