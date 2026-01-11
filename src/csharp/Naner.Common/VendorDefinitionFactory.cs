@@ -81,7 +81,7 @@ public static class VendorDefinitionFactory
             WebScrapeConfig = new WebScrapeConfig
             {
                 Url = "https://www.7-zip.org/download.html",
-                Pattern = @"href=""(/a/7z\d+-x64\.msi)""",
+                Pattern = @"href=""(a/7z\d+-x64\.msi)""",
                 BaseUrl = "https://www.7-zip.org"
             },
             FallbackUrl = "https://www.7-zip.org/a/7z2408-x64.msi"
