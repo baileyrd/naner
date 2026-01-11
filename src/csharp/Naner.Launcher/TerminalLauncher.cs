@@ -32,20 +32,8 @@ public class TerminalLauncher : ITerminalLauncher
         _debugMode = debugMode;
     }
 
-    /// <summary>
-    /// Legacy constructor for backward compatibility.
-    /// </summary>
-    /// <param name="nanerRoot">Naner root directory</param>
-    /// <param name="config">Loaded Naner configuration</param>
-    /// <param name="debugMode">Enable debug output</param>
-    [Obsolete("Use constructor with ConfigurationManager parameter instead")]
-    public TerminalLauncher(string nanerRoot, NanerConfig config, bool debugMode = false)
-    {
-        _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
-        _config = config ?? throw new ArgumentNullException(nameof(config));
-        _configManager = null!; // Will use local GetProfile implementation
-        _debugMode = debugMode;
-    }
+    // Obsolete constructor removed - use constructor with ConfigurationManager parameter
+    // This eliminates technical debt and enforces proper dependency injection
 
     /// <summary>
     /// Launches Windows Terminal with the specified profile.
@@ -138,38 +126,11 @@ public class TerminalLauncher : ITerminalLauncher
 
     /// <summary>
     /// Gets a profile by name from configuration.
-    /// Delegates to ConfigurationManager when available, otherwise uses local implementation.
+    /// Always delegates to ConfigurationManager for consistent behavior.
     /// </summary>
     private ProfileConfig GetProfile(string profileName)
     {
-        // Use ConfigurationManager if available (new code path)
-        if (_configManager != null)
-        {
-            return _configManager.GetProfile(profileName, useDefaultOnNotFound: true);
-        }
-
-        // Legacy implementation for backward compatibility
-        // Check standard profiles
-        if (_config.Profiles.TryGetValue(profileName, out var profile))
-        {
-            return profile;
-        }
-
-        // Check custom profiles
-        if (_config.CustomProfiles.TryGetValue(profileName, out var customProfile))
-        {
-            return customProfile;
-        }
-
-        // Try default profile if specified profile not found
-        if (!string.IsNullOrEmpty(_config.DefaultProfile) &&
-            _config.Profiles.TryGetValue(_config.DefaultProfile, out var defaultProfile))
-        {
-            Logger.Warning($"Profile '{profileName}' not found, using default: {_config.DefaultProfile}");
-            return defaultProfile;
-        }
-
-        throw new InvalidOperationException($"Profile '{profileName}' not found");
+        return _configManager.GetProfile(profileName, useDefaultOnNotFound: true);
     }
 
     /// <summary>
