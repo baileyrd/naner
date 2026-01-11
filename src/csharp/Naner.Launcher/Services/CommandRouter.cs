@@ -16,12 +16,14 @@ public class CommandRouter
     {
         _commands = new Dictionary<string, ICommand>(StringComparer.OrdinalIgnoreCase)
         {
-            ["--version"] = new VersionCommand(),
-            ["-v"] = new VersionCommand(),
-            ["--help"] = new HelpCommand(),
-            ["-h"] = new HelpCommand(),
-            ["/?"] = new HelpCommand(),
-            ["--diagnose"] = new DiagnosticsCommand()
+            [CommandNames.Version] = new VersionCommand(),
+            [CommandNames.VersionShort] = new VersionCommand(),
+            [CommandNames.Help] = new HelpCommand(),
+            [CommandNames.HelpShort] = new HelpCommand(),
+            [CommandNames.HelpAlternate] = new HelpCommand(),
+            [CommandNames.Diagnose] = new DiagnosticsCommand(),
+            [CommandNames.Init] = new InitCommand(),
+            [CommandNames.SetupVendors] = new SetupVendorsCommand()
         };
     }
 
@@ -35,7 +37,7 @@ public class CommandRouter
         if (args.Length == 0)
         {
             // No arguments - return special code to indicate launcher should run
-            return -1;
+            return CommandNames.NoCommandMatch;
         }
 
         var command = args[0];
@@ -49,7 +51,7 @@ public class CommandRouter
         }
 
         // Not a registered command - return special code to indicate launcher should run
-        return -1;
+        return CommandNames.NoCommandMatch;
     }
 
     /// <summary>
@@ -65,12 +67,12 @@ public class CommandRouter
 
             return firstArg switch
             {
-                "--version" or "-v" => true,
-                "--help" or "-h" or "/?" => true,
-                "--diagnose" => true,
-                "init" => true,
-                "setup-vendors" => true,
-                "--debug" => true,
+                CommandNames.Version or CommandNames.VersionShort => true,
+                CommandNames.Help or CommandNames.HelpShort or CommandNames.HelpAlternate => true,
+                CommandNames.Diagnose => true,
+                CommandNames.Init => true,
+                CommandNames.SetupVendors => true,
+                CommandNames.Debug => true,
                 _ => false
             };
         }

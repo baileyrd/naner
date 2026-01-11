@@ -204,10 +204,10 @@ public abstract class VendorInstallerBase : IVendorInstaller
                 Directory.Delete(DownloadDir, true);
             }
         }
-        catch
+        catch (Exception ex)
         {
             // Non-critical: Log and continue
-            Logger.Debug("Failed to cleanup download directory");
+            Logger.Debug($"Failed to cleanup download directory: {ex.Message}", debugMode: false);
         }
     }
 }

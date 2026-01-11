@@ -6,36 +6,10 @@ using CommandLine;
 using Naner.Common;
 using Naner.Configuration;
 using Naner.Launcher;
+using Naner.Launcher.Commands;
+using Naner.Launcher.Models;
 using Naner.Launcher.Services;
 using Naner.Common.Services;
-
-// Command-line options
-class Options
-{
-    [Option('p', "profile", Required = false,
-        HelpText = "Terminal profile to launch (Unified, PowerShell, Bash, CMD)")]
-    public string? Profile { get; set; }
-
-    [Option('e', "environment", Required = false,
-        HelpText = "Environment name (default, work, personal, etc.)")]
-    public string Environment { get; set; } = "default";
-
-    [Option('d', "directory", Required = false,
-        HelpText = "Starting directory for terminal session")]
-    public string? Directory { get; set; }
-
-    [Option('c', "config", Required = false,
-        HelpText = "Path to naner.json config file")]
-    public string? ConfigPath { get; set; }
-
-    [Option("debug", Required = false,
-        HelpText = "Enable debug/verbose output")]
-    public bool Debug { get; set; }
-
-    [Option('v', "version", Required = false,
-        HelpText = "Display version information")]
-    public bool Version { get; set; }
-}
 
 class Program
 {
@@ -62,23 +36,8 @@ class Program
             return result;
         }
 
-        // Handle legacy commands not yet converted to command pattern
-        if (args.Length > 0)
-        {
-            var firstArg = args[0].ToLower();
-
-            // Init command
-            if (firstArg == "init")
-            {
-                return RunInit(args.Skip(1).ToArray());
-            }
-
-            // Setup vendors command
-            if (firstArg == "setup-vendors")
-            {
-                return RunSetupVendors();
-            }
-        }
+        // All commands are now handled by CommandRouter
+        // Legacy command handling removed - commands extracted to ICommand implementations
 
         // Check for first run
         if (FirstRunDetector.IsFirstRun())
@@ -87,7 +46,7 @@ class Program
         }
 
         // Normal command parsing
-        return Parser.Default.ParseArguments<Options>(args)
+        return Parser.Default.ParseArguments<LaunchOptions>(args)
             .MapResult(
                 opts => RunLauncher(opts),
                 errs => 1);
@@ -283,7 +242,7 @@ class Program
         }
     }
 
-    static int RunLauncher(Options opts)
+    static int RunLauncher(LaunchOptions opts)
     {
         try
         {
@@ -385,167 +344,8 @@ class Program
         }
     }
 
-    static int RunInit(string[] args)
-    {
-        return RunInitAsync(args).GetAwaiter().GetResult();
-    }
-
-    static async System.Threading.Tasks.Task<int> RunInitAsync(string[] args)
-    {
-        // Show deprecation notice
-        Logger.NewLine();
-        Logger.Warning("NOTICE: The 'naner init' command is deprecated.");
-        Logger.Info("Please use 'naner-init' for initialization and updates.");
-        Logger.Info("naner-init automatically downloads the latest version from GitHub.");
-        Logger.NewLine();
-        Console.Write("Continue with legacy init? (y/N): ");
-        var response = Console.ReadLine()?.Trim().ToLower();
-        if (response != "y" && response != "yes")
-        {
-            Logger.Info("Cancelled. Please use 'naner-init' instead.");
-            return 0;
-        }
-        Logger.NewLine();
-
-        bool interactive = !args.Contains("--minimal") && !args.Contains("--quick");
-        bool skipVendors = args.Contains("--skip-vendors") || args.Contains("--no-vendors");
-        bool withVendors = args.Contains("--with-vendors");
-        string? targetPath = null;
-
-        // Parse arguments
-        for (int i = 0; i < args.Length; i++)
-        {
-            if (args[i] == "--path" && i + 1 < args.Length)
-            {
-                targetPath = args[i + 1];
-                i++;
-            }
-            else if (!args[i].StartsWith("--") && !args[i].StartsWith("-"))
-            {
-                targetPath = args[i];
-            }
-        }
-
-        // Interactive mode with full setup
-        if (interactive)
-        {
-            targetPath ??= SetupManager.PromptInstallLocation();
-
-            try
-            {
-                targetPath = Path.GetFullPath(targetPath);
-
-                // Run full interactive setup including vendors
-                var success = await SetupManager.RunInteractiveSetupAsync(targetPath, skipVendors);
-                if (!success)
-                {
-                    return 1;
-                }
-
-                // Ask if user wants to launch terminal
-                if (SetupManager.PromptLaunchTerminal())
-                {
-                    Logger.NewLine();
-                    Logger.Info("Launching Naner...");
-                    Logger.NewLine();
-
-                    // Launch terminal with default profile
-                    try
-                    {
-                        Environment.SetEnvironmentVariable("NANER_ROOT", targetPath);
-                        var configManager = new ConfigurationManager(targetPath);
-                        configManager.Load();
-                        var launcher = new TerminalLauncher(targetPath, configManager, false);
-                        return launcher.LaunchProfile(string.Empty, null);
-                    }
-                    catch (Exception launchEx)
-                    {
-                        Logger.Warning($"Could not launch terminal: {launchEx.Message}");
-                        Logger.Info("You can launch manually with: naner");
-                        return 0;
-                    }
-                }
-                else
-                {
-                    Logger.NewLine();
-                    Logger.Info("You can launch Naner anytime with: naner");
-                    Logger.NewLine();
-                    return 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Failure($"Setup failed: {ex.Message}");
-                return 1;
-            }
-        }
-        else
-        {
-            // Non-interactive quick mode
-            targetPath ??= Environment.CurrentDirectory;
-            Logger.Header("Naner Quick Setup");
-            Console.WriteLine();
-
-            try
-            {
-                targetPath = Path.GetFullPath(targetPath);
-                Logger.Info($"Installation path: {targetPath}");
-                Logger.NewLine();
-
-                // Create directory structure
-                if (!SetupManager.CreateDirectoryStructure(targetPath))
-                {
-                    return 1;
-                }
-
-                // Create default configuration
-                if (!SetupManager.CreateDefaultConfiguration(targetPath))
-                {
-                    return 1;
-                }
-
-                // Download vendors if --with-vendors flag is set
-                if (withVendors && !skipVendors)
-                {
-                    Logger.NewLine();
-                    Logger.Status("Downloading vendor dependencies...");
-                    Logger.NewLine();
-
-                    var vendors = VendorDefinitionFactory.GetEssentialVendors();
-                    var installer = new UnifiedVendorInstaller(targetPath, vendors);
-                    await installer.InstallAllVendorsAsync();
-                }
-
-                // Create initialization marker
-                FirstRunDetector.CreateInitializationMarker(targetPath, NanerConstants.Version, NanerConstants.PhaseName);
-                Logger.Success("Created initialization marker");
-                Logger.NewLine();
-
-                // Success message
-                Logger.Header("Setup Complete!");
-                Console.WriteLine();
-                Console.WriteLine("Naner has been initialized successfully!");
-                Console.WriteLine();
-
-                if (!withVendors && !skipVendors)
-                {
-                    Console.WriteLine("To download vendor dependencies:");
-                    Console.WriteLine("  naner setup-vendors");
-                    Console.WriteLine();
-                    Console.WriteLine("Or install manually with PowerShell:");
-                    Console.WriteLine("  .\\src\\powershell\\Setup-NanerVendor.ps1");
-                    Console.WriteLine();
-                }
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Logger.Failure($"Setup failed: {ex.Message}");
-                return 1;
-            }
-        }
-    }
+    // RunInit and RunInitAsync methods moved to InitCommand.cs
+    // This improves SRP by extracting command logic from Program.cs
 
     static int HandleFirstRun()
     {
@@ -574,102 +374,19 @@ class Program
             choice = "1";
         }
 
+        // Use InitCommand for option 2 and 3
         return choice switch
         {
             "1" => 0,
-            "2" => RunInit(Array.Empty<string>()),
-            "3" => RunInit(new[] { "--minimal" }),
+            "2" => new InitCommand().Execute(Array.Empty<string>()),
+            "3" => new InitCommand().Execute(new[] { "--minimal" }),
             _ => 0
         };
     }
 
-    static int RunSetupVendors()
-    {
-        return RunSetupVendorsAsync().GetAwaiter().GetResult();
-    }
+    // RunSetupVendors and RunSetupVendorsAsync moved to SetupVendorsCommand.cs
+    // This improves SRP by extracting command logic from Program.cs
 
-    static async System.Threading.Tasks.Task<int> RunSetupVendorsAsync()
-    {
-        Logger.Header("Naner Vendor Setup");
-        Logger.NewLine();
-
-        try
-        {
-            // Find NANER_ROOT
-            string nanerRoot;
-            try
-            {
-                nanerRoot = PathUtilities.FindNanerRoot();
-            }
-            catch (DirectoryNotFoundException ex)
-            {
-                Logger.Failure("Could not locate Naner root directory");
-                Logger.NewLine();
-                Console.WriteLine(ex.Message);
-                Logger.NewLine();
-                Logger.Info("Please run this command from within your Naner installation,");
-                Logger.Info("or run 'naner init' first to set up Naner.");
-                return 1;
-            }
-
-            Logger.Info($"Naner Root: {nanerRoot}");
-            Logger.NewLine();
-
-            // Run vendor download using unified installer
-            var vendors = VendorDefinitionFactory.GetEssentialVendors();
-            var installer = new UnifiedVendorInstaller(nanerRoot, vendors);
-            await installer.InstallAllVendorsAsync();
-
-            Logger.NewLine();
-            Logger.Success("Vendor setup complete!");
-            Logger.Info("You can now launch Naner with: naner");
-
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            Logger.Failure($"Vendor setup failed: {ex.Message}");
-            return 1;
-        }
-    }
-
-    /// <summary>
-    /// Determines if the command needs console output.
-    /// </summary>
-    static bool NeedsConsole(string[] args)
-    {
-        // Commands that need console output
-        if (args.Length > 0)
-        {
-            var firstArg = args[0].ToLower();
-
-            switch (firstArg)
-            {
-                case "--version":
-                case "-v":
-                case "--help":
-                case "-h":
-                case "/?":
-                case "--diagnose":
-                case "init":
-                case "setup-vendors":
-                    return true;
-            }
-        }
-
-        // Check if this is first run (needs console for prompts)
-        if (FirstRunDetector.IsFirstRun())
-        {
-            return true;
-        }
-
-        // Normal launch with options - check if debug mode is enabled
-        if (args.Any(a => a.ToLower() == "--debug"))
-        {
-            return true;
-        }
-
-        // Default: no console needed for terminal launch
-        return false;
-    }
+    // NeedsConsole method removed - use CommandRouter.NeedsConsole() instead
+    // This eliminates duplication between Program.cs and CommandRouter.cs
 }
