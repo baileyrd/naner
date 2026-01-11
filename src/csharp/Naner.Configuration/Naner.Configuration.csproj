@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
+    <ProjectReference Include="..\Naner.Core\Naner.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

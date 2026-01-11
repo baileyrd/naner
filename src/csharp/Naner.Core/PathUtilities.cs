@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Naner.Common;
+namespace Naner.Core;
 
 /// <summary>
 /// Utilities for path resolution and expansion in Naner environment.

@@ -1,6 +1,6 @@
-using Naner.Common.Abstractions;
+using Naner.Core.Abstractions;
 
-namespace Naner.Common;
+namespace Naner.Core;
 
 /// <summary>
 /// Static facade for console logging (maintains backward compatibility).

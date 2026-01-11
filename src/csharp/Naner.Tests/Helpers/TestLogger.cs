@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Naner.Common.Abstractions;
+using Naner.Core.Abstractions;
 
 namespace Naner.Tests.Helpers;
 

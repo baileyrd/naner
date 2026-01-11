@@ -1,4 +1,4 @@
-namespace Naner.Common;
+namespace Naner.Core;
 
 /// <summary>
 /// Centralized constants for Naner application.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Naner.Common;
+namespace Naner.Core;
 
 /// <summary>
 /// Utility for building unified PATH environment variables.

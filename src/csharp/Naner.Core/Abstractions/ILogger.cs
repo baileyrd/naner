@@ -1,4 +1,4 @@
-namespace Naner.Common.Abstractions;
+namespace Naner.Core.Abstractions;
 
 /// <summary>
 /// Logging abstraction for Naner applications.
