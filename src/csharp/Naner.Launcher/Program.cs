@@ -358,7 +358,7 @@ class Program
             {
                 Logger.NewLine();
             }
-            var launcher = new TerminalLauncher(nanerRoot, config, opts.Debug);
+            var launcher = new TerminalLauncher(nanerRoot, configManager, opts.Debug);
             var exitCode = launcher.LaunchProfile(profileName, opts.Directory);
 
             return exitCode;
@@ -454,8 +454,8 @@ class Program
                     {
                         Environment.SetEnvironmentVariable("NANER_ROOT", targetPath);
                         var configManager = new ConfigurationManager(targetPath);
-                        var config = configManager.Load();
-                        var launcher = new TerminalLauncher(targetPath, config, false);
+                        configManager.Load();
+                        var launcher = new TerminalLauncher(targetPath, configManager, false);
                         return launcher.LaunchProfile(string.Empty, null);
                     }
                     catch (Exception launchEx)

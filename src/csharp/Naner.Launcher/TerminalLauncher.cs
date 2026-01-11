@@ -15,18 +15,35 @@ public class TerminalLauncher : ITerminalLauncher
 {
     private readonly string _nanerRoot;
     private readonly NanerConfig _config;
+    private readonly ConfigurationManager _configManager;
     private readonly bool _debugMode;
 
     /// <summary>
     /// Creates a new terminal launcher.
     /// </summary>
     /// <param name="nanerRoot">Naner root directory</param>
+    /// <param name="configManager">Configuration manager for profile lookup</param>
+    /// <param name="debugMode">Enable debug output</param>
+    public TerminalLauncher(string nanerRoot, ConfigurationManager configManager, bool debugMode = false)
+    {
+        _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
+        _configManager = configManager ?? throw new ArgumentNullException(nameof(configManager));
+        _config = configManager.Config;
+        _debugMode = debugMode;
+    }
+
+    /// <summary>
+    /// Legacy constructor for backward compatibility.
+    /// </summary>
+    /// <param name="nanerRoot">Naner root directory</param>
     /// <param name="config">Loaded Naner configuration</param>
     /// <param name="debugMode">Enable debug output</param>
+    [Obsolete("Use constructor with ConfigurationManager parameter instead")]
     public TerminalLauncher(string nanerRoot, NanerConfig config, bool debugMode = false)
     {
         _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
         _config = config ?? throw new ArgumentNullException(nameof(config));
+        _configManager = null!; // Will use local GetProfile implementation
         _debugMode = debugMode;
     }
 
@@ -121,9 +138,17 @@ public class TerminalLauncher : ITerminalLauncher
 
     /// <summary>
     /// Gets a profile by name from configuration.
+    /// Delegates to ConfigurationManager when available, otherwise uses local implementation.
     /// </summary>
     private ProfileConfig GetProfile(string profileName)
     {
+        // Use ConfigurationManager if available (new code path)
+        if (_configManager != null)
+        {
+            return _configManager.GetProfile(profileName, useDefaultOnNotFound: true);
+        }
+
+        // Legacy implementation for backward compatibility
         // Check standard profiles
         if (_config.Profiles.TryGetValue(profileName, out var profile))
         {
