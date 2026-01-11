@@ -19,6 +19,7 @@ public abstract class VendorInstallerBase : IVendorInstaller
     protected readonly string VendorDir;
     protected readonly string DownloadDir;
     protected readonly IHttpClientWrapper HttpClient;
+    protected readonly ChecksumVerifier ChecksumVerifier;
 
     /// <summary>
     /// Creates a new vendor installer with dependency injection support.
@@ -31,6 +32,69 @@ public abstract class VendorInstallerBase : IVendorInstaller
         VendorDir = Path.Combine(nanerRoot, "vendor");
         DownloadDir = Path.Combine(VendorDir, ".downloads");
         HttpClient = httpClient ?? new HttpClientWrapper();
+        ChecksumVerifier = new ChecksumVerifier();
+    }
+
+    /// <summary>
+    /// Verifies the checksum of a downloaded file.
+    /// </summary>
+    /// <param name="filePath">Path to the file to verify</param>
+    /// <param name="checksumInfo">Checksum information</param>
+    /// <returns>True if checksum is valid or verification was skipped</returns>
+    protected bool VerifyChecksum(string filePath, ChecksumInfo? checksumInfo)
+    {
+        if (checksumInfo == null || string.IsNullOrEmpty(checksumInfo.Value))
+        {
+            Logger.Debug("    No checksum provided, skipping verification", debugMode: false);
+            return true;
+        }
+
+        Logger.Status($"    Verifying {checksumInfo.Algorithm} checksum...");
+
+        var result = ChecksumVerifier.Verify(filePath, checksumInfo);
+
+        if (result.Skipped)
+        {
+            Logger.Debug($"    {result.Message}", debugMode: false);
+            return true;
+        }
+
+        if (result.Success)
+        {
+            Logger.Success($"    Checksum verified: {result.ActualChecksum?.Substring(0, 16)}...");
+            return true;
+        }
+
+        // Verification failed
+        if (checksumInfo.Required)
+        {
+            Logger.Failure($"    Checksum verification failed!");
+            Logger.Failure($"    Expected: {result.ExpectedChecksum}");
+            Logger.Failure($"    Actual:   {result.ActualChecksum}");
+            return false;
+        }
+
+        // Not required - just warn
+        Logger.Warning($"    Checksum mismatch (verification not required)");
+        Logger.Warning($"    Expected: {result.ExpectedChecksum}");
+        Logger.Warning($"    Actual:   {result.ActualChecksum}");
+        return true;
+    }
+
+    /// <summary>
+    /// Computes and displays the checksum of a file (useful for adding checksums to definitions).
+    /// </summary>
+    protected void ShowFileChecksum(string filePath, string algorithm = "SHA256")
+    {
+        try
+        {
+            var checksum = ChecksumVerifier.ComputeChecksum(filePath, algorithm);
+            Logger.Info($"    {algorithm}: {checksum}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Debug($"    Could not compute checksum: {ex.Message}", debugMode: false);
+        }
     }
 
     public abstract Task<bool> InstallVendorAsync(string vendorName);

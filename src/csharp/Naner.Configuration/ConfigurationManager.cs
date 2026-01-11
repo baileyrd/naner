@@ -2,15 +2,18 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Naner.Configuration.Abstractions;
+using Naner.Configuration.Providers;
 
 namespace Naner.Configuration;
 
 /// <summary>
 /// Manages loading and processing Naner configuration files.
+/// Supports multiple configuration formats (JSON, YAML) and environment variable overrides.
 /// </summary>
 public class ConfigurationManager : IConfigurationManager
 {
     private readonly string _nanerRoot;
+    private readonly ConfigurationProviderService _providerService;
     private NanerConfig? _config;
 
     /// <summary>
@@ -20,29 +23,37 @@ public class ConfigurationManager : IConfigurationManager
     public ConfigurationManager(string nanerRoot)
     {
         _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
+        _providerService = new ConfigurationProviderService(nanerRoot);
     }
 
     /// <summary>
-    /// Loads configuration from naner.json file.
+    /// Creates a new configuration manager with custom providers.
     /// </summary>
-    /// <param name="configPath">Optional custom config path. Defaults to config/naner.json</param>
+    /// <param name="nanerRoot">Naner root directory path.</param>
+    /// <param name="providers">Custom configuration providers</param>
+    public ConfigurationManager(string nanerRoot, IEnumerable<IConfigurationProvider> providers)
+    {
+        _nanerRoot = nanerRoot ?? throw new ArgumentNullException(nameof(nanerRoot));
+        _providerService = new ConfigurationProviderService(nanerRoot, providers);
+    }
+
+    /// <summary>
+    /// Gets the configuration provider service for advanced usage.
+    /// </summary>
+    public ConfigurationProviderService ProviderService => _providerService;
+
+    /// <summary>
+    /// Loads configuration from a configuration file.
+    /// Supports JSON (.json), YAML (.yaml, .yml), and environment variable overrides.
+    /// </summary>
+    /// <param name="configPath">Optional custom config path. If null, searches default locations.</param>
     /// <returns>Loaded configuration</returns>
     /// <exception cref="FileNotFoundException">Thrown when config file doesn't exist</exception>
-    /// <exception cref="JsonException">Thrown when config file is invalid JSON</exception>
+    /// <exception cref="InvalidOperationException">Thrown when config file is invalid</exception>
     public NanerConfig Load(string? configPath = null)
     {
-        configPath ??= Path.Combine(_nanerRoot, "config", "naner.json");
-
-        if (!File.Exists(configPath))
-        {
-            throw new FileNotFoundException($"Configuration file not found: {configPath}");
-        }
-
-        var jsonContent = File.ReadAllText(configPath);
-
-        // Use source-generated JSON context for trim-safe deserialization
-        _config = JsonSerializer.Deserialize(jsonContent, NanerJsonContext.Default.NanerConfig)
-            ?? throw new JsonException("Failed to deserialize configuration");
+        // Use provider service for multi-format support
+        _config = _providerService.LoadConfiguration(configPath);
 
         // Expand all paths in the configuration
         ExpandConfigPaths();

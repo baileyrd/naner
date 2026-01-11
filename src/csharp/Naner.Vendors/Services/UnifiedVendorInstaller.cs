@@ -74,6 +74,13 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
             Logger.Success($"  Downloaded {downloadInfo.FileName}");
 
+            // Verify checksum if provided
+            if (!VerifyChecksum(downloadPath, vendor.Checksum))
+            {
+                Logger.Failure($"  Checksum verification failed for {vendor.Name}");
+                return false;
+            }
+
             // Extract file
             Logger.Status($"  Installing {vendor.Name}...");
 
