@@ -63,4 +63,38 @@ public static class NanerConstants
         public const string WindowsTerminal = "Windows Terminal";
         public const string MSYS2 = "MSYS2 (Git/Bash)";
     }
+
+    // ===== HTTP Configuration =====
+
+    /// <summary>
+    /// Default HTTP timeout for downloads and API requests, in minutes.
+    /// </summary>
+    public const int DefaultHttpTimeoutMinutes = 10;
+
+    /// <summary>
+    /// Buffer size for HTTP downloads, in bytes (8 KB).
+    /// </summary>
+    public const int HttpDownloadBufferSize = 8192;
+
+    /// <summary>
+    /// Progress update interval for downloads (report every N percent).
+    /// </summary>
+    public const int ProgressUpdateInterval = 10;
+
+    // ===== Path Resolution =====
+
+    /// <summary>
+    /// Maximum depth to traverse when searching for Naner root directory.
+    /// </summary>
+    public const int MaxNanerRootSearchDepth = 10;
+
+    /// <summary>
+    /// Maximum length of PATH string to display in debug output.
+    /// </summary>
+    public const int MaxPathDisplayLength = 200;
+
+    /// <summary>
+    /// Default User-Agent string for HTTP requests.
+    /// </summary>
+    public const string DefaultUserAgent = "Naner/1.0.0";
 }

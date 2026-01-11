@@ -74,7 +74,7 @@ public abstract class VendorInstallerBase : IVendorInstaller
                 if (totalBytes > 0)
                 {
                     var percent = (int)((totalRead * 100) / totalBytes);
-                    if (percent != lastPercent && percent % 10 == 0)
+                    if (percent != lastPercent && percent % NanerConstants.ProgressUpdateInterval == 0)
                     {
                         Console.Write($"\r    Progress: {percent}%");
                         lastPercent = percent;

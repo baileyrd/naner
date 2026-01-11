@@ -15,8 +15,6 @@ public class HttpDownloadService : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
-    private const int BufferSize = 8192;
-    private const int ProgressUpdateInterval = 10; // Report every 10%
 
     /// <summary>
     /// Creates a new HttpDownloadService with default settings.
@@ -24,7 +22,7 @@ public class HttpDownloadService : IDisposable
     /// <param name="logger">Logger for output messages.</param>
     /// <param name="timeoutMinutes">HTTP timeout in minutes (default: 10).</param>
     /// <param name="userAgent">User-Agent header (default: Naner/1.0.0).</param>
-    public HttpDownloadService(ILogger logger, int timeoutMinutes = 10, string userAgent = "Naner/1.0.0")
+    public HttpDownloadService(ILogger logger, int timeoutMinutes = NanerConstants.DefaultHttpTimeoutMinutes, string userAgent = NanerConstants.DefaultUserAgent)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = new HttpClient
@@ -85,7 +83,7 @@ public class HttpDownloadService : IDisposable
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, true);
+            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, NanerConstants.HttpDownloadBufferSize, true);
 
             await CopyStreamWithProgressAsync(contentStream, fileStream, totalBytes, displayName, showProgress, cancellationToken);
 
@@ -154,7 +152,7 @@ public class HttpDownloadService : IDisposable
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, BufferSize, true);
+            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, NanerConstants.HttpDownloadBufferSize, true);
 
             await CopyStreamWithProgressAsync(contentStream, fileStream, totalBytes, displayName, showProgress, cancellationToken);
 
@@ -189,7 +187,7 @@ public class HttpDownloadService : IDisposable
         bool showProgress,
         CancellationToken cancellationToken)
     {
-        var buffer = new byte[BufferSize];
+        var buffer = new byte[NanerConstants.HttpDownloadBufferSize];
         long totalRead = 0;
         int bytesRead;
         var lastPercent = -1;
@@ -202,7 +200,7 @@ public class HttpDownloadService : IDisposable
             if (showProgress && totalBytes > 0)
             {
                 var percent = (int)((totalRead * 100) / totalBytes);
-                if (percent != lastPercent && percent % ProgressUpdateInterval == 0)
+                if (percent != lastPercent && percent % NanerConstants.ProgressUpdateInterval == 0)
                 {
                     Console.Write($"\r  Progress: {percent}%");
                     lastPercent = percent;

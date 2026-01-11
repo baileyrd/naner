@@ -20,11 +20,11 @@ public class HttpClientWrapper : IHttpClientWrapper
     {
         _httpClient = new HttpClient
         {
-            Timeout = timeout ?? TimeSpan.FromMinutes(10)
+            Timeout = timeout ?? TimeSpan.FromMinutes(NanerConstants.DefaultHttpTimeoutMinutes)
         };
 
         // Configure default headers
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", "Naner/1.0.0");
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", NanerConstants.DefaultUserAgent);
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
     }
 

@@ -290,7 +290,7 @@ public class TerminalLauncher : ITerminalLauncher
 
         if (_debugMode)
         {
-            Logger.Debug($"PATH set to: {unifiedPath.Substring(0, Math.Min(200, unifiedPath.Length))}...", true);
+            Logger.Debug($"PATH set to: {unifiedPath.Substring(0, Math.Min(NanerConstants.MaxPathDisplayLength, unifiedPath.Length))}...", true);
         }
     }
 

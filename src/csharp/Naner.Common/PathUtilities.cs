@@ -19,7 +19,7 @@ public static class PathUtilities
     /// <param name="maxDepth">Maximum number of parent directories to traverse (default: 10).</param>
     /// <returns>The absolute path to Naner root directory.</returns>
     /// <exception cref="DirectoryNotFoundException">Thrown when Naner root cannot be found.</exception>
-    public static string FindNanerRoot(string? startPath = null, int maxDepth = 10)
+    public static string FindNanerRoot(string? startPath = null, int maxDepth = NanerConstants.MaxNanerRootSearchDepth)
     {
         // Default to current directory if not specified
         startPath ??= AppContext.BaseDirectory;
