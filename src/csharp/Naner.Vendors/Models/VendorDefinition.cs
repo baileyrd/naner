@@ -24,6 +24,9 @@ public class VendorDefinition
 
     // Fallback
     public string? FallbackUrl { get; set; }
+
+    // Checksum verification
+    public ChecksumInfo? Checksum { get; set; }
 }
 
 public enum VendorSourceType

@@ -46,6 +46,7 @@
     <ProjectReference Include="..\Naner.Vendors\Naner.Vendors.csproj" />
     <ProjectReference Include="..\Naner.Configuration.Abstractions\Naner.Configuration.Abstractions.csproj" />
     <ProjectReference Include="..\Naner.Commands\Naner.Commands.csproj" />
+    <ProjectReference Include="..\Naner.DependencyInjection\Naner.DependencyInjection.csproj" />
   </ItemGroup>
 
 </Project>
