@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Naner.Common;
 using Xunit;
 
 namespace Naner.Tests;

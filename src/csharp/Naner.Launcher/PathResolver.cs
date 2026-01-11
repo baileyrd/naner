@@ -1,4 +1,3 @@
-using Naner.Common;
 
 namespace Naner.Launcher;
 

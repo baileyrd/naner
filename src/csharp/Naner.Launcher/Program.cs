@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CommandLine;
-using Naner.Common;
 using Naner.Configuration;
 using Naner.Launcher;
 using Naner.Launcher.Commands;

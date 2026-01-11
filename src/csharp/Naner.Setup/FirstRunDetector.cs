@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace Naner.Common;
+namespace Naner.Setup;
 
 /// <summary>
 /// Detects first-run scenarios and incomplete Naner installations.

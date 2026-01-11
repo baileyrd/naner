@@ -2,7 +2,6 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Naner.Common;
 using Naner.Vendors.Services;
 using Xunit;
 

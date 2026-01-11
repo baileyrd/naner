@@ -28,3 +28,7 @@ global using VendorConfigurationLoader = Naner.Vendors.Services.VendorConfigurat
 global using VendorDefinition = Naner.Vendors.Models.VendorDefinition;
 global using VendorConfiguration = Naner.Vendors.Models.VendorConfiguration;
 global using VendorDefinitionFactory = Naner.Vendors.VendorDefinitionFactory;
+
+// Setup services (moved to Naner.Setup)
+global using FirstRunDetector = Naner.Setup.FirstRunDetector;
+global using SetupManager = Naner.Setup.SetupManager;

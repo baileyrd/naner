@@ -1,5 +1,4 @@
 using System.Threading.Tasks;
-using Naner.Common;
 using Naner.Vendors.Services;
 
 namespace Naner.Init;

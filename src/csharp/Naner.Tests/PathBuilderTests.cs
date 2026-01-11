@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using FluentAssertions;
-using Naner.Common;
 using Xunit;
 
 namespace Naner.Tests;

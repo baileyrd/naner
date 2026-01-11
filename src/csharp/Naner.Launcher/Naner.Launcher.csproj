@@ -42,6 +42,7 @@
     <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
     <ProjectReference Include="..\Naner.Configuration\Naner.Configuration.csproj" />
     <ProjectReference Include="..\Naner.Core\Naner.Core.csproj" />
+    <ProjectReference Include="..\Naner.Setup\Naner.Setup.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
-using Naner.Vendors.Services;
 
-namespace Naner.Common;
+namespace Naner.Setup;
 
 /// <summary>
 /// Manages Naner installation setup and initialization.

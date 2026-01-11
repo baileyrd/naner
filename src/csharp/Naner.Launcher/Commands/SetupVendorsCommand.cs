@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using Naner.Common;
 using Naner.Vendors.Services;
 
 namespace Naner.Launcher.Commands;
