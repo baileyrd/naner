@@ -27,4 +27,21 @@ public static class CommandNames
 
     // Special return codes
     public const int NoCommandMatch = -1;
+
+    /// <summary>
+    /// Commands that require console output.
+    /// Used by ConsoleManager and CommandRouter to determine console attachment.
+    /// </summary>
+    public static readonly string[] ConsoleCommands = new[]
+    {
+        Version,
+        VersionShort,
+        Help,
+        HelpShort,
+        HelpAlternate,
+        Diagnose,
+        Init,
+        SetupVendors,
+        Debug
+    };
 }

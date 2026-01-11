@@ -5,7 +5,7 @@ namespace Naner.Infrastructure.Console;
 
 /// <summary>
 /// Service for managing console attachment and allocation on Windows.
-/// Consolidates duplicate console management logic.
+/// Provides singleton instance for consistent state tracking across the application.
 /// </summary>
 public class ConsoleManager
 {
@@ -23,6 +23,14 @@ public class ConsoleManager
     private static extern IntPtr GetConsoleWindow();
 
     private const int ATTACH_PARENT_PROCESS = -1;
+
+    private static readonly Lazy<ConsoleManager> _instance = new(() => new ConsoleManager());
+
+    /// <summary>
+    /// Gets the singleton instance of ConsoleManager.
+    /// Ensures consistent console state tracking across the application.
+    /// </summary>
+    public static ConsoleManager Instance => _instance.Value;
 
     private bool _isAttached = false;
 

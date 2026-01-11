@@ -9,19 +9,30 @@ namespace Naner.Init;
 
 class Program
 {
+    /// <summary>
+    /// Commands specific to naner-init that require console output.
+    /// </summary>
+    private static readonly string[] InitConsoleCommands = new[]
+    {
+        "--version", "-v",
+        "--help", "-h",
+        "init",
+        "update",
+        "check-update",
+        "update-vendors"
+    };
 
     static async Task<int> Main(string[] args)
     {
         try
         {
             // Determine if we need to show console output
-            bool needsConsole = NeedsConsole(args);
+            // Use centralized ConsoleManager with singleton pattern
+            bool needsConsole = ConsoleManager.NeedsConsole(args, InitConsoleCommands);
 
             if (needsConsole)
             {
-                // Use ConsoleManager to attach console
-                var consoleManager = new ConsoleManager();
-                consoleManager.EnsureConsoleAttached();
+                ConsoleManager.Instance.EnsureConsoleAttached();
             }
 
             // Find or set Naner root directory
@@ -83,7 +94,7 @@ class Program
         if (!updater.IsInitialized())
         {
             // Need console for initialization prompts
-            EnsureConsoleAttached();
+            ConsoleManager.Instance.EnsureConsoleAttached();
 
             Logger.Header("Naner Initializer");
             Logger.NewLine();
@@ -144,7 +155,7 @@ class Program
         // If update available, attach console to show notification
         if (showUpdateNotification)
         {
-            EnsureConsoleAttached();
+            ConsoleManager.Instance.EnsureConsoleAttached();
             Logger.Warning($"A new version of Naner is available: {latestVersion}");
             Logger.Info("Run 'naner-init update' to update");
             Logger.NewLine();
@@ -329,38 +340,7 @@ class Program
         Console.WriteLine("  naner-init update-vendors # Update PowerShell, Terminal, etc.");
     }
 
-    /// <summary>
-    /// Determines if the command needs console output.
-    /// </summary>
-    static bool NeedsConsole(string[] args)
-    {
-        // No arguments = just launching naner, no console needed
-        if (args.Length == 0)
-        {
-            return false;
-        }
-
-        var firstArg = args[0].ToLower();
-
-        // Commands that need console output
-        return firstArg switch
-        {
-            "--version" or "-v" => true,
-            "--help" or "-h" => true,
-            "init" => true,
-            "update" => true,
-            "check-update" => true,
-            "update-vendors" => true,
-            _ => false // Passing args to naner.exe, no console needed
-        };
-    }
-
-    /// <summary>
-    /// Ensures a console is attached for output (used when we need to show messages dynamically).
-    /// </summary>
-    static void EnsureConsoleAttached()
-    {
-        var consoleManager = new ConsoleManager();
-        consoleManager.EnsureConsoleAttached();
-    }
+    // NeedsConsole and EnsureConsoleAttached methods removed
+    // Now using ConsoleManager.NeedsConsole() and ConsoleManager.Instance.EnsureConsoleAttached()
+    // This eliminates duplication and uses the singleton pattern for consistent state tracking
 }
