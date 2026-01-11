@@ -21,7 +21,9 @@ public class CommandRouter
             ["--help"] = new HelpCommand(),
             ["-h"] = new HelpCommand(),
             ["/?"] = new HelpCommand(),
-            ["--diagnose"] = new DiagnosticsCommand()
+            ["--diagnose"] = new DiagnosticsCommand(),
+            ["init"] = new InitCommand(),
+            ["setup-vendors"] = new SetupVendorsCommand()
         };
     }
 
