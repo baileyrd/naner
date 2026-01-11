@@ -45,6 +45,9 @@ public class EssentialVendorDownloader
         success &= await _installer.InstallVendorAsync("MSYS2 (Git/Bash)");
         Logger.NewLine();
 
+        // Cleanup download directory
+        _installer.CleanupDownloads();
+
         if (success)
         {
             Logger.Success("All essential vendors installed successfully!");

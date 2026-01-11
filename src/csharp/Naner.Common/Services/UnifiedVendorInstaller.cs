@@ -256,6 +256,14 @@ public class UnifiedVendorInstaller : VendorInstallerBase
     }
 
     /// <summary>
+    /// Cleans up the download directory after installation.
+    /// </summary>
+    public void CleanupDownloads()
+    {
+        CleanupDownloadDirectory();
+    }
+
+    /// <summary>
     /// Installs all vendors defined in the vendor definitions.
     /// </summary>
     public async Task<bool> InstallAllVendorsAsync()
