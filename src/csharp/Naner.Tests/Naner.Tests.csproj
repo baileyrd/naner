@@ -28,6 +28,7 @@
     <ProjectReference Include="..\Naner.Launcher\Naner.Launcher.csproj" />
     <ProjectReference Include="..\Naner.Core\Naner.Core.csproj" />
     <ProjectReference Include="..\Naner.Infrastructure\Naner.Infrastructure.csproj" />
+    <ProjectReference Include="..\Naner.Configuration.Abstractions\Naner.Configuration.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

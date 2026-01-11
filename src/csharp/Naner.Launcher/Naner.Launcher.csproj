@@ -44,6 +44,7 @@
     <ProjectReference Include="..\Naner.Infrastructure\Naner.Infrastructure.csproj" />
     <ProjectReference Include="..\Naner.Setup\Naner.Setup.csproj" />
     <ProjectReference Include="..\Naner.Vendors\Naner.Vendors.csproj" />
+    <ProjectReference Include="..\Naner.Configuration.Abstractions\Naner.Configuration.Abstractions.csproj" />
   </ItemGroup>
 
 </Project>

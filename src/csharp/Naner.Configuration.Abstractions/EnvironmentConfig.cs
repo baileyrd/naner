@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Naner.Configuration;
+namespace Naner.Configuration.Abstractions;
 
 /// <summary>
 /// Environment configuration for PATH and environment variables.

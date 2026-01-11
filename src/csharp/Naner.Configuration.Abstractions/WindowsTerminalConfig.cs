@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Naner.Configuration;
+namespace Naner.Configuration.Abstractions;
 
 /// <summary>
 /// Windows Terminal specific configuration.
