@@ -97,37 +97,13 @@ public class ConfigurationManager : IConfigurationManager
             throw new InvalidOperationException("Configuration not loaded");
         }
 
-        var pathBuilder = new System.Text.StringBuilder();
+        // Respect the Advanced.InheritSystemPath configuration setting
+        var shouldIncludeSystemPath = includeSystemPath && _config.Advanced.InheritSystemPath;
 
-        // Add configured paths in precedence order
-        foreach (var path in _config.Environment.PathPrecedence)
-        {
-            var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
-            if (Directory.Exists(expandedPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(expandedPath);
-            }
-        }
-
-        // Optionally append system PATH
-        if (includeSystemPath && _config.Advanced.InheritSystemPath)
-        {
-            var systemPath = Environment.GetEnvironmentVariable("PATH");
-            if (!string.IsNullOrEmpty(systemPath))
-            {
-                if (pathBuilder.Length > 0)
-                {
-                    pathBuilder.Append(';');
-                }
-                pathBuilder.Append(systemPath);
-            }
-        }
-
-        return pathBuilder.ToString();
+        return PathBuilder.BuildUnifiedPath(
+            _config.Environment.PathPrecedence,
+            _nanerRoot,
+            shouldIncludeSystemPath);
     }
 
     /// <summary>
