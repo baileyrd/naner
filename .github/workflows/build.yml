@@ -18,9 +18,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell 7
-        uses: actions/setup-powershell@v1
-
       - name: Get version from tag
         id: get_version
         shell: pwsh
