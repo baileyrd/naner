@@ -48,6 +48,28 @@ public class ConfigurationManager : IConfigurationManager
         // Expand all paths in the configuration
         ExpandConfigPaths();
 
+        // Validate configuration
+        var validator = new ConfigurationValidator(_nanerRoot);
+        if (!validator.Validate(_config))
+        {
+            // Log warnings but don't fail
+            foreach (var warning in validator.Warnings)
+            {
+                Logger.Warning($"Configuration validation warning: {warning}");
+            }
+
+            // Throw if there are errors
+            validator.ThrowIfInvalid();
+        }
+        else if (validator.Warnings.Count > 0)
+        {
+            // Log warnings even if validation succeeded
+            foreach (var warning in validator.Warnings)
+            {
+                Logger.Warning($"Configuration validation warning: {warning}");
+            }
+        }
+
         return _config;
     }
 
