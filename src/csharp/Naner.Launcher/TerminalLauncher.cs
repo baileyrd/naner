@@ -193,9 +193,6 @@ public class TerminalLauncher : ITerminalLauncher
             args.Append($"--{_config.WindowsTerminal.LaunchMode} ");
         }
 
-        // Start new tab with profile
-        args.Append("new-tab ");
-
         // Add profile name
         if (!string.IsNullOrEmpty(profile.Name))
         {
