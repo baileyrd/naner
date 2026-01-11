@@ -218,7 +218,10 @@ public class TerminalLauncher : ITerminalLauncher
 
             if (!string.IsNullOrEmpty(profile.CustomShell.Arguments))
             {
-                args.Append($"-- \"{shellPath}\" {profile.CustomShell.Arguments}");
+                // Expand NANER_ROOT and other environment variables in arguments
+                var expandedArgs = PathUtilities.ExpandNanerPath(profile.CustomShell.Arguments, _nanerRoot);
+                expandedArgs = Environment.ExpandEnvironmentVariables(expandedArgs);
+                args.Append($"-- \"{shellPath}\" {expandedArgs}");
             }
             else
             {

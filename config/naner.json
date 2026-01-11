@@ -80,7 +80,7 @@
       "UseVendorPath": true,
       "CustomShell": {
         "ExecutablePath": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
-        "Arguments": "-NoExit -NoProfile -NoLogo -File \"%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1\""
+        "Arguments": "-NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\""
       }
     },
     "PowerShell": {
@@ -93,7 +93,7 @@
       "UseVendorPath": true,
       "CustomShell": {
         "ExecutablePath": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
-        "Arguments": "-NoExit -NoProfile -NoLogo -File \"%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1\""
+        "Arguments": "-NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\""
       }
     },
     "Bash": {
