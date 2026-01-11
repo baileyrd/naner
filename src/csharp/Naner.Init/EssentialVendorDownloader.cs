@@ -374,9 +374,18 @@ public class EssentialVendorDownloader
             // Create .portable file for portable mode
             File.WriteAllText(Path.Combine(extractDir, ".portable"), "");
 
-            // Create settings directory
-            var settingsDir = Path.Combine(extractDir, "settings");
-            Directory.CreateDirectory(settingsDir);
+            // Create LocalState directory and settings.json
+            var localStateDir = Path.Combine(extractDir, "LocalState");
+            Directory.CreateDirectory(localStateDir);
+
+            // Copy settings template if available
+            var templatePath = Path.Combine(_nanerRoot, "home", ".config", "windows-terminal", "settings.json");
+            if (File.Exists(templatePath))
+            {
+                var templateContent = File.ReadAllText(templatePath);
+                var expandedContent = templateContent.Replace("%NANER_ROOT%", _nanerRoot.Replace("\\", "\\\\"));
+                File.WriteAllText(Path.Combine(localStateDir, "settings.json"), expandedContent);
+            }
 
             // Clean up
             File.Delete(downloadPath);

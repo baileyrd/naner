@@ -448,60 +448,49 @@ public class VendorDownloader
 
     /// <summary>
     /// Creates Windows Terminal settings.json with Naner profiles.
+    /// Copies from template in home/.config/windows-terminal/settings.json and expands paths.
     /// </summary>
     private void CreateWindowsTerminalSettings(string settingsPath)
     {
-        var settings = @"{
+        // Try to copy from template
+        var templatePath = Path.Combine(_nanerRoot, "home", ".config", "windows-terminal", "settings.json");
+
+        if (File.Exists(templatePath))
+        {
+            // Read template and expand %NANER_ROOT% to actual path
+            var templateContent = File.ReadAllText(templatePath);
+            var expandedContent = templateContent.Replace("%NANER_ROOT%", _nanerRoot.Replace("\\", "\\\\"));
+            File.WriteAllText(settingsPath, expandedContent);
+            Logger.Info($"    Configured Windows Terminal from template");
+        }
+        else
+        {
+            // Fallback: create basic settings inline
+            Logger.Warning($"    Template not found at: {templatePath}");
+            Logger.Info($"    Creating basic Windows Terminal settings");
+
+            var settings = @"{
     ""$schema"": ""https://aka.ms/terminal-profiles-schema"",
-    ""defaultProfile"": ""{61c54bbd-c2c6-5271-96e7-009a87ff44bf}"",
+    ""defaultProfile"": ""{naner-unified}"",
     ""copyOnSelect"": false,
-    ""copyFormatting"": false,
+    ""copyFormatting"": ""none"",
     ""profiles"": {
         ""defaults"": {},
         ""list"": [
             {
-                ""guid"": ""{61c54bbd-c2c6-5271-96e7-009a87ff44bf}"",
+                ""guid"": ""{naner-unified}"",
                 ""name"": ""Naner (Unified)"",
-                ""commandline"": ""%NANER_ROOT%\\vendor\\powershell\\pwsh.exe -NoExit -Command \""$env:PATH='%NANER_ROOT%\\bin;%NANER_ROOT%\\vendor\\bin;%NANER_ROOT%\\vendor\\powershell;%NANER_ROOT%\\vendor\\msys64\\usr\\bin;%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin;'+$env:PATH; $env:HOME='%NANER_ROOT%\\home'\"""",
-                ""startingDirectory"": ""%NANER_ROOT%\\home"",
-                ""icon"": ""ms-appx:///ProfileIcons/{61c54bbd-c2c6-5271-96e7-009a87ff44bf}.png"",
-                ""colorScheme"": ""Campbell""
-            },
-            {
-                ""guid"": ""{574e775e-4f2a-5b96-ac1e-a2962a402336}"",
-                ""name"": ""PowerShell"",
-                ""commandline"": ""%NANER_ROOT%\\vendor\\powershell\\pwsh.exe -NoExit -Command \""$env:PATH='%NANER_ROOT%\\bin;%NANER_ROOT%\\vendor\\powershell;'+$env:PATH\"""",
+                ""commandline"": ""pwsh.exe"",
                 ""startingDirectory"": ""%USERPROFILE%"",
-                ""icon"": ""ms-appx:///ProfileIcons/{574e775e-4f2a-5b96-ac1e-a2962a402336}.png"",
-                ""colorScheme"": ""Campbell""
-            },
-            {
-                ""guid"": ""{2c4de342-38b7-51cf-b940-2309a097f518}"",
-                ""name"": ""Git Bash"",
-                ""commandline"": ""%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe --login -i"",
-                ""startingDirectory"": ""%USERPROFILE%"",
-                ""icon"": ""ms-appx:///ProfileIcons/{2c4de342-38b7-51cf-b940-2309a097f518}.png"",
-                ""colorScheme"": ""One Half Dark""
-            },
-            {
-                ""guid"": ""{0caa0dad-35be-5f56-a8ff-afceeeaa6101}"",
-                ""name"": ""Command Prompt"",
-                ""commandline"": ""cmd.exe"",
-                ""startingDirectory"": ""%USERPROFILE%"",
-                ""icon"": ""ms-appx:///ProfileIcons/{0caa0dad-35be-5f56-a8ff-afceeeaa6101}.png"",
                 ""colorScheme"": ""Campbell""
             }
         ]
     },
     ""schemes"": [],
-    ""actions"": [
-        { ""command"": { ""action"": ""copy"", ""singleLine"": false }, ""keys"": ""ctrl+c"" },
-        { ""command"": ""paste"", ""keys"": ""ctrl+v"" },
-        { ""command"": ""find"", ""keys"": ""ctrl+shift+f"" },
-        { ""command"": { ""action"": ""splitPane"", ""split"": ""auto"", ""splitMode"": ""duplicate"" }, ""keys"": ""alt+shift+d"" }
-    ]
+    ""actions"": []
 }";
-        File.WriteAllText(settingsPath, settings);
+            File.WriteAllText(settingsPath, settings);
+        }
     }
 
     /// <summary>

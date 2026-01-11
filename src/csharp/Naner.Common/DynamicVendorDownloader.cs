@@ -580,12 +580,12 @@ public class DynamicVendorDownloader
                 File.WriteAllText(portableFile, "");
                 Logger.Info($"    Created .portable file for portable mode");
 
-                var settingsDir = Path.Combine(targetDir, "settings");
-                Directory.CreateDirectory(settingsDir);
+                var localStateDir = Path.Combine(targetDir, "LocalState");
+                Directory.CreateDirectory(localStateDir);
 
-                var settingsFile = Path.Combine(settingsDir, "settings.json");
+                var settingsFile = Path.Combine(localStateDir, "settings.json");
                 CreateWindowsTerminalSettings(settingsFile);
-                Logger.Info($"    Created settings/settings.json with Naner profiles");
+                Logger.Info($"    Created LocalState/settings.json with Naner profiles");
             }
         }
         catch (Exception ex)
@@ -596,26 +596,41 @@ public class DynamicVendorDownloader
 
     private void CreateWindowsTerminalSettings(string settingsPath)
     {
-        var settings = @"{
+        // Try to copy from template
+        var templatePath = Path.Combine(_nanerRoot, "home", ".config", "windows-terminal", "settings.json");
+
+        if (File.Exists(templatePath))
+        {
+            // Read template and expand %NANER_ROOT% to actual path
+            var templateContent = File.ReadAllText(templatePath);
+            var expandedContent = templateContent.Replace("%NANER_ROOT%", _nanerRoot.Replace("\\", "\\\\"));
+            File.WriteAllText(settingsPath, expandedContent);
+        }
+        else
+        {
+            // Fallback: create basic settings inline
+            var settings = @"{
     ""$schema"": ""https://aka.ms/terminal-profiles-schema"",
-    ""defaultProfile"": ""{61c54bbd-c2c6-5271-96e7-009a87ff44bf}"",
+    ""defaultProfile"": ""{naner-unified}"",
     ""copyOnSelect"": false,
-    ""copyFormatting"": false,
+    ""copyFormatting"": ""none"",
     ""profiles"": {
         ""defaults"": {},
         ""list"": [
             {
-                ""guid"": ""{61c54bbd-c2c6-5271-96e7-009a87ff44bf}"",
+                ""guid"": ""{naner-unified}"",
                 ""name"": ""Naner (Unified)"",
-                ""commandline"": ""%NANER_ROOT%\\vendor\\powershell\\pwsh.exe -NoExit -Command \""$env:PATH='%NANER_ROOT%\\bin;%NANER_ROOT%\\vendor\\bin;%NANER_ROOT%\\vendor\\powershell;%NANER_ROOT%\\vendor\\msys64\\usr\\bin;%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin;'+$env:PATH; $env:HOME='%NANER_ROOT%\\home'\"""",
-                ""startingDirectory"": ""%NANER_ROOT%\\home"",
-                ""icon"": ""ms-appx:///ProfileIcons/{61c54bbd-c2c6-5271-96e7-009a87ff44bf}.png"",
+                ""commandline"": ""pwsh.exe"",
+                ""startingDirectory"": ""%USERPROFILE%"",
                 ""colorScheme"": ""Campbell""
             }
         ]
-    }
+    },
+    ""schemes"": [],
+    ""actions"": []
 }";
-        File.WriteAllText(settingsPath, settings);
+            File.WriteAllText(settingsPath, settings);
+        }
     }
 
     private class GitHubRelease
