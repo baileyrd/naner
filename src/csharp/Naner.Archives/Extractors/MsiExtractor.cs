@@ -1,9 +1,9 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using Naner.Common.Abstractions;
+using Naner.Archives.Abstractions;
 
-namespace Naner.Common.Services.Extractors;
+namespace Naner.Archives.Extractors;
 
 /// <summary>
 /// Extractor for MSI installer packages.

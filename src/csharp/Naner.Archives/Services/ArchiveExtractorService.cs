@@ -6,10 +6,10 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Naner.Common.Abstractions;
-using Naner.Common.Services.Extractors;
+using Naner.Archives.Abstractions;
+using Naner.Archives.Extractors;
 
-namespace Naner.Common.Services;
+namespace Naner.Archives.Services;
 
 /// <summary>
 /// Service for extracting various archive formats using the Strategy pattern.

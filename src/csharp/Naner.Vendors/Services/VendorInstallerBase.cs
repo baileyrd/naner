@@ -2,10 +2,12 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Naner.Common.Abstractions;
-using Naner.Common.Models;
+using Naner.Vendors.Abstractions;
+using Naner.Archives.Abstractions;
+using Naner.Infrastructure.Abstractions;
+using Naner.Vendors.Models;
 
-namespace Naner.Common.Services;
+namespace Naner.Vendors.Services;
 
 /// <summary>
 /// Base class for vendor installation with shared download and extraction logic.

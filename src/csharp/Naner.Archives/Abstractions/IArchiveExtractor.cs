@@ -1,4 +1,4 @@
-namespace Naner.Common.Abstractions;
+namespace Naner.Archives.Abstractions;
 
 /// <summary>
 /// Interface for archive extraction strategies.

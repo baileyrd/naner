@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Naner.Common.Services;
+using Naner.Vendors.Services;
 using Xunit;
 
 namespace Naner.Tests.Services;

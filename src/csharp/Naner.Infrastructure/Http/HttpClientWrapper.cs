@@ -1,9 +1,9 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Naner.Common.Abstractions;
+using Naner.Infrastructure.Abstractions;
 
-namespace Naner.Common.Services;
+namespace Naner.Infrastructure.Http;
 
 /// <summary>
 /// Default implementation of IHttpClientWrapper using a real HttpClient.

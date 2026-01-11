@@ -1,4 +1,4 @@
-namespace Naner.Common.Models;
+namespace Naner.Vendors.Models;
 
 /// <summary>
 /// Defines how to fetch and install a vendor package.

@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.IO.Compression;
-using Naner.Common.Abstractions;
+using Naner.Archives.Abstractions;
 
-namespace Naner.Common.Services.Extractors;
+namespace Naner.Archives.Extractors;
 
 /// <summary>
 /// Extractor for ZIP archives.

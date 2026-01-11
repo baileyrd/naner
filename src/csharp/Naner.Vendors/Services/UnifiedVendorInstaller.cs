@@ -6,10 +6,12 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Naner.Common.Abstractions;
-using Naner.Common.Models;
+using Naner.Vendors.Abstractions;
+using Naner.Archives.Abstractions;
+using Naner.Infrastructure.Abstractions;
+using Naner.Vendors.Models;
 
-namespace Naner.Common.Services;
+namespace Naner.Vendors.Services;
 
 /// <summary>
 /// Unified vendor installer that handles both static URLs and dynamic fetching (GitHub/WebScrape).

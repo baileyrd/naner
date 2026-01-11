@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Naner.Common.Abstractions;
+namespace Naner.Vendors.Abstractions;
 
 /// <summary>
 /// Interface for installing vendor packages.

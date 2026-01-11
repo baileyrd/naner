@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Naner.Common.Models;
+namespace Naner.Vendors.Models;
 
 /// <summary>
 /// Root configuration object for vendors.json file.

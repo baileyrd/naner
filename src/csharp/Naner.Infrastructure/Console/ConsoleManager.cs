@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Naner.Common.Services;
+namespace Naner.Infrastructure.Console;
 
 /// <summary>
 /// Service for managing console attachment and allocation on Windows.

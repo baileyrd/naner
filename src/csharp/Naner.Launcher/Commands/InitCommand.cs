@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Naner.Common;
-using Naner.Common.Services;
+using Naner.Vendors.Services;
 using Naner.Configuration;
 
 namespace Naner.Launcher.Commands;

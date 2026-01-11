@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace Naner.Common.Abstractions;
+namespace Naner.Infrastructure.Abstractions;
 
 /// <summary>
 /// Interface for interacting with GitHub Releases API.

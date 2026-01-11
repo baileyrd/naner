@@ -3,9 +3,9 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Naner.Common.Abstractions;
+using Naner.Infrastructure.Abstractions;
 
-namespace Naner.Common.Services;
+namespace Naner.Infrastructure.Http;
 
 /// <summary>
 /// Service for downloading files over HTTP with progress tracking.
@@ -202,7 +202,7 @@ public class HttpDownloadService : IDisposable
                 var percent = (int)((totalRead * 100) / totalBytes);
                 if (percent != lastPercent && percent % NanerConstants.ProgressUpdateInterval == 0)
                 {
-                    Console.Write($"\r  Progress: {percent}%");
+                    System.Console.Write($"\r  Progress: {percent}%");
                     lastPercent = percent;
                 }
             }
@@ -210,8 +210,8 @@ public class HttpDownloadService : IDisposable
 
         if (showProgress && totalBytes > 0)
         {
-            Console.Write("\r  Progress: 100%");
-            Console.WriteLine();
+            System.Console.Write("\r  Progress: 100%");
+            System.Console.WriteLine();
         }
     }
 

@@ -1,7 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace Naner.Common.Abstractions;
+namespace Naner.Infrastructure.Abstractions;
 
 /// <summary>
 /// Abstraction for HttpClient to enable testing and dependency injection.

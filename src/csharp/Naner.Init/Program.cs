@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Naner.Common;
-using Naner.Common.Services;
+using Naner.Vendors.Services;
 
 namespace Naner.Init;
 

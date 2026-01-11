@@ -1,6 +1,6 @@
-using Naner.Common.Models;
+using Naner.Vendors.Models;
 
-namespace Naner.Common;
+namespace Naner.Vendors;
 
 /// <summary>
 /// Factory for creating standard vendor definitions.
