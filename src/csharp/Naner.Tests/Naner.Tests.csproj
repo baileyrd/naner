@@ -24,10 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
     <ProjectReference Include="..\Naner.Configuration\Naner.Configuration.csproj" />
     <ProjectReference Include="..\Naner.Launcher\Naner.Launcher.csproj" />
     <ProjectReference Include="..\Naner.Core\Naner.Core.csproj" />
+    <ProjectReference Include="..\Naner.Infrastructure\Naner.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -35,8 +35,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Naner.Common\Naner.Common.csproj" />
     <ProjectReference Include="..\Naner.Core\Naner.Core.csproj" />
+    <ProjectReference Include="..\Naner.Infrastructure\Naner.Infrastructure.csproj" />
+    <ProjectReference Include="..\Naner.Vendors\Naner.Vendors.csproj" />
   </ItemGroup>
 
 </Project>
