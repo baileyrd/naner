@@ -1,7 +1,7 @@
 using System;
 using Xunit;
 using FluentAssertions;
-using Naner.Launcher.Commands;
+using Naner.Commands.Implementations;
 using Naner.Tests.Helpers;
 
 namespace Naner.Tests.Commands;
@@ -32,7 +32,7 @@ public class SetupVendorsCommandTests : IDisposable
         var command = new SetupVendorsCommand();
 
         // Assert
-        command.Should().BeAssignableTo<Launcher.Commands.ICommand>();
+        command.Should().BeAssignableTo<Naner.Commands.Abstractions.ICommand>();
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class SetupVendorsCommandTests : IDisposable
         var commandType = command.GetType();
 
         // Assert
-        commandType.Namespace.Should().Be("Naner.Launcher.Commands");
+        commandType.Namespace.Should().Be("Naner.Commands.Implementations");
     }
 
     [Fact]

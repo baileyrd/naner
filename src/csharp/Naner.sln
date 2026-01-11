@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Naner.Tests", "Naner.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Naner.Configuration.Abstractions", "Naner.Configuration.Abstractions\Naner.Configuration.Abstractions.csproj", "{A258C245-200A-4C35-8660-FA23F15862F0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Naner.Commands", "Naner.Commands\Naner.Commands.csproj", "{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{A258C245-200A-4C35-8660-FA23F15862F0}.Release|x64.Build.0 = Release|Any CPU
 		{A258C245-200A-4C35-8660-FA23F15862F0}.Release|x86.ActiveCfg = Release|Any CPU
 		{A258C245-200A-4C35-8660-FA23F15862F0}.Release|x86.Build.0 = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|x64.Build.0 = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Debug|x86.Build.0 = Debug|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|x64.ActiveCfg = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|x64.Build.0 = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|x86.ActiveCfg = Release|Any CPU
+		{C048E037-767B-4DFD-A3D6-0DD5E073A2F6}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

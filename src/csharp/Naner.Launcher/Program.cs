@@ -5,9 +5,7 @@ using System.Runtime.InteropServices;
 using CommandLine;
 using Naner.Configuration;
 using Naner.Launcher;
-using Naner.Launcher.Commands;
 using Naner.Launcher.Models;
-using Naner.Launcher.Services;
 using Naner.Vendors.Services;
 
 class Program

@@ -1,7 +1,7 @@
 using System;
 using Xunit;
 using FluentAssertions;
-using Naner.Launcher.Services;
+using Naner.Commands.Services;
 using Naner.Tests.Helpers;
 
 namespace Naner.Tests.Services;
