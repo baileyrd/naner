@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
+using Naner.Common.Services;
 
 namespace Naner.Common;
 
@@ -292,8 +293,9 @@ public static class SetupManager
 
             if (string.IsNullOrEmpty(response) || response == "y" || response == "yes")
             {
-                var downloader = new VendorDownloader(nanerRoot);
-                await downloader.SetupRequiredVendorsAsync();
+                var vendors = VendorDefinitionFactory.GetEssentialVendors();
+                var installer = new UnifiedVendorInstaller(nanerRoot, vendors);
+                await installer.InstallAllVendorsAsync();
             }
             else
             {
