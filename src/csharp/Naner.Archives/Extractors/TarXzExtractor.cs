@@ -75,24 +75,7 @@ public class TarXzExtractor : IArchiveExtractor
     /// </summary>
     private bool ExtractXz(string xzPath, string tarPath)
     {
-        var startInfo = new ProcessStartInfo
-        {
-            FileName = _sevenZipPath,
-            Arguments = $"e \"{xzPath}\" -o\"{Path.GetDirectoryName(xzPath)}\" -y",
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var process = Process.Start(startInfo);
-        process?.WaitForExit();
-
-        if (process?.ExitCode != 0)
-        {
-            Logger.Warning($"    Failed to extract .xz (exit code {process?.ExitCode})");
-            return false;
-        }
-
-        return true;
+        return RunSevenZip($"e \"{xzPath}\" -o\"{Path.GetDirectoryName(xzPath)}\" -y", "extract .xz");
     }
 
     /// <summary>
@@ -100,20 +83,40 @@ public class TarXzExtractor : IArchiveExtractor
     /// </summary>
     private bool ExtractTar(string tarPath, string targetDir)
     {
+        return RunSevenZip($"x \"{tarPath}\" -o\"{targetDir}\" -y", "extract .tar");
+    }
+
+    /// <summary>
+    /// Runs 7-Zip with the specified arguments, properly handling stdout/stderr to prevent deadlocks.
+    /// </summary>
+    private bool RunSevenZip(string arguments, string operationName)
+    {
         var startInfo = new ProcessStartInfo
         {
             FileName = _sevenZipPath,
-            Arguments = $"x \"{tarPath}\" -o\"{targetDir}\" -y",
+            Arguments = arguments,
             UseShellExecute = false,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
 
         using var process = Process.Start(startInfo);
-        process?.WaitForExit();
-
-        if (process?.ExitCode != 0)
+        if (process == null)
         {
-            Logger.Warning($"    Failed to extract .tar (exit code {process?.ExitCode})");
+            Logger.Warning($"    Failed to start 7-Zip for {operationName}");
+            return false;
+        }
+
+        // Read stdout/stderr asynchronously to prevent buffer deadlock
+        // This is critical for large archives like MSYS2 which output thousands of file names
+        process.StandardOutput.ReadToEnd();
+        process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            Logger.Warning($"    Failed to {operationName} (exit code {process.ExitCode})");
             return false;
         }
 
