@@ -1,234 +1,193 @@
-# Quick Start: New Two-Executable Architecture
+# Quick Start Guide
 
-## What Changed?
+Get up and running with Naner in minutes.
 
-Naner now uses two executables instead of one:
+## What is Naner?
 
-| Executable | Size | Purpose |
-|------------|------|---------|
-| **naner-init.exe** | ~10 MB | Initializer, updater, and launcher |
-| **naner.exe** | ~11 MB | Main terminal launcher |
+Naner is a **modern, portable terminal environment launcher for Windows** that provides:
+- Zero-dependency, self-contained executable (~11 MB)
+- Unified PowerShell + Unix tools environment
+- Portable development tools (Git, Python, Node.js, etc.)
+- Smart configuration with automatic root detection
 
-## Quick Start
+## Installation
 
-### For New Users
+### Option 1: Download Release (Recommended)
 
-1. **Download `naner-init.exe`** (only file you need!)
-2. **Run it:**
-   ```bash
-   naner-init
+1. **Download** the latest release from [GitHub Releases](https://github.com/baileyrd/naner/releases)
+2. **Extract** to your desired location (e.g., `C:\naner` or portable drive)
+3. **Run first-time setup:**
+   ```cmd
+   naner init
    ```
-3. It will automatically:
-   - Download latest `naner.exe` from GitHub
-   - Download config template
-   - Set up directory structure
-   - Launch Naner
-
-### For Existing Users
-
-1. **Build the new executables:**
-   ```powershell
-   cd src\csharp
-   .\build-all.ps1
-   ```
-
-2. **Use `naner-init` instead of `naner`:**
-   ```bash
-   # Old way
+4. **Launch Naner:**
+   ```cmd
    naner
-
-   # New way (recommended)
-   naner-init
    ```
 
-## Key Commands
+### Option 2: Clone Repository
 
-### naner-init (New!)
-
-```bash
-# Launch Naner (checks for updates automatically)
-naner-init
-
-# Initialize fresh installation
-naner-init init
-
-# Update to latest version
-naner-init update
-
-# Check if update available
-naner-init check-update
-
-# Pass arguments through to naner.exe
-naner-init --profile PowerShell
-naner-init Unified
+```cmd
+git clone https://github.com/baileyrd/naner.git
+cd naner
+naner init
 ```
 
-### naner.exe (Still works!)
-
-All existing commands still work:
-
-```bash
-# Launch terminal
-naner
-
-# Launch specific profile
-naner --profile Bash
-
-# Download vendors (now uses latest versions!)
-naner setup-vendors
-
-# Diagnostics
-naner --diagnose
-```
-
-## What's Better?
-
-### ✅ Always Latest Versions
-
-**Before:**
-- PowerShell 7.4.6 (hardcoded, outdated)
-- Windows Terminal 1.21.2361.0 (hardcoded, outdated)
-- You kept getting "update available" messages
-
-**Now:**
-- PowerShell 7.x.x (fetched from GitHub, always latest)
-- Windows Terminal 1.x.x (fetched from GitHub, always latest)
-- No more update messages!
-
-### ✅ Automatic Updates
-
-**Before:**
-- Had to rebuild naner.exe for updates
-- No way to check for new versions
-
-**Now:**
-- `naner-init update` downloads latest from GitHub
-- Automatic update check on launch
-- No rebuilding needed
-
-### ✅ Simpler Distribution
-
-**Before:**
-- Needed entire naner repository to use
-
-**Now:**
-- Just download `naner-init.exe`
-- It downloads everything else
-
-## Build Commands
+### Option 3: Build from Source
 
 ```powershell
-# Build both executables
-.\src\csharp\build-all.ps1
-
-# Build just naner-init.exe
-.\src\csharp\build-all.ps1 -InitOnly
-
-# Build just naner.exe
-.\src\csharp\build-all.ps1 -NanerOnly
-
-# Build in Debug mode
-.\src\csharp\build-all.ps1 -Configuration Debug
+# Requires .NET 8.0 SDK
+cd src/csharp
+.\build.ps1
 ```
 
-## Important Notes
+## First Run
 
-### ⚠️ Before Publishing to GitHub
+When you run `naner` for the first time, it will:
+1. Detect first-run state automatically
+2. Prompt you to initialize the installation
+3. Create the directory structure
+4. Generate default configuration
 
-Update the GitHub repository information in:
+### Interactive Setup
+```cmd
+naner init
+```
+Follow the prompts to configure your installation.
 
-**File:** `src\csharp\Naner.Init\NanerUpdater.cs` (lines 15-16)
+### Quick Setup (Non-Interactive)
+```cmd
+naner init --minimal
+```
+Creates a minimal installation with default settings.
 
-```csharp
-private const string GithubOwner = "your-username";  // Update this!
-private const string GithubRepo = "naner";
+## Essential Commands
+
+| Command | Description |
+|---------|-------------|
+| `naner` | Launch default terminal profile |
+| `naner --help` | Display help and usage information |
+| `naner --version` | Show version information |
+| `naner --diagnose` | Run diagnostic health checks |
+| `naner init` | Initialize/reinitialize installation |
+| `naner setup-vendors` | Download vendor dependencies |
+
+## Terminal Profiles
+
+Naner supports multiple terminal profiles:
+
+| Profile | Description |
+|---------|-------------|
+| **Unified** | PowerShell with Unix tools (default) |
+| **PowerShell** | Pure PowerShell 7 environment |
+| **Bash** | MSYS2 Bash environment |
+| **CMD** | Windows Command Prompt |
+
+Launch a specific profile:
+```cmd
+naner PowerShell
+naner Bash
 ```
 
-### 📦 GitHub Release Requirements
+## Directory Structure
 
-When creating a release, include these assets:
-- `naner.exe` (required)
-- `naner.json` (optional, but recommended)
-
-Example release:
-```
-Tag: v1.0.0
-Assets:
-  - naner.exe
-  - naner.json
-```
-
-## Workflow Diagram
+After initialization, your Naner directory will contain:
 
 ```
-┌─────────────────┐
-│  naner-init.exe │  (You run this)
-└────────┬────────┘
-         │
-         ├─→ First time? ─→ Download naner.exe from GitHub
-         │                  Download naner.json
-         │                  Create directories
-         │
-         ├─→ Update available? ─→ Show notification
-         │
-         └─→ Launch naner.exe with your arguments
-                    │
-                    ├─→ Load config
-                    ├─→ Setup environment
-                    └─→ Launch Windows Terminal
+naner/
+├── vendor/
+│   └── bin/
+│       └── naner.exe          # Main executable
+├── bin/                       # User executables (high PATH priority)
+├── config/
+│   ├── naner.json            # Main configuration
+│   └── vendors.json          # Vendor definitions
+├── home/                      # Portable home directory
+│   ├── .ssh/                 # SSH keys
+│   ├── .config/              # App configurations
+│   └── Documents/PowerShell/ # PowerShell modules
+├── plugins/                   # Custom plugins
+└── logs/                      # Log files
 ```
+
+## Installing Vendor Dependencies
+
+Naner can automatically download portable tools:
+
+```cmd
+naner setup-vendors
+```
+
+This downloads:
+- **7-Zip** (~2 MB) - Archive extraction
+- **PowerShell 7** (~100 MB) - Modern shell
+- **Windows Terminal** (~50 MB) - Terminal UI
+- **MSYS2** (~400 MB) - Git, Bash, Unix tools
+
+See [Vendor Setup Guide](VENDOR-SETUP.md) for details.
+
+## Configuration
+
+Main configuration is in `config/naner.json`:
+
+```json
+{
+  "DefaultProfile": "Unified",
+  "VendorPaths": {
+    "PowerShell": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
+    "WindowsTerminal": "%NANER_ROOT%\\vendor\\terminal\\wt.exe"
+  },
+  "Environment": {
+    "UnifiedPath": true
+  }
+}
+```
+
+### Configuration Formats
+
+Naner supports multiple configuration formats:
+- **JSON**: `naner.json` (default)
+- **YAML**: `naner.yaml` or `naner.yml`
+
+YAML configuration is auto-discovered if JSON is not present.
 
 ## Troubleshooting
 
-### Can't reach GitHub?
-
-naner-init will warn you but continue launching. You can still use naner.exe directly.
-
-### Update fails?
-
-Your current version keeps working. Try `naner-init update` manually later.
-
-### Want to force update?
-
-```bash
-naner-init update
+### Run Diagnostics
+```cmd
+naner --diagnose
 ```
 
-## Documentation
+This checks:
+- Installation structure
+- Configuration validity
+- Vendor paths
+- Environment variables
 
-Detailed documentation:
-- [Two-Executable Architecture](docs/development/TWO-EXECUTABLE-ARCHITECTURE.md)
-- [Implementation Summary](docs/development/IMPLEMENTATION-SUMMARY-2026-01-09.md)
+### Common Issues
 
-## Migration Checklist
+**"Could not locate Naner root directory"**
+- Run `naner init` to initialize
+- Ensure you're in or below the Naner directory
 
-- [ ] Build new executables with `build-all.ps1`
-- [ ] Update GitHub repo info in `NanerUpdater.cs`
-- [ ] Test `naner-init --version`
-- [ ] Test `naner-init --help`
-- [ ] Create first GitHub release (v1.0.0)
-- [ ] Upload naner.exe and naner.json as release assets
-- [ ] Test full initialization: `naner-init init`
-- [ ] Test update workflow: `naner-init update`
-- [ ] Update main README with new instructions
+**"Configuration file not found"**
+- Run `naner init --minimal` to create default config
+- Check `config/naner.json` exists
 
-## Questions?
+**"Windows Terminal not found"**
+- Run `naner setup-vendors` to download
+- Or install Windows Terminal from Microsoft Store
 
-**Q: Do I need both executables?**
-A: For end users, just `naner-init.exe`. It downloads `naner.exe` automatically.
+## Next Steps
 
-**Q: Can I still use `naner.exe` directly?**
-A: Yes! All existing functionality works. But `naner-init` gives you auto-updates.
+- [Vendor Setup Guide](VENDOR-SETUP.md) - Install portable tools
+- [Multi-Environment Setup](MULTI-ENVIRONMENT.md) - Manage multiple environments
+- [Plugin Development](PLUGIN-DEVELOPMENT.md) - Create custom plugins
+- [Architecture Overview](../reference/ARCHITECTURE.md) - Technical deep-dive
 
-**Q: What if GitHub is down?**
-A: naner-init will skip the update check and launch naner.exe normally.
+## Getting Help
 
-**Q: How do I disable update checks?**
-A: Currently always-on. A config file for this is a future enhancement.
-
-**Q: Can I use this in CI/CD?**
-A: Yes! naner-init has non-interactive mode. Use `naner.exe` directly in CI/CD if you prefer.
-
----
-
-**TL;DR:** Use `naner-init` instead of `naner`. It handles updates automatically and always downloads the latest vendor versions. 🚀
+- **Diagnostics:** `naner --diagnose`
+- **Help:** `naner --help`
+- **Issues:** https://github.com/baileyrd/naner/issues
+- **Documentation:** https://github.com/baileyrd/naner/docs

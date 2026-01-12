@@ -1,446 +1,314 @@
-# Naner Vendor System Implementation Guide
+# Naner Implementation Guide
 
-This package contains everything you need to implement the vendor-based architecture for Naner.
+Technical implementation reference for Naner v1.0.0 (Pure C# Implementation).
 
-## 📦 What's Included
+## Overview
 
-### Core Scripts
-1. **Setup-NanerVendor.ps1** (12KB)
-   - Downloads and configures vendor dependencies
-   - Initializes MSYS2 with essential packages
-   - Creates vendor manifest
-   - Handles Windows Terminal MSIX extraction
+Naner is built as a pure C# application targeting .NET 8.0, compiled to a self-contained single-file executable (~11 MB) that requires no external dependencies.
 
-2. **Invoke-Naner.ps1** (12KB)
-   - Updated launcher with vendor support
-   - Unified PATH management
-   - Profile selection with vendor paths
-   - Environment variable handling
+## Project Architecture
 
-3. **Manage-NanerVendor.ps1** (6.2KB)
-   - Version checking and updates
-   - Vendor dependency management
-   - Manifest inspection
+### Solution Structure
 
-4. **Build-NanerDistribution.ps1** (8.6KB)
-   - Creates portable packages
-   - Size optimization
-   - License compliance
-   - Distribution preparation
-
-5. **Test-NanerInstallation.ps1** (17KB)
-   - Comprehensive installation validation
-   - Directory structure verification
-   - Tool accessibility testing
-   - Profile validation
-   - Performance benchmarks
-
-### Configuration
-6. **naner.json** (2.7KB)
-   - Updated configuration schema
-   - Vendor path definitions
-   - Unified environment settings
-   - Profile examples
-
-### Documentation
-7. **README-VENDOR.md** (9KB)
-   - Complete vendor system documentation
-   - Setup instructions
-   - Troubleshooting guide
-   - Version management
-
-8. **QUICK-START.md** (8.3KB)
-   - User-friendly quick start guide
-   - Usage examples
-   - Common patterns
-   - Tips and tricks
-
-9. **ARCHITECTURE.md** (17KB)
-   - Technical architecture overview
-   - Design decisions
-   - Component relationships
-   - PATH management strategy
-   - Comparison with alternatives
-
-## 🚀 Implementation Steps
-
-### Phase 1: Setup Your Project Structure
-
-```powershell
-# Navigate to your Naner project
-cd C:\Users\BAILEYRD\dev\naner\naner_launcher
-
-# Create the required directories
-mkdir -p vendor, opt, icons
-
-# Expected structure:
-# naner_launcher/
-# ├── bin/
-# ├── config/
-# ├── icons/
-# ├── opt/
-# ├── vendor/
-# └── src/
-#     └── powershell/
+```
+src/csharp/
+├── Naner.Core/                    # Core abstractions and constants
+├── Naner.Configuration/           # Configuration loading and management
+├── Naner.Configuration.Abstractions/  # Config interfaces and models
+├── Naner.Commands/                # Command pattern implementations
+├── Naner.Launcher/                # Main entry point
+├── Naner.Init/                    # Standalone initialization tool
+├── Naner.Infrastructure/          # HTTP and I/O services
+├── Naner.Archives/                # Archive extraction services
+├── Naner.Setup/                   # First-run and setup logic
+├── Naner.Vendors/                 # Vendor management
+├── Naner.DependencyInjection/     # Service container
+└── Naner.Tests/                   # Unit tests
 ```
 
-### Phase 2: Copy Files to Project
+### Dependency Graph
 
-```powershell
-# Copy scripts to appropriate locations
-Copy-Item Setup-NanerVendor.ps1 -> src/powershell/
-Copy-Item Invoke-Naner.ps1 -> src/powershell/ (replace existing)
-Copy-Item Manage-NanerVendor.ps1 -> src/powershell/
-Copy-Item Build-NanerDistribution.ps1 -> src/powershell/
-Copy-Item Test-NanerInstallation.ps1 -> src/powershell/
-
-# Copy configuration
-Copy-Item naner.json -> config/ (merge with existing or replace)
-
-# Copy documentation
-Copy-Item README-VENDOR.md -> docs/
-Copy-Item QUICK-START.md -> docs/
-Copy-Item ARCHITECTURE.md -> docs/
+```
+                    Naner.Launcher (Entry Point)
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+              ▼            ▼            ▼
+       Naner.Commands  Naner.Setup  Naner.Configuration
+              │            │            │
+              └────────────┼────────────┘
+                           │
+                           ▼
+                     Naner.Core
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+              ▼            ▼            ▼
+    Naner.Infrastructure  Naner.Vendors  Naner.Archives
 ```
 
-### Phase 3: Initial Setup
+## Key Components
 
-```powershell
-# Run vendor setup (requires internet)
-cd src/powershell
-.\Setup-NanerVendor.ps1
+### 1. Entry Point (Naner.Launcher)
 
-# This will:
-# - Download 7-Zip (~2MB) - for extracting other dependencies
-# - Download PowerShell 7.x (~100MB)
-# - Download Windows Terminal (~50MB)
-# - Download MSYS2 (~400MB)
-# - Initialize MSYS2
-# - Install essential packages (git, make, gcc, etc.)
-# - Create vendor manifest
+**Program.cs** - Main entry point
+- Console attachment for CLI commands
+- Command routing via `CommandRouter`
+- First-run detection
+- Launch option parsing with CommandLineParser
 
-# Total download: ~552MB
-# No external dependencies required!
-```
-
-### Phase 4: Test Installation
-
-```powershell
-# Run validation tests
-.\Test-NanerInstallation.ps1
-
-# Or run comprehensive tests
-.\Test-NanerInstallation.ps1 -Full
-
-# Expected output:
-# ✓ All tests passed!
-# Your Naner installation appears to be working correctly!
-```
-
-### Phase 5: Test Launcher
-
-```powershell
-# Test with debug output
-.\Invoke-Naner.ps1 -DebugMode
-
-# Test specific profile
-.\Invoke-Naner.ps1 -Profile Bash -Debug
-
-# Normal launch
-.\Invoke-Naner.ps1
-```
-
-## 🔧 Configuration Adjustments
-
-### Update Existing Config
-
-If you have an existing `naner.json`, merge these sections:
-
-```json
+```csharp
+static int Main(string[] args)
 {
-  "VendorPaths": {
-    "PowerShell": "%NANER_ROOT%\\vendor\\powershell\\pwsh.exe",
-    "WindowsTerminal": "%NANER_ROOT%\\vendor\\terminal\\wt.exe",
-    "GitBash": "%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe"
-  },
-  
-  "Environment": {
-    "UnifiedPath": true,
-    "PathPrecedence": [
-      "%NANER_ROOT%\\bin",
-      "%NANER_ROOT%\\vendor\\msys64\\mingw64\\bin",
-      "%NANER_ROOT%\\vendor\\msys64\\usr\\bin",
-      "%NANER_ROOT%\\vendor\\powershell",
-      "%NANER_ROOT%\\opt"
-    ]
-  }
-}
-```
-
-### Remove Old Configuration
-
-Remove or update any references to:
-- System-installed Windows Terminal
-- System PowerShell paths
-- Separate Git Bash/MSYS2 profile configurations
-
-## 📝 Migration from Current System
-
-### What Changes
-
-**Before** (Separate profiles):
-```json
-{
-  "CustomProfiles": {
-    "GitBash": {
-      "ExecutablePath": "C:\\tools\\git\\bin\\bash.exe"
-    },
-    "MSYS2": {
-      "ExecutablePath": "C:\\msys64\\msys2_shell.cmd"
+    // Console attachment if needed
+    if (CommandRouter.NeedsConsole(args) || FirstRunDetector.IsFirstRun())
+    {
+        ConsoleManager.Instance.EnsureConsoleAttached();
     }
-  }
+
+    // Route commands
+    var router = new CommandRouter();
+    var result = router.Route(args);
+
+    if (result != -1) return result;
+
+    // Default: parse launch options and run
+    return Parser.Default.ParseArguments<LaunchOptions>(args)
+        .MapResult(RunLauncher, errs => 1);
 }
 ```
 
-**After** (Unified environment):
-```json
+### 2. Command System (Naner.Commands)
+
+**ICommand Interface**
+```csharp
+public interface ICommand
 {
-  "DefaultProfile": "Unified",
-  "Profiles": {
-    "Unified": {
-      "Shell": "PowerShell",
-      "UseVendorPath": true
-    }
-  }
+    int Execute(string[] args);
 }
 ```
 
-### Benefits of New Approach
+**Available Commands:**
+- `InitCommand` - Initialize installation (deprecated, directs to naner-init)
+- `HelpCommand` - Display usage help
+- `VersionCommand` - Display version info
+- `DiagnosticsCommand` - System health checks
+- `SetupVendorsCommand` - Download vendor dependencies
 
-1. **Single Environment**: All tools accessible from one profile
-2. **Portable**: No external dependencies
-3. **Consistent**: Same tools across all installations
-4. **Maintainable**: Centralized version management
-
-## 🎯 Testing Checklist
-
-- [ ] Vendor setup completes successfully
-- [ ] All tools accessible: `git`, `bash`, `make`, `gcc`, `pwsh`
-- [ ] Windows Terminal launches
-- [ ] PATH precedence correct (vendored tools first)
-- [ ] Configuration valid
-- [ ] Profiles work
-- [ ] Starting directories resolve
-- [ ] Environment variables set correctly
-
-## 📊 Expected Sizes
-
-### Before Optimization
-- 7-Zip: ~2MB
-- PowerShell: ~100MB
-- Windows Terminal: ~50MB
-- MSYS2: ~400MB
-- **Total**: ~552MB
-
-### After Optimization
-- Removed caches: -100MB
-- Removed docs: -80MB
-- **Optimized**: ~372MB
-
-### Compressed Distribution
-- 7z compression: ~150MB
-- ZIP compression: ~200MB
-
-## 🐛 Common Issues & Solutions
-
-### Issue: MSYS2 Extraction Fails
-
-**Symptoms**:
-```
-[✗] Cannot extract .tar.xz files without 7-Zip
+**CommandRouter** - Central dispatcher
+```csharp
+public int Route(string[] args)
+{
+    // Maps CLI arguments to ICommand implementations
+    // Returns -1 if no command matched (fall through to launcher)
+}
 ```
 
-**Solution**:
-This shouldn't happen as 7-Zip is now bundled. If it does:
+### 3. Configuration System (Naner.Configuration)
+
+**Multi-Provider Architecture**
+- `JsonConfigurationProvider` (Priority 10) - JSON files
+- `YamlConfigurationProvider` (Priority 20) - YAML files
+- `EnvironmentConfigurationProvider` (Priority 30) - Environment variables
+
+**Auto-Discovery**
+Configuration files are searched in order:
+1. `naner.json`
+2. `naner.yaml`
+3. `naner.yml`
+
+**Configuration Model**
+```csharp
+public class NanerConfig
+{
+    public Dictionary<string, string> VendorPaths { get; set; }
+    public EnvironmentConfig Environment { get; set; }
+    public string DefaultProfile { get; set; }
+    public Dictionary<string, ProfileConfig> Profiles { get; set; }
+    public WindowsTerminalConfig WindowsTerminal { get; set; }
+    public AdvancedConfig Advanced { get; set; }
+}
+```
+
+### 4. Terminal Launching (Naner.Launcher)
+
+**TerminalLauncher** - Core launch logic
+1. Resolve NANER_ROOT directory
+2. Load configuration
+3. Build unified PATH
+4. Set environment variables
+5. Launch Windows Terminal with profile
+
+**PATH Management**
+```csharp
+var pathBuilder = new PathBuilder(nanerRoot);
+pathBuilder
+    .Add("bin")
+    .Add("vendor/msys64/mingw64/bin")
+    .Add("vendor/msys64/usr/bin")
+    .Add("vendor/powershell")
+    .Add("opt");
+
+if (config.Environment.InheritSystemPath)
+    pathBuilder.AddSystemPath();
+
+Environment.SetEnvironmentVariable("PATH", pathBuilder.Build());
+```
+
+### 5. Vendor Management (Naner.Vendors)
+
+**VendorDefinition Model**
+```csharp
+public class VendorDefinition
+{
+    public string Name { get; set; }
+    public string ExtractDir { get; set; }
+    public string SourceType { get; set; }  // GitHub, StaticUrl, etc.
+    public string GitHubOwner { get; set; }
+    public string GitHubRepo { get; set; }
+    public string AssetPattern { get; set; }
+    public List<string> Dependencies { get; set; }
+}
+```
+
+**VendorConfigurationLoader**
+- Loads from `config/vendors.json`
+- Provides default vendors if file missing
+- Supports vendor dependencies
+
+### 6. Infrastructure Services
+
+**HttpDownloadService**
+- File downloads with progress tracking
+- Custom headers for GitHub API
+- Cancellation support
+
+**ArchiveExtractorService**
+- Strategy pattern for different formats
+- Supports: .zip, .tar.xz, .msi
+- Uses 7-Zip for .tar.xz extraction
+
+**ConsoleManager**
+- Windows console API abstraction
+- Attach/allocate/detach console
+- Singleton pattern for consistent state
+
+### 7. Setup System (Naner.Setup)
+
+**FirstRunDetector**
+- Checks for `.naner-initialized` marker
+- Determines if setup needed
+
+**SetupManager**
+- Interactive setup wizard
+- Minimal setup mode
+- Directory structure creation
+- Default configuration generation
+
+## Build System
+
+### Build Script (build.ps1)
 
 ```powershell
-# Verify 7-Zip was extracted
-Test-Path vendor\7zip\7z.exe
-
-# If false, re-run setup
-Remove-Item vendor -Recurse -Force
-.\Setup-NanerVendor.ps1
+# Build self-contained executable
+dotnet publish Naner.Launcher/Naner.Launcher.csproj `
+    -c Release `
+    -r win-x64 `
+    --self-contained true `
+    -p:PublishSingleFile=true `
+    -p:PublishTrimmed=true `
+    -o ../../vendor/bin
 ```
 
-**Why this happens**:
-- 7-Zip is extracted first automatically
-- If extraction chain fails, re-running setup resolves it
-- No manual installation needed
+### Build Configuration
 
-### Issue: Download Fails
-
-**Solution**:
-```powershell
-# Check network connectivity
-Test-NetConnection github.com
-
-# Use cached downloads if available
-.\Setup-NanerVendor.ps1 -SkipDownload
-
-# Or download manually and place in vendor/.downloads/
+**Directory.Build.props**
+```xml
+<PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <PublishTrimmed>true</PublishTrimmed>
+</PropertyGroup>
 ```
 
-### Issue: MSYS2 Initialization Hangs
+## Testing
 
-**Solution**:
-```powershell
-# Kill any hung processes
-Get-Process msys* | Stop-Process -Force
+### Test Project (Naner.Tests)
 
-# Re-run setup
-.\Setup-NanerVendor.ps1 -ForceDownload
-```
+- Framework: xUnit 2.8.0
+- Assertions: FluentAssertions 6.12.0
+- Mocking: Moq 4.20.70
 
-### Issue: PATH Not Working
-
-**Solution**:
-```powershell
-# Check PATH in debug mode
-.\Invoke-Naner.ps1 -DebugMode
-
-# Verify config PathPrecedence order
-# Ensure vendor directories exist
-```
-
-### Issue: Windows Terminal Extraction Fails
-
-**Solution**:
-```powershell
-# Install 7-Zip or use tar
-winget install 7zip.7zip
-
-# Re-run setup
-.\Setup-NanerVendor.ps1 -ForceDownload
-```
-
-## 🔮 Next Steps
-
-### Immediate
-1. Implement and test vendor system
-2. Update configuration
-3. Test all profiles
-4. Validate tool accessibility
-
-### Short Term
-1. Create distribution package
-2. Write migration guide for users
-3. Update main README
-4. Create release notes
-
-### Long Term
-1. Implement automatic updates
-2. Add more vendor modules (Python, Node.js)
-3. Create MSI installer
-4. GUI configuration tool
-
-## 📚 Documentation Structure
-
-Recommended documentation layout:
+### Test Categories
 
 ```
-docs/
-├── README.md              # Main documentation
-├── QUICK-START.md         # User quick start (this file)
-├── README-VENDOR.md       # Vendor system details
-├── ARCHITECTURE.md        # Technical architecture
-├── CONTRIBUTING.md        # Contribution guide
-└── CHANGELOG.md           # Version history
+Naner.Tests/
+├── Commands/           # Command tests
+├── Services/           # Service tests
+├── Configuration/      # Config tests
+└── Helpers/           # Test utilities (TestLogger)
 ```
 
-## 🤝 Migration Path for Users
-
-### For New Users
-1. Download portable package
-2. Extract and run
-3. Everything works out of the box
-
-### For Existing Users
-1. Backup existing installation
-2. Update to new version
-3. Run `Setup-NanerVendor.ps1`
-4. Test with existing projects
-5. Remove old external dependencies
-
-## 💡 Tips
-
-### Development
-- Use `-DebugMode` flag for troubleshooting
-- Test on clean Windows installations
-- Validate on Windows 10 and 11
-
-### Distribution
-- Test portable package on multiple machines
-- Include all documentation
-- Provide clear upgrade instructions
-
-### Maintenance
-- Pin vendor versions in manifest
-- Test updates before release
-- Keep documentation current
-
-## 🎓 Learning Resources
-
-### For Understanding Components
-- **PowerShell**: https://docs.microsoft.com/powershell/
-- **MSYS2**: https://www.msys2.org/docs/
-- **Windows Terminal**: https://docs.microsoft.com/windows/terminal/
-
-### For Development
-- **PowerShell Best Practices**: https://poshcode.gitbook.io/powershell-practice-and-style/
-- **Git for Windows**: https://gitforwindows.org/
-- **Packaging**: https://wixtoolset.org/
-
-## 📞 Support
-
-When requesting help, include:
+### Running Tests
 
 ```powershell
-# Run diagnostic
-.\Test-NanerInstallation.ps1 -Full > diagnostic.txt
+cd src/csharp
+dotnet test
 
-# Include:
-# - diagnostic.txt output
-# - Your configuration (config/naner.json)
-# - Error messages
-# - Steps to reproduce
+# With verbosity
+dotnet test --logger "console;verbosity=detailed"
+
+# Specific category
+dotnet test --filter "FullyQualifiedName~Commands"
 ```
 
-## ✅ Success Criteria
+## Design Patterns
 
-Your implementation is complete when:
+1. **Command Pattern** - CLI command encapsulation
+2. **Strategy Pattern** - Archive extraction, configuration providers
+3. **Adapter Pattern** - Logger static facade
+4. **Dependency Injection** - Constructor injection throughout
+5. **Configuration-Driven Design** - Behavior via config files
+6. **Singleton Pattern** - ConsoleManager
 
-1. ✓ `Setup-NanerVendor.ps1` runs without errors
-2. ✓ `Test-NanerInstallation.ps1` passes all tests
-3. ✓ `Invoke-Naner.ps1` launches Windows Terminal
-4. ✓ All Unix tools accessible in unified environment
-5. ✓ Git, make, gcc work as expected
-6. ✓ PowerShell 7 available
-7. ✓ No external dependencies required
+## Extension Points
 
-## 🎉 What You Get
+### Adding New Commands
 
-A truly portable, self-contained terminal environment with:
-- Modern Windows Terminal UI
-- PowerShell 7.x
-- Complete Unix toolchain
-- Git version control
-- C/C++ development tools
-- Package manager (pacman)
-- Zero external dependencies
-- Consistent across machines
+1. Implement `ICommand` in Naner.Commands
+2. Register in `CommandRouter.Route()`
+3. Add tests in Naner.Tests/Commands/
 
-**Congratulations on building the next generation of Naner!** 🚀
+### Adding Configuration Providers
 
----
+1. Implement `IConfigurationProvider`
+2. Register in `ConfigurationProviderService`
+3. Set appropriate priority
 
-**Questions or issues?** Review the documentation or run tests with `-Full` flag for detailed diagnostics.
+### Adding Vendor Sources
+
+1. Add source type in `VendorDefinition.SourceType`
+2. Implement download logic in vendor installer
+3. Update `vendors.json` schema
+
+## Performance Considerations
+
+- **Startup**: 100-200ms cold start
+- **Memory**: ~15 MB before terminal launch
+- **Executable Size**: ~11 MB (trimmed, single-file)
+- **Build Time**: ~1.4s for full solution
+- **Test Execution**: 30ms for 19 tests
+
+## Security
+
+- HTTPS enforced for downloads
+- Path validation to prevent traversal
+- Process isolation for external tools
+- Guard clauses on public methods
+
+## References
+
+- [Architecture Overview](ARCHITECTURE.md) - Design patterns and service catalog
+- [Refactoring Documentation](../development/REFACTORING_COMPLETE.md) - Phase-by-phase breakdown

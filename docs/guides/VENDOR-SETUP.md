@@ -209,27 +209,6 @@ Example for PowerShell 7.5.0:
 }
 ```
 
-## PowerShell Vendor Script (Legacy)
-
-The PowerShell vendor setup script is still available and more feature-rich:
-
-```powershell
-# Full setup with all features
-.\src\powershell\Setup-NanerVendor.ps1
-
-# Specific vendor only
-.\src\powershell\Setup-NanerVendor.ps1 -VendorId PowerShell
-
-# Force re-download
-.\src\powershell\Setup-NanerVendor.ps1 -ForceDownload
-```
-
-Features:
-- Latest version detection via GitHub API
-- More vendors (NodeJS, Go, Rust, Ruby, Python)
-- MSYS2 package installation
-- Detailed progress and logging
-
 ## See Also
 
 - [Quick Start Guide](QUICK-START.md) - Getting started with Naner

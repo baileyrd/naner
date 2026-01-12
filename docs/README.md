@@ -4,10 +4,10 @@ Welcome to the Naner documentation! This guide will help you find the informatio
 
 ## Quick Links
 
-- **New User?** Start with the [Quick Start Guide](guides/QUICK-START.md)
+- **New User?** Start with the [Vendor Setup Guide](guides/VENDOR-SETUP.md)
 - **Want to understand the architecture?** See [Architecture Overview](reference/ARCHITECTURE.md)
 - **Developer?** Check out the [Development Documentation](development/)
-- **Having issues?** See archived [Troubleshooting Guide](archived/TROUBLESHOOTING.md)
+- **Having issues?** Run `naner --diagnose` or see archived [Troubleshooting Guide](archived/TROUBLESHOOTING.md)
 
 ## Documentation Structure
 
@@ -16,6 +16,7 @@ Welcome to the Naner documentation! This guide will help you find the informatio
 Documentation for end users setting up and using Naner:
 
 - [Quick Start Guide](guides/QUICK-START.md) - Get up and running quickly
+- [Vendor Setup Guide](guides/VENDOR-SETUP.md) - Download and install vendor dependencies
 - [Multi-Environment Setup](guides/MULTI-ENVIRONMENT.md) - Managing multiple environments
 - [Plugin Development](guides/PLUGIN-DEVELOPMENT.md) - Creating custom plugins
 - [Sync & Backup](guides/SYNC-BACKUP.md) - Syncing your environment across machines
@@ -110,7 +111,6 @@ Documentation improvements are welcome! Please ensure:
 
 - **Commands:** Run `naner --help` for command-line help
 - **Diagnostics:** Run `naner --diagnose` to troubleshoot issues
-- **Release Notes:** See [RELEASE-NOTES-v1.0.0.md](RELEASE-NOTES-v1.0.0.md)
 - **Issues:** See [ISSUES.md](ISSUES.md) for issue tracking guidance
 
 ## External Resources

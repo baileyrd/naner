@@ -55,16 +55,24 @@ naner/
 │   ├── .ssh/                    # SSH keys (gitignored)
 │   └── Documents/PowerShell/    # PowerShell modules
 ├── src/csharp/                  # C# source code
-│   ├── Naner.Common/            # Common utilities
+│   ├── Naner.Archives/          # Archive extraction services
+│   ├── Naner.Commands/          # Command pattern implementations
 │   ├── Naner.Configuration/     # Configuration management
-│   └── Naner.Launcher/          # Main launcher
+│   ├── Naner.Configuration.Abstractions/  # Config interfaces
+│   ├── Naner.Core/              # Core utilities and constants
+│   ├── Naner.DependencyInjection/  # Service registration
+│   ├── Naner.Infrastructure/    # HTTP, logging services
+│   ├── Naner.Init/              # Standalone initialization tool
+│   ├── Naner.Launcher/          # Main launcher application
+│   ├── Naner.Setup/             # Setup and first-run logic
+│   ├── Naner.Tests/             # Unit tests
+│   └── Naner.Vendors/           # Vendor management
 ├── tests/                        # Test suites
 ├── docs/                         # Documentation
 │   ├── guides/                  # User guides
 │   ├── development/             # Developer docs
-│   ├── archived/                # Historical docs
-│   ├── RELEASE-NOTES-v1.0.0.md # Release notes
-│   └── ISSUES.md                # Issue tracking guide
+│   ├── reference/               # Technical references
+│   └── archived/                # Historical docs
 ├── naner.bat                     # Windows entry point
 └── README.md                     # This file
 ```
@@ -77,7 +85,7 @@ Naner follows **Clean Architecture** principles with a layered design emphasizin
 - **Testability** - Interface-based abstractions for unit testing
 - **Modularity** - Clear separation of concerns across projects
 
-See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for complete architectural documentation including service catalog, design patterns, and extension points.
+See [ARCHITECTURE.md](docs/reference/ARCHITECTURE.md) for complete architectural documentation including service catalog, design patterns, and extension points.
 
 ### Recent Refactoring (2026-01-10)
 
@@ -91,18 +99,17 @@ The codebase underwent a comprehensive 7-phase refactoring to transform it from 
 | **Unit Tests** | 0 | 19 tests (100% pass) | New |
 | **SOLID Compliance** | Partial | Full | Achieved |
 
-See [REFACTORING_COMPLETE.md](docs/REFACTORING_COMPLETE.md) for the complete refactoring summary including phase-by-phase breakdown, design patterns, and success metrics.
+See [REFACTORING_COMPLETE.md](docs/development/REFACTORING_COMPLETE.md) for the complete refactoring summary including phase-by-phase breakdown, design patterns, and success metrics.
 
 ## Documentation
 
 **Getting Started:**
 - [Quick Start Guide](docs/guides/QUICK-START.md) - Get up and running
-- [Release Notes](docs/RELEASE-NOTES-v1.0.0.md) - v1.0.0 release information
 - [Documentation Index](docs/README.md) - Complete documentation guide
 
 **Architecture & Design:**
-- [Architecture Guide](docs/ARCHITECTURE.md) - System design, patterns, and service catalog
-- [Refactoring Summary](docs/REFACTORING_COMPLETE.md) - Complete refactoring documentation
+- [Architecture Guide](docs/reference/ARCHITECTURE.md) - System design (C# implementation)
+- [Refactoring Summary](docs/development/REFACTORING_COMPLETE.md) - Complete refactoring documentation
 
 **User Guides:**
 - [Portable Tool Guides](docs/guides/) - Setting up portable development tools
@@ -158,26 +165,47 @@ The C# test suite includes 19 tests covering services, commands, and configurati
 
 The codebase is organized into multiple projects following Clean Architecture:
 
-- **`src/csharp/Naner.Common/`** - Common abstractions, models, and services
-  - **Abstractions/** - Interfaces for dependency injection (ILogger, IConsoleManager, IPathUtilities, etc.)
-  - **Models/** - Data models and enums (VendorDefinition, NanerConfig, LaunchResult, etc.)
-  - **Services/** - Core services (ConsoleManager, PathUtilities, VendorConfigurationLoader, etc.)
-  - **NanerConstants.cs** - Centralized constants for configuration
+- **`Naner.Core`** - Core abstractions and constants
+  - `NanerConstants.cs` - Centralized configuration constants
+  - `PathUtilities.cs` - Path resolution and building utilities
+  - `ILogger.cs` - Logging abstraction
 
-- **`src/csharp/Naner.Configuration/`** - Configuration management
-  - **ConfigurationManager.cs** - Configuration loading with JSON source generation
-  - **FirstRunDetector.cs** - Detects and manages first-run state
-  - **SetupManager.cs** - Handles interactive and minimal setup workflows
+- **`Naner.Configuration`** - Configuration management
+  - `ConfigurationManager.cs` - Configuration loading with provider pattern
+  - JSON and YAML configuration providers
 
-- **`src/csharp/Naner.Launcher/`** - Main launcher application
-  - **Commands/** - Command pattern implementations (LaunchCommand, InitCommand, VersionCommand, etc.)
-  - **Program.cs** - Entry point with command routing
-  - **TerminalLauncher.cs** - Core terminal launch logic
+- **`Naner.Configuration.Abstractions`** - Configuration interfaces and models
+  - `IConfigurationManager.cs`, `IConfigurationProvider.cs`
+  - `NanerConfig.cs`, `ProfileConfig.cs` - Data models
 
-- **`src/csharp/Naner.Tests/`** - Unit test project (xUnit, FluentAssertions, Moq)
-  - **Commands/** - Command tests
-  - **Services/** - Service tests
-  - **Helpers/** - Test utilities (TestLogger)
+- **`Naner.Commands`** - Command pattern implementations
+  - `CommandRouter.cs` - Central command dispatcher
+  - `InitCommand`, `HelpCommand`, `VersionCommand`, `DiagnosticsCommand`
+
+- **`Naner.Launcher`** - Main launcher application
+  - `Program.cs` - Entry point
+  - `TerminalLauncher.cs` - Core terminal launch logic
+
+- **`Naner.Init`** - Standalone initialization tool
+  - `GitHubReleasesClient.cs` - GitHub API client
+  - `EssentialVendorDownloader.cs` - Vendor download logic
+
+- **`Naner.Infrastructure`** - Infrastructure services
+  - `HttpClientWrapper.cs`, `HttpDownloadService.cs` - HTTP operations
+
+- **`Naner.Archives`** - Archive extraction
+  - `ArchiveExtractorService.cs` - ZIP, TAR.XZ, MSI extraction
+
+- **`Naner.Setup`** - Setup and installation
+  - `SetupManager.cs`, `FirstRunDetector.cs`
+
+- **`Naner.Vendors`** - Vendor management
+  - `VendorDefinition.cs`, `VendorConfigurationLoader.cs`
+
+- **`Naner.DependencyInjection`** - Service registration
+  - `NanerServiceHost.cs` - DI container configuration
+
+- **`Naner.Tests`** - Unit tests (xUnit, FluentAssertions, Moq)
 
 ## Version History
 
@@ -187,7 +215,6 @@ The codebase is organized into multiple projects following Clean Architecture:
 - Self-bootstrapping with `naner init` command
 - Smart NANER_ROOT detection
 - Enhanced error messages and diagnostics
-- See [RELEASE-NOTES-v1.0.0.md](docs/RELEASE-NOTES-v1.0.0.md) for details
 
 For earlier versions and PowerShell implementation history, see [archived documentation](docs/archived/).
 
