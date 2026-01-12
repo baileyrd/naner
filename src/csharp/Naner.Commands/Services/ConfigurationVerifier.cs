@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Naner.Commands.Abstractions;
 using Naner.Configuration;
 
 namespace Naner.Commands.Services;
@@ -8,7 +9,7 @@ namespace Naner.Commands.Services;
 /// Verifies Naner configuration file validity.
 /// Single Responsibility: Configuration validation.
 /// </summary>
-public class ConfigurationVerifier
+public class ConfigurationVerifier : IConfigurationVerifier
 {
     /// <summary>
     /// Verifies configuration file exists and is valid.

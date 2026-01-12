@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Naner.Commands.Abstractions;
 
 namespace Naner.Commands.Services;
 
@@ -7,7 +8,7 @@ namespace Naner.Commands.Services;
 /// Verifies Naner directory structure integrity.
 /// Single Responsibility: Directory structure validation.
 /// </summary>
-public class DirectoryVerifier
+public class DirectoryVerifier : IDirectoryVerifier
 {
     /// <summary>
     /// Verifies the Naner directory structure exists.

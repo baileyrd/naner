@@ -9,26 +9,13 @@ namespace Naner.Init;
 
 class Program
 {
-    /// <summary>
-    /// Commands specific to naner-init that require console output.
-    /// </summary>
-    private static readonly string[] InitConsoleCommands = new[]
-    {
-        "--version", "-v",
-        "--help", "-h",
-        "init",
-        "update",
-        "check-update",
-        "update-vendors"
-    };
-
     static async Task<int> Main(string[] args)
     {
         try
         {
             // Determine if we need to show console output
-            // Use centralized ConsoleManager with singleton pattern
-            bool needsConsole = ConsoleManager.NeedsConsole(args, InitConsoleCommands);
+            // Use centralized ConsoleManager with InitCommandNames constants
+            bool needsConsole = ConsoleManager.NeedsConsole(args, InitCommandNames.ConsoleCommands);
 
             if (needsConsole)
             {
@@ -45,26 +32,26 @@ class Program
 
                 switch (command)
                 {
-                    case "--version":
-                    case "-v":
+                    case InitCommandNames.Version:
+                    case InitCommandNames.VersionShort:
                         Console.WriteLine($"naner-init {NanerConstants.Version}");
                         return 0;
 
-                    case "--help":
-                    case "-h":
+                    case InitCommandNames.Help:
+                    case InitCommandNames.HelpShort:
                         ShowHelp();
                         return 0;
 
-                    case "init":
+                    case InitCommandNames.Init:
                         return await InitializeNanerAsync(nanerRoot);
 
-                    case "update":
+                    case InitCommandNames.Update:
                         return await UpdateNanerAsync(nanerRoot);
 
-                    case "check-update":
+                    case InitCommandNames.CheckUpdate:
                         return await CheckForUpdatesAsync(nanerRoot);
 
-                    case "update-vendors":
+                    case InitCommandNames.UpdateVendors:
                         return await UpdateVendorsAsync(nanerRoot);
 
                     default:
@@ -339,8 +326,4 @@ class Program
         Console.WriteLine("  naner-init update         # Update to latest version");
         Console.WriteLine("  naner-init update-vendors # Update PowerShell, Terminal, etc.");
     }
-
-    // NeedsConsole and EnsureConsoleAttached methods removed
-    // Now using ConsoleManager.NeedsConsole() and ConsoleManager.Instance.EnsureConsoleAttached()
-    // This eliminates duplication and uses the singleton pattern for consistent state tracking
 }

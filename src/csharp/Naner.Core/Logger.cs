@@ -7,8 +7,32 @@ namespace Naner.Core;
 /// Delegates to ILogger implementation using the Adapter pattern.
 /// </summary>
 /// <remarks>
-/// This class provides a static interface for all existing code while allowing
-/// dependency injection of ILogger implementations for testing and modularity.
+/// <para>
+/// <strong>Logging Strategy:</strong>
+/// </para>
+/// <para>
+/// The Naner codebase uses a dual-pattern approach to logging:
+/// </para>
+/// <list type="bullet">
+/// <item>
+/// <term>Static Logger (this class)</term>
+/// <description>
+/// Use for application code, commands, and services that don't need testability.
+/// This is the recommended approach for most code. Example: <c>Logger.Status("Processing...");</c>
+/// </description>
+/// </item>
+/// <item>
+/// <term>ILogger via DI</term>
+/// <description>
+/// Use when you need to mock logging in unit tests or when building highly decoupled components.
+/// Inject <c>ILogger</c> via constructor. Example: <c>public MyService(ILogger logger)</c>
+/// </description>
+/// </item>
+/// </list>
+/// <para>
+/// Both approaches use the same underlying implementation. The static Logger can be swapped
+/// via <see cref="SetLogger"/> for integration testing scenarios.
+/// </para>
 /// </remarks>
 public static class Logger
 {

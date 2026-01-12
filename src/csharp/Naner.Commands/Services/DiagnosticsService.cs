@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using Naner.Commands.Abstractions;
 
 namespace Naner.Commands.Services;
 
@@ -10,15 +11,31 @@ namespace Naner.Commands.Services;
 /// </summary>
 public class DiagnosticsService : IDiagnosticsService
 {
-    private readonly DirectoryVerifier _directoryVerifier;
-    private readonly ConfigurationVerifier _configurationVerifier;
-    private readonly EnvironmentReporter _environmentReporter;
+    private readonly IDirectoryVerifier _directoryVerifier;
+    private readonly IConfigurationVerifier _configurationVerifier;
+    private readonly IEnvironmentReporter _environmentReporter;
 
-    public DiagnosticsService()
+    /// <summary>
+    /// Creates a new DiagnosticsService with injected dependencies.
+    /// Preferred constructor for DI containers and testing.
+    /// </summary>
+    public DiagnosticsService(
+        IDirectoryVerifier directoryVerifier,
+        IConfigurationVerifier configurationVerifier,
+        IEnvironmentReporter environmentReporter)
     {
-        _directoryVerifier = new DirectoryVerifier();
-        _configurationVerifier = new ConfigurationVerifier();
-        _environmentReporter = new EnvironmentReporter();
+        _directoryVerifier = directoryVerifier ?? throw new ArgumentNullException(nameof(directoryVerifier));
+        _configurationVerifier = configurationVerifier ?? throw new ArgumentNullException(nameof(configurationVerifier));
+        _environmentReporter = environmentReporter ?? throw new ArgumentNullException(nameof(environmentReporter));
+    }
+
+    /// <summary>
+    /// Creates a new DiagnosticsService with default implementations.
+    /// Maintains backward compatibility for non-DI usage.
+    /// </summary>
+    public DiagnosticsService()
+        : this(new DirectoryVerifier(), new ConfigurationVerifier(), new EnvironmentReporter())
+    {
     }
 
     /// <summary>
