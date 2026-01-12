@@ -1,0 +1,55 @@
+{
+    "$help": "https://aka.ms/terminal-documentation",
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "defaultProfile": "{naner-unified}",
+    "copyOnSelect": false,
+    "copyFormatting": "none",
+    "profiles": {
+        "defaults": {},
+        "list": [
+            {
+                "guid": "{naner-unified}",
+                "name": "Naner (Unified)",
+                "commandline": "\"%NANER_ROOT%\\vendor\\powershell\\pwsh.exe\" -NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\"",
+                "startingDirectory": "%USERPROFILE%",
+                "icon": "%NANER_ROOT%\\icons\\naner.ico",
+                "colorScheme": "Campbell",
+                "hidden": false
+            },
+            {
+                "guid": "{naner-powershell}",
+                "name": "Naner PowerShell",
+                "commandline": "\"%NANER_ROOT%\\vendor\\powershell\\pwsh.exe\" -NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\"",
+                "startingDirectory": "%USERPROFILE%",
+                "icon": "%NANER_ROOT%\\icons\\powershell.ico",
+                "colorScheme": "Campbell",
+                "hidden": false
+            },
+            {
+                "guid": "{naner-bash}",
+                "name": "Naner Bash",
+                "commandline": "\"%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe\" --login -i",
+                "startingDirectory": "~",
+                "icon": "%NANER_ROOT%\\icons\\bash.ico",
+                "colorScheme": "Campbell",
+                "hidden": false
+            },
+            {
+                "guid": "{naner-cmd}",
+                "name": "Naner CMD",
+                "commandline": "cmd.exe /k",
+                "startingDirectory": "%USERPROFILE%",
+                "icon": "%NANER_ROOT%\\icons\\cmd.ico",
+                "colorScheme": "Campbell",
+                "hidden": false
+            }
+        ]
+    },
+    "schemes": [],
+    "actions": [
+        { "command": { "action": "copy", "singleLine": false }, "keys": "ctrl+c" },
+        { "command": "paste", "keys": "ctrl+v" },
+        { "command": "find", "keys": "ctrl+shift+f" },
+        { "command": { "action": "splitPane", "split": "auto", "splitMode": "duplicate" }, "keys": "alt+shift+d" }
+    ]
+}
