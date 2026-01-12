@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace Naner.Infrastructure.Console;
@@ -55,6 +56,7 @@ public class ConsoleManager
         if (AttachConsole(ATTACH_PARENT_PROCESS))
         {
             _isAttached = true;
+            ReinitializeConsoleStreams();
             return true;
         }
 
@@ -62,10 +64,33 @@ public class ConsoleManager
         if (AllocConsole())
         {
             _isAttached = true;
+            ReinitializeConsoleStreams();
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Reinitializes Console.In, Console.Out, and Console.Error streams after
+    /// attaching/allocating a console for a WinExe application.
+    /// </summary>
+    private static void ReinitializeConsoleStreams()
+    {
+        // Reopen stdout
+        var stdOut = System.Console.OpenStandardOutput();
+        var stdOutWriter = new StreamWriter(stdOut, System.Console.OutputEncoding) { AutoFlush = true };
+        System.Console.SetOut(stdOutWriter);
+
+        // Reopen stderr
+        var stdErr = System.Console.OpenStandardError();
+        var stdErrWriter = new StreamWriter(stdErr, System.Console.OutputEncoding) { AutoFlush = true };
+        System.Console.SetError(stdErrWriter);
+
+        // Reopen stdin
+        var stdIn = System.Console.OpenStandardInput();
+        var stdInReader = new StreamReader(stdIn, System.Console.InputEncoding);
+        System.Console.SetIn(stdInReader);
     }
 
     /// <summary>
@@ -82,6 +107,7 @@ public class ConsoleManager
         if (AttachConsole(ATTACH_PARENT_PROCESS))
         {
             _isAttached = true;
+            ReinitializeConsoleStreams();
             return true;
         }
 
@@ -102,6 +128,7 @@ public class ConsoleManager
         if (AllocConsole())
         {
             _isAttached = true;
+            ReinitializeConsoleStreams();
             return true;
         }
 

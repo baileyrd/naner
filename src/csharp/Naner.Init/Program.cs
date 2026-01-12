@@ -63,7 +63,24 @@ class Program
         catch (Exception ex)
         {
             Logger.Failure($"Fatal error: {ex.Message}");
+            WaitForKeyBeforeExit();
             return 1;
+        }
+    }
+
+    /// <summary>
+    /// Waits for user to press a key before exiting (only when console was allocated).
+    /// This prevents the window from closing immediately on error.
+    /// </summary>
+    static void WaitForKeyBeforeExit()
+    {
+        // Only wait if we allocated a new console (double-click scenario)
+        // Don't wait if attached to parent console (command line scenario)
+        if (ConsoleManager.Instance.HasConsole)
+        {
+            Logger.NewLine();
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey(true);
         }
     }
 
@@ -87,16 +104,21 @@ class Program
             Logger.NewLine();
 
             Console.Write("Initialize Naner now? (Y/n): ");
-            var response = Console.ReadLine()?.Trim().ToLower();
+            var response = Console.ReadLine();
 
-            if (response != "" && response != "y" && response != "yes")
+            // Handle null/empty as "yes" (default), but check for explicit cancel
+            var normalizedResponse = response?.Trim().ToLower() ?? "";
+
+            if (normalizedResponse != "" && normalizedResponse != "y" && normalizedResponse != "yes")
             {
                 Logger.Info("Initialization cancelled.");
+                WaitForKeyBeforeExit();
                 return 0;
             }
 
             if (!await updater.InitializeAsync())
             {
+                WaitForKeyBeforeExit();
                 return 1;
             }
 
@@ -178,6 +200,7 @@ class Program
 
         if (!await updater.InitializeAsync())
         {
+            WaitForKeyBeforeExit();
             return 1;
         }
 

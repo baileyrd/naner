@@ -46,6 +46,14 @@ public static class ArchiveUtilities
         foreach (var dir in Directory.GetDirectories(tempDir))
         {
             var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
+
+            // If destination exists, delete it first (handles case where archive
+            // has nested folder with same name as target, e.g. msys64/msys64)
+            if (Directory.Exists(destDir))
+            {
+                Directory.Delete(destDir, recursive: true);
+            }
+
             Directory.Move(dir, destDir);
         }
 
