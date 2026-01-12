@@ -11,12 +11,17 @@ on:
 
 jobs:
   build:
-    name: Build Distribution
+    name: Build C# Executables
     runs-on: windows-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Get version from tag
         id: get_version
@@ -25,50 +30,87 @@ jobs:
           if ($env:GITHUB_REF -match 'refs/tags/v(.+)') {
             $version = $matches[1]
           } else {
-            $version = "dev-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+            $version = "0.0.0-dev"
           }
 
           Write-Host "Version: $version" -ForegroundColor Cyan
           echo "version=$version" >> $env:GITHUB_OUTPUT
 
-      - name: Build portable distribution
+      - name: Update Directory.Build.props version
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: pwsh
         run: |
-          Write-Host "Building portable distribution..." -ForegroundColor Cyan
+          $version = "${{ steps.get_version.outputs.version }}"
+          $propsFile = ".\src\csharp\Directory.Build.props"
 
-          # Check if Build-NanerDistribution.ps1 exists
-          if (Test-Path ".\src\powershell\Build-NanerDistribution.ps1") {
-            .\src\powershell\Build-NanerDistribution.ps1 -OutputDir .\dist -SkipVendors
-            Write-Host "Distribution built successfully" -ForegroundColor Green
-          } else {
-            Write-Host "Build script not found, creating manual distribution..." -ForegroundColor Yellow
+          Write-Host "Updating Directory.Build.props with version: $version" -ForegroundColor Cyan
 
-            $distDir = ".\dist\naner-portable"
-            New-Item -Path $distDir -ItemType Directory -Force | Out-Null
+          $content = Get-Content $propsFile -Raw
+          $content = $content -replace '<Version>[^<]+</Version>', "<Version>$version</Version>"
+          $content = $content -replace '<AssemblyVersion>[^<]+</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>"
+          $content = $content -replace '<FileVersion>[^<]+</FileVersion>', "<FileVersion>$version.0</FileVersion>"
+          $content = $content -replace '<InformationalVersion>[^<]+</InformationalVersion>', "<InformationalVersion>$version</InformationalVersion>"
 
-            # Copy essential files
-            $copyItems = @(
-              @{Source = ".\src"; Dest = "$distDir\src"},
-              @{Source = ".\config"; Dest = "$distDir\config"},
-              @{Source = ".\home"; Dest = "$distDir\home"},
-              @{Source = ".\docs"; Dest = "$distDir\docs"},
-              @{Source = ".\bin"; Dest = "$distDir\bin"},
-              @{Source = ".\README.md"; Dest = "$distDir\README.md"},
-              @{Source = ".\naner.bat"; Dest = "$distDir\naner.bat"}
-            )
+          Set-Content $propsFile -Value $content -NoNewline
 
-            foreach ($item in $copyItems) {
-              if (Test-Path $item.Source) {
-                Copy-Item -Path $item.Source -Destination $item.Dest -Recurse -Force
-                Write-Host "  Copied: $($item.Source)" -ForegroundColor Gray
-              }
-            }
+          Write-Host "Updated Directory.Build.props:" -ForegroundColor Green
+          Get-Content $propsFile
 
-            # Create vendor directory placeholder
-            New-Item -Path "$distDir\vendor" -ItemType Directory -Force | Out-Null
-            Set-Content -Path "$distDir\vendor\README.txt" -Value "Vendor dependencies will be downloaded on first setup.`nRun Setup-NanerVendor.ps1 to install dependencies."
+      - name: Restore dependencies
+        run: dotnet restore src/csharp/Naner.sln
 
-            Write-Host "Manual distribution created successfully" -ForegroundColor Green
+      - name: Build naner.exe
+        shell: pwsh
+        run: |
+          Write-Host "Building naner.exe..." -ForegroundColor Cyan
+          dotnet publish src/csharp/Naner.Launcher/Naner.Launcher.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o ./dist/bin
+
+      - name: Build naner-init.exe
+        shell: pwsh
+        run: |
+          Write-Host "Building naner-init.exe..." -ForegroundColor Cyan
+          dotnet publish src/csharp/Naner.Init/Naner.Init.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o ./dist/bin
+
+      - name: Create distribution package
+        shell: pwsh
+        run: |
+          Write-Host "Creating distribution package..." -ForegroundColor Cyan
+
+          $distDir = ".\dist\naner-portable"
+          New-Item -Path $distDir -ItemType Directory -Force | Out-Null
+
+          # Copy executables
+          Copy-Item -Path ".\dist\bin\naner.exe" -Destination "$distDir\" -Force
+          Copy-Item -Path ".\dist\bin\naner-init.exe" -Destination "$distDir\" -Force
+          Copy-Item -Path ".\dist\bin\.naner-version" -Destination "$distDir\" -Force
+
+          # Copy config files
+          if (Test-Path ".\config") {
+            Copy-Item -Path ".\config" -Destination "$distDir\config" -Recurse -Force
+          }
+
+          # Copy documentation
+          if (Test-Path ".\README.md") {
+            Copy-Item -Path ".\README.md" -Destination "$distDir\" -Force
+          }
+
+          # List contents
+          Write-Host "Distribution contents:" -ForegroundColor Gray
+          Get-ChildItem -Path $distDir -Recurse | ForEach-Object {
+            $relativePath = $_.FullName.Replace((Get-Item $distDir).FullName, "")
+            Write-Host "  $relativePath" -ForegroundColor Gray
           }
 
       - name: Create ZIP archive
@@ -79,17 +121,11 @@ jobs:
           $version = "${{ steps.get_version.outputs.version }}"
           $zipName = "naner-portable-$version.zip"
 
-          if (Test-Path ".\dist\naner-portable") {
-            Compress-Archive -Path ".\dist\naner-portable\*" -DestinationPath ".\dist\$zipName" -Force
-            Write-Host "Created: $zipName" -ForegroundColor Green
+          Compress-Archive -Path ".\dist\naner-portable\*" -DestinationPath ".\dist\$zipName" -Force
+          Write-Host "Created: $zipName" -ForegroundColor Green
 
-            # Show size
-            $size = [math]::Round((Get-Item ".\dist\$zipName").Length / 1MB, 2)
-            Write-Host "Size: $size MB" -ForegroundColor Gray
-          } else {
-            Write-Host "Distribution directory not found" -ForegroundColor Red
-            exit 1
-          }
+          $size = [math]::Round((Get-Item ".\dist\$zipName").Length / 1MB, 2)
+          Write-Host "Size: $size MB" -ForegroundColor Gray
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -102,7 +138,10 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*.zip
+          files: |
+            dist/*.zip
+            dist/bin/naner.exe
+            dist/bin/naner-init.exe
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -115,9 +154,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
@@ -139,17 +175,15 @@ jobs:
           foreach ($zip in $zipFiles) {
             Write-Host "Validating: $($zip.Name)" -ForegroundColor Gray
 
-            # Extract to temp location
             $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_validate_$([Guid]::NewGuid())"
             Expand-Archive -Path $zip.FullName -DestinationPath $tempExtract
 
-            # Check for required files/directories
+            # Check for required files
             $requiredItems = @(
-              "src\powershell\Invoke-Naner.ps1",
-              "src\powershell\Setup-NanerVendor.ps1",
-              "config\naner.json",
-              "config\vendors.json",
-              "README.md"
+              "naner.exe",
+              "naner-init.exe",
+              ".naner-version",
+              "config\vendors.json"
             )
 
             $missing = @()
@@ -161,7 +195,7 @@ jobs:
             }
 
             if ($missing.Count -gt 0) {
-              Write-Host "  [✗] Missing required files:" -ForegroundColor Red
+              Write-Host "  [X] Missing required files:" -ForegroundColor Red
               $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
               Remove-Item $tempExtract -Recurse -Force
               exit 1
@@ -169,7 +203,20 @@ jobs:
               Write-Host "  [OK] All required files present" -ForegroundColor Green
             }
 
-            # Cleanup
+            # Verify executables are valid PE files
+            $nanerExe = Join-Path $tempExtract "naner.exe"
+            $initExe = Join-Path $tempExtract "naner-init.exe"
+
+            $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
+            $initSize = [math]::Round((Get-Item $initExe).Length / 1MB, 2)
+
+            Write-Host "  naner.exe: $nanerSize MB" -ForegroundColor Gray
+            Write-Host "  naner-init.exe: $initSize MB" -ForegroundColor Gray
+
+            # Check version file content
+            $versionContent = Get-Content (Join-Path $tempExtract ".naner-version") -Raw
+            Write-Host "  Version: $($versionContent.Trim())" -ForegroundColor Gray
+
             Remove-Item $tempExtract -Recurse -Force
           }
 

@@ -7,4 +7,13 @@
     <InformationalVersion>0.2.0</InformationalVersion>
     <Copyright>Copyright © 2026</Copyright>
   </PropertyGroup>
+
+  <!-- Generate .naner-version file after publishing executables -->
+  <Target Name="GenerateNanerVersionFile" AfterTargets="Publish" Condition="'$(OutputType)' == 'Exe' Or '$(OutputType)' == 'WinExe'">
+    <PropertyGroup>
+      <NanerVersionFilePath>$(PublishDir).naner-version</NanerVersionFilePath>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(NanerVersionFilePath)" Lines="$(Version)" Overwrite="true" />
+    <Message Importance="high" Text="Generated .naner-version file with version $(Version)" />
+  </Target>
 </Project>
