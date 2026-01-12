@@ -16,8 +16,13 @@ public class NanerUpdater
     private const string GithubOwner = "baileyrd";
     private const string GithubRepo = "naner";
     private const string NanerExeName = "naner.exe";
-    private const string NanerConfigName = "naner.json";
+    private const string NanerConfigName = "naner.json";  // Default config name for downloads
     private const string VersionFileName = ".naner-version";
+
+    /// <summary>
+    /// Supported configuration file names (checked in priority order).
+    /// </summary>
+    private static readonly string[] ConfigFileNames = new[] { "naner.json", "naner.yaml", "naner.yml" };
 
     private readonly string _nanerRoot;
     private readonly string _vendorBinDir;
@@ -176,9 +181,13 @@ public class NanerUpdater
             File.Move(tempNanerPath, nanerPath, overwrite: true);
             Logger.Success($"Installed {NanerExeName}");
 
-            // Download naner.json config template (if available and not exists)
-            var configPath = Path.Combine(_configDir, NanerConfigName);
-            if (!File.Exists(configPath))
+            // Download naner.json config template (if available and no config exists)
+            // Check for any existing config file (json, yaml, yml)
+            var existingConfig = ConfigFileNames
+                .Select(name => Path.Combine(_configDir, name))
+                .FirstOrDefault(File.Exists);
+
+            if (existingConfig == null)
             {
                 var configAsset = latestRelease.Assets?.FirstOrDefault(a =>
                     a.Name != null && a.Name.Equals(NanerConfigName, StringComparison.OrdinalIgnoreCase));
@@ -188,6 +197,7 @@ public class NanerUpdater
                     var configDownloadUrl = configAsset.Url ?? configAsset.BrowserDownloadUrl;
                     if (!string.IsNullOrEmpty(configDownloadUrl))
                     {
+                        var configPath = Path.Combine(_configDir, NanerConfigName);
                         Logger.NewLine();
                         await _githubClient.DownloadAssetAsync(
                             configDownloadUrl,
@@ -195,6 +205,10 @@ public class NanerUpdater
                             NanerConfigName);
                     }
                 }
+            }
+            else
+            {
+                Logger.Debug($"Config file already exists: {existingConfig}", debugMode: false);
             }
 
             // Save version file
