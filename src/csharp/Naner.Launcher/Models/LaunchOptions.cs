@@ -21,7 +21,7 @@ public class LaunchOptions
     public string? Directory { get; set; }
 
     [Option('c', "config", Required = false,
-        HelpText = "Path to naner.json config file")]
+        HelpText = "Path to config file (supports .json, .yaml, .yml)")]
     public string? ConfigPath { get; set; }
 
     [Option("debug", Required = false,

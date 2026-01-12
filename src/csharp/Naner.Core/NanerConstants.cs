@@ -12,8 +12,13 @@ public static class NanerConstants
 
     public const string InitializationMarkerFile = ".naner-initialized";
     public const string VersionFile = ".naner-version";
-    public const string ConfigFileName = "naner.json";
+    public const string ConfigFileName = "naner.json";  // Default, but YAML also supported
     public const string VendorsConfigFileName = "vendors.json";
+
+    /// <summary>
+    /// Supported configuration file names in priority order.
+    /// </summary>
+    public static readonly string[] ConfigFileNames = new[] { "naner.json", "naner.yaml", "naner.yml" };
 
     /// <summary>
     /// GitHub repository information for releases and updates.

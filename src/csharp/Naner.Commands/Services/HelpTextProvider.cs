@@ -57,7 +57,7 @@ public class HelpTextProvider
         Console.WriteLine("                             (Unified, PowerShell, Bash, CMD)");
         Console.WriteLine("  -e, --environment <NAME>   Environment name (default, work, etc.)");
         Console.WriteLine("  -d, --directory <PATH>     Starting directory for terminal");
-        Console.WriteLine("  -c, --config <PATH>        Path to naner.json config file");
+        Console.WriteLine("  -c, --config <PATH>        Path to config file (.json, .yaml, .yml)");
         Console.WriteLine("  --debug                    Enable debug/verbose output");
         Console.WriteLine("  -v, --version              Display version information");
         Console.WriteLine("  -h, --help                 Display this help message");

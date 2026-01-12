@@ -209,7 +209,7 @@ function Get-NanerConfig {
         Loads and validates the Naner configuration file.
 
     .PARAMETER ConfigPath
-        Path to naner.json configuration file.
+        Path to configuration file (naner.json, naner.yaml, or naner.yml).
 
     .PARAMETER NanerRoot
         The Naner root directory (for path expansion).
@@ -221,7 +221,7 @@ function Get-NanerConfig {
         PSCustomObject - The parsed configuration object.
 
     .EXAMPLE
-        $config = Get-NanerConfig -ConfigPath "C:\naner\config\naner.json" -NanerRoot "C:\naner"
+        $config = Get-NanerConfig -ConfigPath "C:\naner\config\naner.yaml" -NanerRoot "C:\naner"
     #>
     [CmdletBinding()]
     [OutputType([PSCustomObject])]

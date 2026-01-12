@@ -91,9 +91,9 @@ class Program
                 Logger.Success($"Naner Root: {nanerRoot}");
             }
 
-            // 2. Load configuration
-            var configPath = opts.ConfigPath ?? Path.Combine(nanerRoot, "config", "naner.json");
-            Logger.Debug($"Loading configuration from: {configPath}", opts.Debug);
+            // 2. Load configuration (auto-discovers naner.json, naner.yaml, or naner.yml if not specified)
+            var configPath = opts.ConfigPath;
+            Logger.Debug($"Loading configuration from: {configPath ?? "auto-discover"}", opts.Debug);
 
             var configManager = new ConfigurationManager(nanerRoot);
             var config = configManager.Load(configPath);

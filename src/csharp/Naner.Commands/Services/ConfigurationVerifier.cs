@@ -13,12 +13,13 @@ public class ConfigurationVerifier : IConfigurationVerifier
 {
     /// <summary>
     /// Verifies configuration file exists and is valid.
+    /// Supports both JSON and YAML configuration files.
     /// </summary>
     /// <param name="nanerRoot">Naner root directory path</param>
     public void Verify(string nanerRoot)
     {
-        var configPath = Path.Combine(nanerRoot, "config", "naner.json");
-        if (File.Exists(configPath))
+        var configPath = FindConfigFile(nanerRoot);
+        if (configPath != null)
         {
             Logger.Success($"Configuration file found");
             Logger.Info($"  Path: {configPath}");
@@ -40,9 +41,29 @@ public class ConfigurationVerifier : IConfigurationVerifier
         }
         else
         {
-            Logger.Failure($"Configuration file missing: {configPath}");
+            Logger.Failure($"Configuration file missing. Expected one of: naner.json, naner.yaml, or naner.yml in config/");
         }
         Logger.NewLine();
+    }
+
+    /// <summary>
+    /// Finds the first available configuration file.
+    /// </summary>
+    private string? FindConfigFile(string nanerRoot)
+    {
+        var configDir = Path.Combine(nanerRoot, "config");
+        var configFileNames = new[] { "naner.json", "naner.yaml", "naner.yml" };
+
+        foreach (var fileName in configFileNames)
+        {
+            var fullPath = Path.Combine(configDir, fileName);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

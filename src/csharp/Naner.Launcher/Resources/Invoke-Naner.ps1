@@ -7,7 +7,7 @@
     Git, and Unix tools from vendored dependencies.
 
 .PARAMETER Profile
-    The profile to launch. Defaults to the DefaultProfile in naner.json.
+    The profile to launch. Defaults to the DefaultProfile in configuration file.
 
 .PARAMETER Environment
     The environment to use. Defaults to the active environment or "default".
@@ -16,7 +16,7 @@
     The starting directory for the terminal session.
 
 .PARAMETER ConfigPath
-    Path to naner.json configuration file.
+    Path to configuration file (naner.json, naner.yaml, or naner.yml). Auto-discovers if not specified.
 
 .PARAMETER DebugMode
     Enable debug output.
@@ -231,9 +231,20 @@ try {
 
     Write-DebugInfo "HOME directory: $homeDir"
     
-    # Determine config path
+    # Determine config path (auto-discover if not specified)
     if (-not $ConfigPath) {
-        $ConfigPath = Join-Path $nanerRoot "config\naner.json"
+        $configDir = Join-Path $nanerRoot "config"
+        $configFileNames = @("naner.json", "naner.yaml", "naner.yml")
+        foreach ($fileName in $configFileNames) {
+            $testPath = Join-Path $configDir $fileName
+            if (Test-Path $testPath) {
+                $ConfigPath = $testPath
+                break
+            }
+        }
+        if (-not $ConfigPath) {
+            throw "No configuration file found. Expected naner.json, naner.yaml, or naner.yml in config/"
+        }
     }
     
     # Load configuration
