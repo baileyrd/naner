@@ -13,6 +13,7 @@ on:
       - 'src/csharp/**'
       - 'tests/**'
       - '.github/workflows/test.yml'
+  workflow_call:
   workflow_dispatch:
 
 jobs:
