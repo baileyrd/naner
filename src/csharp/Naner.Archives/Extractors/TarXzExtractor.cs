@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using Naner.Archives.Abstractions;
+using Naner.Archives.Utilities;
 
 namespace Naner.Archives.Extractors;
 
@@ -58,7 +59,7 @@ public class TarXzExtractor : IArchiveExtractor
             CleanupTarFile(tarPath);
 
             // Flatten single subdirectory if present
-            FlattenSingleSubdirectory(targetDir);
+            ArchiveUtilities.FlattenSingleSubdirectory(targetDir);
 
             return true;
         }
@@ -135,35 +136,6 @@ public class TarXzExtractor : IArchiveExtractor
         {
             // Non-critical - ignore cleanup errors but log for diagnostics
             Logger.Debug($"Could not delete temporary tar file '{tarPath}': {ex.Message}", debugMode: false);
-        }
-    }
-
-    /// <summary>
-    /// Flattens a single subdirectory by moving its contents up one level.
-    /// </summary>
-    private static void FlattenSingleSubdirectory(string targetDir)
-    {
-        var entries = Directory.GetFileSystemEntries(targetDir);
-        if (entries.Length == 1 && Directory.Exists(entries[0]))
-        {
-            var subDir = entries[0];
-            var tempDir = targetDir + "_temp";
-
-            Directory.Move(subDir, tempDir);
-
-            foreach (var file in Directory.GetFiles(tempDir))
-            {
-                var destFile = Path.Combine(targetDir, Path.GetFileName(file));
-                File.Move(file, destFile, overwrite: true);
-            }
-
-            foreach (var dir in Directory.GetDirectories(tempDir))
-            {
-                var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
-                Directory.Move(dir, destDir);
-            }
-
-            Directory.Delete(tempDir, recursive: true);
         }
     }
 }
