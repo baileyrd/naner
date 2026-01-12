@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Naner.Commands.Abstractions;
 using Naner.Commands.Plugins;
+using Naner.Infrastructure.Console;
 
 namespace Naner.Commands.Services;
 
@@ -126,28 +127,14 @@ public class CommandRouter : IDisposable
 
     /// <summary>
     /// Checks if the command requires console output.
-    /// Uses the centralized ConsoleCommands list from CommandNames.
+    /// Delegates to ConsoleManager.NeedsConsole with CommandNames.ConsoleCommands.
     /// </summary>
     /// <param name="args">Command-line arguments</param>
     /// <returns>True if console is needed, false otherwise</returns>
     public static bool NeedsConsole(string[] args)
     {
-        if (args == null || args.Length == 0)
-        {
-            return false;
-        }
-
-        var firstArg = args[0].ToLower();
-
-        foreach (var command in CommandNames.ConsoleCommands)
-        {
-            if (firstArg == command.ToLower())
-            {
-                return true;
-            }
-        }
-
-        return false;
+        // Delegate to ConsoleManager to eliminate duplication (DRY principle)
+        return ConsoleManager.NeedsConsole(args, CommandNames.ConsoleCommands);
     }
 
     public void Dispose()

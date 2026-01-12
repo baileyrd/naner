@@ -12,6 +12,17 @@ namespace Naner.Configuration.Providers;
 /// </summary>
 public class ConfigurationProviderService
 {
+    /// <summary>
+    /// Default configuration file names in priority order.
+    /// Extracted to eliminate duplication (DRY principle).
+    /// </summary>
+    private static readonly string[] DefaultConfigFileNames = new[]
+    {
+        "naner.json",
+        "naner.yaml",
+        "naner.yml"
+    };
+
     private readonly List<IConfigurationProvider> _providers;
     private readonly string _nanerRoot;
 
@@ -106,15 +117,7 @@ public class ConfigurationProviderService
     {
         var configDir = Path.Combine(_nanerRoot, "config");
 
-        // Default file names in priority order
-        var defaultFiles = new[]
-        {
-            "naner.json",
-            "naner.yaml",
-            "naner.yml"
-        };
-
-        foreach (var fileName in defaultFiles)
+        foreach (var fileName in DefaultConfigFileNames)
         {
             var fullPath = Path.Combine(configDir, fileName);
             if (File.Exists(fullPath))
@@ -143,14 +146,7 @@ public class ConfigurationProviderService
     {
         var configDir = Path.Combine(_nanerRoot, "config");
 
-        var defaultFiles = new[]
-        {
-            "naner.json",
-            "naner.yaml",
-            "naner.yml"
-        };
-
-        foreach (var fileName in defaultFiles)
+        foreach (var fileName in DefaultConfigFileNames)
         {
             var fullPath = Path.Combine(configDir, fileName);
             if (File.Exists(fullPath))

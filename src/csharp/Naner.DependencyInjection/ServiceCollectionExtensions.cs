@@ -101,12 +101,19 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddNanerVendors(this IServiceCollection services)
     {
-        services.AddSingleton<IVendorInstaller>(sp =>
+        // Register the factory for creating vendor installers
+        services.AddSingleton<IVendorInstallerFactory>(sp =>
         {
             var nanerRoot = sp.GetRequiredService<NanerRootPath>();
             var httpClient = sp.GetRequiredService<IHttpClientWrapper>();
-            var definitions = VendorDefinitionFactory.GetEssentialVendors();
-            return new UnifiedVendorInstaller(nanerRoot.Path, definitions, httpClient);
+            return new VendorInstallerFactory(nanerRoot.Path, httpClient);
+        });
+
+        // Register the default vendor installer using the factory
+        services.AddSingleton<IVendorInstaller>(sp =>
+        {
+            var factory = sp.GetRequiredService<IVendorInstallerFactory>();
+            return factory.CreateEssentialVendorInstaller();
         });
 
         services.AddSingleton<VendorConfigurationLoader>(sp =>
