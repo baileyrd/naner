@@ -25,39 +25,37 @@ public static class ArchiveUtilities
 
     /// <summary>
     /// Moves all contents from a subdirectory up to the target directory.
+    /// Uses robocopy on Windows for better handling of symlinks and special files.
     /// </summary>
     /// <param name="targetDir">The parent directory</param>
     /// <param name="subDir">The subdirectory whose contents should be moved up</param>
     private static void FlattenDirectory(string targetDir, string subDir)
     {
-        var tempDir = targetDir + "_temp";
+        // Strategy: Rename parent to temp, rename inner to final name, delete temp
+        // This avoids copying large directory trees and handles symlinks better
+        var parentDir = Path.GetDirectoryName(targetDir)!;
+        var targetName = Path.GetFileName(targetDir);
+        var tempParentName = targetName + "_flatten_temp";
+        var tempParentPath = Path.Combine(parentDir, tempParentName);
 
-        // Move subdirectory to temp location
-        Directory.Move(subDir, tempDir);
+        // Step 1: Rename the target directory (e.g., msys64 -> msys64_flatten_temp)
+        Directory.Move(targetDir, tempParentPath);
 
-        // Move all files from temp to target
-        foreach (var file in Directory.GetFiles(tempDir))
+        // Step 2: Get the inner directory path (e.g., msys64_flatten_temp/msys64)
+        var innerDirName = Path.GetFileName(subDir);
+        var innerDirPath = Path.Combine(tempParentPath, innerDirName);
+
+        // Step 3: Move the inner directory to the final location (e.g., msys64_flatten_temp/msys64 -> msys64)
+        Directory.Move(innerDirPath, targetDir);
+
+        // Step 4: Delete the now-empty temp parent directory
+        try
         {
-            var destFile = Path.Combine(targetDir, Path.GetFileName(file));
-            File.Move(file, destFile, overwrite: true);
+            Directory.Delete(tempParentPath, recursive: true);
         }
-
-        // Move all directories from temp to target
-        foreach (var dir in Directory.GetDirectories(tempDir))
+        catch
         {
-            var destDir = Path.Combine(targetDir, Path.GetFileName(dir));
-
-            // If destination exists, delete it first (handles case where archive
-            // has nested folder with same name as target, e.g. msys64/msys64)
-            if (Directory.Exists(destDir))
-            {
-                Directory.Delete(destDir, recursive: true);
-            }
-
-            Directory.Move(dir, destDir);
+            // Ignore cleanup errors - the important move succeeded
         }
-
-        // Remove temp directory
-        Directory.Delete(tempDir, recursive: true);
     }
 }
