@@ -154,7 +154,7 @@ public class ConfigurationValidator
         // Validate icon path if specified
         if (!string.IsNullOrWhiteSpace(profile.Icon))
         {
-            var iconPath = profile.Icon.Replace("%NANER_ROOT%", _nanerRoot);
+            var iconPath = PathUtilities.ExpandNanerPath(profile.Icon, _nanerRoot);
             if (!File.Exists(iconPath) && !iconPath.Contains("%"))
             {
                 _warnings.Add($"{prefix}.Icon file does not exist: {iconPath}");
@@ -181,8 +181,8 @@ public class ConfigurationValidator
                 continue;
             }
 
-            // Check if path exists (after %NANER_ROOT% expansion)
-            var expandedPath = path.Replace("%NANER_ROOT%", _nanerRoot);
+            // Check if path exists (after path expansion)
+            var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
             if (!Directory.Exists(expandedPath) && !expandedPath.Contains("%"))
             {
                 _warnings.Add($"VendorPaths[{vendor}] directory does not exist: {expandedPath}");
@@ -217,8 +217,8 @@ public class ConfigurationValidator
                     continue;
                 }
 
-                // Check if path exists (after %NANER_ROOT% expansion)
-                var expandedPath = path.Replace("%NANER_ROOT%", _nanerRoot);
+                // Check if path exists (after path expansion)
+                var expandedPath = PathUtilities.ExpandNanerPath(path, _nanerRoot);
                 if (!Directory.Exists(expandedPath) && !expandedPath.Contains("%"))
                 {
                     _warnings.Add($"Environment.PathPrecedence[{i}] directory does not exist: {expandedPath}");

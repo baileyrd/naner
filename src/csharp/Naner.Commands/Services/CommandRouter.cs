@@ -126,25 +126,25 @@ public class CommandRouter : IDisposable
 
     /// <summary>
     /// Checks if the command requires console output.
+    /// Uses the centralized ConsoleCommands list from CommandNames.
     /// </summary>
     /// <param name="args">Command-line arguments</param>
     /// <returns>True if console is needed, false otherwise</returns>
     public static bool NeedsConsole(string[] args)
     {
-        if (args.Length > 0)
+        if (args == null || args.Length == 0)
         {
-            var firstArg = args[0].ToLower();
+            return false;
+        }
 
-            return firstArg switch
+        var firstArg = args[0].ToLower();
+
+        foreach (var command in CommandNames.ConsoleCommands)
+        {
+            if (firstArg == command.ToLower())
             {
-                CommandNames.Version or CommandNames.VersionShort => true,
-                CommandNames.Help or CommandNames.HelpShort or CommandNames.HelpAlternate => true,
-                CommandNames.Diagnose => true,
-                CommandNames.Init => true,
-                CommandNames.SetupVendors => true,
-                CommandNames.Debug => true,
-                _ => false
-            };
+                return true;
+            }
         }
 
         return false;

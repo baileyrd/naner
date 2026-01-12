@@ -14,13 +14,13 @@ class Program
     static int Main(string[] args)
     {
         // Determine if we need console output
-        var consoleManager = new ConsoleManager();
+        // Use singleton ConsoleManager for consistent state tracking
         bool needsConsole = CommandRouter.NeedsConsole(args) || FirstRunDetector.IsFirstRun() ||
                            args.Any(a => a.ToLower() == "--debug");
 
         if (needsConsole)
         {
-            consoleManager.EnsureConsoleAttached();
+            ConsoleManager.Instance.EnsureConsoleAttached();
         }
 
         // Route commands using command pattern

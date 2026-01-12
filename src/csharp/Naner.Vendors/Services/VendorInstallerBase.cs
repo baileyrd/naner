@@ -176,74 +176,22 @@ public abstract class VendorInstallerBase : IVendorInstaller
 
     /// <summary>
     /// Performs post-installation configuration for specific vendors.
+    /// Delegates to specialized configurators for vendor-specific setup (SRP).
     /// </summary>
     protected void PostInstallConfiguration(string vendorName, string targetDir)
     {
         try
         {
             // Windows Terminal: Create .portable file and settings.json
-            if (vendorName.Contains("Windows Terminal", StringComparison.OrdinalIgnoreCase))
+            if (WindowsTerminalConfigurator.IsWindowsTerminal(vendorName))
             {
-                // Create .portable marker file
-                var portableFile = Path.Combine(targetDir, ".portable");
-                File.WriteAllText(portableFile, "");
-                Logger.Info($"    Created .portable file for portable mode");
-
-                // Create LocalState directory and settings.json with Naner profiles
-                var localStateDir = Path.Combine(targetDir, "LocalState");
-                Directory.CreateDirectory(localStateDir);
-
-                var settingsFile = Path.Combine(localStateDir, "settings.json");
-                CreateWindowsTerminalSettings(settingsFile);
-                Logger.Info($"    Created LocalState/settings.json with Naner profiles");
+                var configurator = new WindowsTerminalConfigurator(NanerRoot);
+                configurator.ConfigurePortableMode(targetDir);
             }
         }
         catch (Exception ex)
         {
             Logger.Warning($"    Post-install configuration warning: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Creates Windows Terminal settings.json with Naner profiles.
-    /// Copies from template in home/.config/windows-terminal/settings.json and expands paths.
-    /// </summary>
-    protected void CreateWindowsTerminalSettings(string settingsPath)
-    {
-        // Try to copy from template
-        var templatePath = Path.Combine(NanerRoot, "home", ".config", "windows-terminal", "settings.json");
-
-        if (File.Exists(templatePath))
-        {
-            // Read template and expand %NANER_ROOT% to actual path
-            var templateContent = File.ReadAllText(templatePath);
-            var expandedContent = templateContent.Replace("%NANER_ROOT%", NanerRoot.Replace("\\", "\\\\"));
-            File.WriteAllText(settingsPath, expandedContent);
-        }
-        else
-        {
-            // Fallback: create basic settings inline
-            var settings = @"{
-    ""$schema"": ""https://aka.ms/terminal-profiles-schema"",
-    ""defaultProfile"": ""{naner-unified}"",
-    ""copyOnSelect"": false,
-    ""copyFormatting"": ""none"",
-    ""profiles"": {
-        ""defaults"": {},
-        ""list"": [
-            {
-                ""guid"": ""{naner-unified}"",
-                ""name"": ""Naner (Unified)"",
-                ""commandline"": ""pwsh.exe"",
-                ""startingDirectory"": ""%USERPROFILE%"",
-                ""colorScheme"": ""Campbell""
-            }
-        ]
-    },
-    ""schemes"": [],
-    ""actions"": []
-}";
-            File.WriteAllText(settingsPath, settings);
         }
     }
 

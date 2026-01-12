@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Naner.Vendors.Services;
+using Naner.Infrastructure.Console;
 using Xunit;
 
 namespace Naner.Tests.Services;
@@ -20,6 +20,27 @@ public class ConsoleManagerTests
 
         // Assert - bool is a value type, so we just verify it's a bool
         hasConsole.Should().Be(hasConsole); // tautology to verify it compiles and is a bool
+    }
+
+    [Fact]
+    public void Instance_ShouldReturnSameInstance()
+    {
+        // Arrange & Act
+        var instance1 = ConsoleManager.Instance;
+        var instance2 = ConsoleManager.Instance;
+
+        // Assert
+        instance1.Should().BeSameAs(instance2, "singleton should return same instance");
+    }
+
+    [Fact]
+    public void Instance_ShouldNotBeNull()
+    {
+        // Arrange & Act
+        var instance = ConsoleManager.Instance;
+
+        // Assert
+        instance.Should().NotBeNull();
     }
 
     [Fact]
