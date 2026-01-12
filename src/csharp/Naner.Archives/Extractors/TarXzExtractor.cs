@@ -8,7 +8,7 @@ namespace Naner.Archives.Extractors;
 
 /// <summary>
 /// Extractor for .tar.xz archives.
-/// Requires 7-Zip to be installed first (two-stage extraction: .xz -> .tar -> files).
+/// Uses 7-Zip with two-step extraction: .xz -> .tar -> files.
 /// </summary>
 public class TarXzExtractor : IArchiveExtractor
 {
@@ -38,27 +38,33 @@ public class TarXzExtractor : IArchiveExtractor
 
             Directory.CreateDirectory(targetDir);
 
-            // Step 1: Extract .xz to get .tar
-            Logger.Info($"    Extracting .xz archive...");
-            var tarPath = archivePath.Replace(".tar.xz", ".tar");
-
-            if (!ExtractXz(archivePath, tarPath))
+            // Step 1: Extract .xz to get .tar (extracts to same directory as source)
+            Logger.Info($"    Extracting .xz...");
+            var archiveDir = Path.GetDirectoryName(archivePath)!;
+            if (!RunSevenZip($"x \"{archivePath}\" -o\"{archiveDir}\" -y", "extract .xz"))
             {
                 return false;
             }
 
-            // Step 2: Extract .tar to target directory
-            Logger.Info($"    Extracting .tar archive...");
+            // Find the .tar file that was extracted
+            var tarPath = archivePath.Replace(".tar.xz", ".tar", StringComparison.OrdinalIgnoreCase);
+            if (!File.Exists(tarPath))
+            {
+                Logger.Warning($"    .tar file not found after extraction");
+                return false;
+            }
 
-            if (!ExtractTar(tarPath, targetDir))
+            // Step 2: Extract .tar to target directory
+            Logger.Info($"    Extracting .tar...");
+            if (!RunSevenZip($"x \"{tarPath}\" -o\"{targetDir}\" -y", "extract .tar"))
             {
                 return false;
             }
 
             // Cleanup intermediate .tar file
-            CleanupTarFile(tarPath);
+            try { File.Delete(tarPath); } catch { /* ignore */ }
 
-            // Flatten single subdirectory if present
+            // Flatten single subdirectory if present (e.g., msys64/msys64 -> msys64)
             ArchiveUtilities.FlattenSingleSubdirectory(targetDir);
 
             return true;
@@ -68,22 +74,6 @@ public class TarXzExtractor : IArchiveExtractor
             Logger.Failure($"    .tar.xz extraction failed: {ex.Message}");
             return false;
         }
-    }
-
-    /// <summary>
-    /// Extracts .xz archive to .tar file.
-    /// </summary>
-    private bool ExtractXz(string xzPath, string tarPath)
-    {
-        return RunSevenZip($"e \"{xzPath}\" -o\"{Path.GetDirectoryName(xzPath)}\" -y", "extract .xz");
-    }
-
-    /// <summary>
-    /// Extracts .tar archive to target directory.
-    /// </summary>
-    private bool ExtractTar(string tarPath, string targetDir)
-    {
-        return RunSevenZip($"x \"{tarPath}\" -o\"{targetDir}\" -y", "extract .tar");
     }
 
     /// <summary>
@@ -108,7 +98,7 @@ public class TarXzExtractor : IArchiveExtractor
             return false;
         }
 
-        // Read stdout/stderr asynchronously to prevent buffer deadlock
+        // Read stdout/stderr to prevent buffer deadlock
         // This is critical for large archives like MSYS2 which output thousands of file names
         process.StandardOutput.ReadToEnd();
         process.StandardError.ReadToEnd();
@@ -121,24 +111,5 @@ public class TarXzExtractor : IArchiveExtractor
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Removes intermediate .tar file after extraction.
-    /// </summary>
-    private static void CleanupTarFile(string tarPath)
-    {
-        try
-        {
-            if (File.Exists(tarPath))
-            {
-                File.Delete(tarPath);
-            }
-        }
-        catch (Exception ex)
-        {
-            // Non-critical - ignore cleanup errors but log for diagnostics
-            Logger.Debug($"Could not delete temporary tar file '{tarPath}': {ex.Message}", debugMode: false);
-        }
     }
 }
