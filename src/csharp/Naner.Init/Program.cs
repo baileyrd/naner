@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Naner.Vendors.Services;
@@ -352,10 +353,10 @@ class Program
     /// </summary>
     static string GetAssemblyVersion()
     {
-        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        var assembly = Assembly.GetExecutingAssembly();
 
         // Try InformationalVersion first
-        var infoVersion = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         if (!string.IsNullOrEmpty(infoVersion))
         {
             // Remove any +metadata suffix
