@@ -50,7 +50,9 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddNanerInfrastructure(this IServiceCollection services)
     {
         services.AddSingleton<IHttpClientWrapper, HttpClientWrapper>();
-        services.AddSingleton<ConsoleManager>();
+
+        // Use the singleton instance to ensure consistent state tracking
+        services.AddSingleton(ConsoleManager.Instance);
 
         return services;
     }
@@ -132,11 +134,11 @@ public static class ServiceCollectionExtensions
         // Register the command router
         services.AddSingleton<CommandRouter>();
 
-        // Register diagnostics sub-services
+        // Register diagnostics sub-services with interfaces for DI/testing
+        services.AddTransient<IDirectoryVerifier, DirectoryVerifier>();
+        services.AddTransient<IConfigurationVerifier, ConfigurationVerifier>();
+        services.AddTransient<IEnvironmentReporter, EnvironmentReporter>();
         services.AddTransient<IDiagnosticsService, DiagnosticsService>();
-        services.AddTransient<DirectoryVerifier>();
-        services.AddTransient<ConfigurationVerifier>();
-        services.AddTransient<EnvironmentReporter>();
 
         return services;
     }

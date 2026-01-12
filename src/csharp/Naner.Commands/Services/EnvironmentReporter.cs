@@ -1,4 +1,5 @@
 using System;
+using Naner.Commands.Abstractions;
 
 namespace Naner.Commands.Services;
 
@@ -6,7 +7,7 @@ namespace Naner.Commands.Services;
 /// Reports environment variable information.
 /// Single Responsibility: Environment variable display.
 /// </summary>
-public class EnvironmentReporter
+public class EnvironmentReporter : IEnvironmentReporter
 {
     /// <summary>
     /// Displays environment variables relevant to Naner.
