@@ -90,6 +90,41 @@ public class GitHubReleasesClient
     }
 
     /// <summary>
+    /// Gets a specific release by tag name.
+    /// </summary>
+    /// <param name="tagName">The tag name (e.g., "v0.4.0" or "0.4.0")</param>
+    public async Task<GitHubRelease?> GetReleaseByTagAsync(string tagName)
+    {
+        try
+        {
+            // Ensure tag has 'v' prefix for GitHub API
+            var tag = tagName.StartsWith("v", StringComparison.OrdinalIgnoreCase) ? tagName : $"v{tagName}";
+
+            var url = $"https://api.github.com/repos/{_owner}/{_repo}/releases/tags/{tag}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                var release = JsonSerializer.Deserialize<GitHubRelease>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                return release;
+            }
+
+            Logger.Warning($"Failed to fetch release for tag '{tag}': {response.StatusCode}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.Failure($"Error fetching release for tag '{tagName}': {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Downloads an asset from a release.
     /// </summary>
     public async Task<bool> DownloadAssetAsync(string downloadUrl, string outputPath, string assetName)

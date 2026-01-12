@@ -19,11 +19,11 @@ public class NanerUpdater
     private const string NanerBundleName = "naner-bundle.zip";  // Bundle containing config, home, vendor folders
     private const string VersionFileName = ".naner-version";
 
-
     private readonly string _nanerRoot;
     private readonly string _vendorBinDir;
     private readonly string _configDir;
     private readonly GitHubReleasesClient _githubClient;
+    private readonly string _initVersion;
 
     public NanerUpdater(string nanerRoot)
     {
@@ -31,6 +31,41 @@ public class NanerUpdater
         _vendorBinDir = Path.Combine(_nanerRoot, "vendor", "bin");
         _configDir = Path.Combine(_nanerRoot, "config");
         _githubClient = new GitHubReleasesClient(GithubOwner, GithubRepo);
+        _initVersion = GetNanerInitVersion();
+    }
+
+    /// <summary>
+    /// Gets the version of naner-init.exe from its assembly information.
+    /// </summary>
+    private static string GetNanerInitVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+
+        // Try InformationalVersion first (includes full semver)
+        var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrEmpty(infoVersion))
+        {
+            // Remove any +metadata suffix (e.g., "0.4.0+abc123" -> "0.4.0")
+            var plusIndex = infoVersion.IndexOf('+');
+            return plusIndex >= 0 ? infoVersion.Substring(0, plusIndex) : infoVersion;
+        }
+
+        // Fall back to FileVersion
+        var fileVersion = assembly.GetCustomAttribute<AssemblyFileVersionAttribute>()?.Version;
+        if (!string.IsNullOrEmpty(fileVersion))
+        {
+            // FileVersion is typically "0.4.0.0", trim the last .0 if present
+            var parts = fileVersion.Split('.');
+            if (parts.Length == 4 && parts[3] == "0")
+            {
+                return string.Join(".", parts.Take(3));
+            }
+            return fileVersion;
+        }
+
+        // Last resort: assembly version
+        var version = assembly.GetName().Version;
+        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
     }
 
     /// <summary>
@@ -80,7 +115,13 @@ public class NanerUpdater
     }
 
     /// <summary>
-    /// Checks if an update is available.
+    /// Gets the version that naner-init will download (its own version).
+    /// </summary>
+    public string GetTargetVersion() => _initVersion;
+
+    /// <summary>
+    /// Checks if the installed naner.exe version differs from naner-init's version.
+    /// Returns true if an update/reinstall is needed to match naner-init's version.
     /// </summary>
     public async Task<(bool UpdateAvailable, string? LatestVersion)> CheckForUpdateAsync()
     {
@@ -88,25 +129,20 @@ public class NanerUpdater
         if (installedVersion == null)
         {
             // Not initialized, need to install
-            return (true, null);
+            return (true, _initVersion);
         }
 
-        var latestRelease = await _githubClient.GetLatestReleaseAsync();
-        if (latestRelease?.TagName == null)
-        {
-            Logger.Warning("Could not check for updates (GitHub API unavailable)");
-            return (false, null);
-        }
+        // Check if installed version matches naner-init's version
+        var normalizedInstalled = VersionComparer.Normalize(installedVersion);
+        var normalizedTarget = VersionComparer.Normalize(_initVersion);
 
-        var latestVersion = VersionComparer.Normalize(latestRelease.TagName);
-        var currentVersion = VersionComparer.Normalize(installedVersion);
-
-        var updateAvailable = VersionComparer.IsNewer(latestVersion, currentVersion);
-        return (updateAvailable, latestVersion);
+        // Update available if versions don't match
+        var updateNeeded = normalizedInstalled != normalizedTarget;
+        return (updateNeeded, updateNeeded ? _initVersion : null);
     }
 
     /// <summary>
-    /// Updates naner.exe to the latest version.
+    /// Updates naner.exe to match naner-init's version.
     /// </summary>
     public async Task<bool> UpdateNanerExeAsync()
     {
@@ -115,19 +151,20 @@ public class NanerUpdater
             Logger.Header("Updating Naner");
             Logger.NewLine();
 
-            // Get latest release
-            var latestRelease = await _githubClient.GetLatestReleaseAsync();
-            if (latestRelease == null)
+            // Get release matching naner-init's version
+            Logger.Info($"Fetching release v{_initVersion}...");
+            var targetRelease = await _githubClient.GetReleaseByTagAsync(_initVersion);
+            if (targetRelease == null)
             {
-                Logger.Failure("Failed to fetch latest release from GitHub");
+                Logger.Failure($"Failed to fetch release v{_initVersion} from GitHub");
                 return false;
             }
 
-            Logger.Info($"Latest version: {latestRelease.TagName}");
+            Logger.Info($"Target version: {targetRelease.TagName}");
             Logger.NewLine();
 
             // Find naner.exe asset
-            var nanerAsset = latestRelease.Assets?.FirstOrDefault(a =>
+            var nanerAsset = targetRelease.Assets?.FirstOrDefault(a =>
                 a.Name != null && a.Name.Equals(NanerExeName, StringComparison.OrdinalIgnoreCase));
 
             if (nanerAsset == null)
@@ -171,10 +208,10 @@ public class NanerUpdater
 
             // Save version file
             var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
-            File.WriteAllText(versionFile, latestRelease.TagName);
+            File.WriteAllText(versionFile, targetRelease.TagName);
 
             Logger.NewLine();
-            Logger.Success($"Naner updated to version {latestRelease.TagName}");
+            Logger.Success($"Naner updated to version {targetRelease.TagName}");
 
             return true;
         }
@@ -187,6 +224,7 @@ public class NanerUpdater
 
     /// <summary>
     /// Performs first-time initialization of Naner.
+    /// Downloads the release matching naner-init's version.
     /// </summary>
     public async Task<bool> InitializeAsync()
     {
@@ -195,19 +233,20 @@ public class NanerUpdater
 
         try
         {
-            // Get latest release
-            var latestRelease = await _githubClient.GetLatestReleaseAsync();
-            if (latestRelease == null)
+            // Get release matching naner-init's version
+            Logger.Info($"Fetching release v{_initVersion}...");
+            var targetRelease = await _githubClient.GetReleaseByTagAsync(_initVersion);
+            if (targetRelease == null)
             {
-                Logger.Failure("Failed to fetch latest release from GitHub");
+                Logger.Failure($"Failed to fetch release v{_initVersion} from GitHub");
                 return false;
             }
 
-            Logger.Info($"Latest version: {latestRelease.TagName}");
+            Logger.Info($"Target version: {targetRelease.TagName}");
             Logger.NewLine();
 
             // Find naner-bundle.zip asset
-            var bundleAsset = latestRelease.Assets?.FirstOrDefault(a =>
+            var bundleAsset = targetRelease.Assets?.FirstOrDefault(a =>
                 a.Name != null && a.Name.Equals(NanerBundleName, StringComparison.OrdinalIgnoreCase));
 
             if (bundleAsset == null)
@@ -263,14 +302,14 @@ public class NanerUpdater
 
             // Save version file
             var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
-            File.WriteAllText(versionFile, latestRelease.TagName);
+            File.WriteAllText(versionFile, targetRelease.TagName);
 
             // Create initialization marker
             var markerFile = Path.Combine(_nanerRoot, ".naner-initialized");
-            File.WriteAllText(markerFile, $"# Naner Initialization Marker\n# Created: {DateTime.Now}\n# Version: {latestRelease.TagName}\n");
+            File.WriteAllText(markerFile, $"# Naner Initialization Marker\n# Created: {DateTime.Now}\n# Version: {targetRelease.TagName}\n");
 
             Logger.NewLine();
-            Logger.Success($"Naner initialized successfully (version {latestRelease.TagName})");
+            Logger.Success($"Naner initialized successfully (version {targetRelease.TagName})");
 
             return true;
         }

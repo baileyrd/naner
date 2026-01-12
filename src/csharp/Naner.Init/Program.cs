@@ -34,7 +34,7 @@ class Program
                 {
                     case InitCommandNames.Version:
                     case InitCommandNames.VersionShort:
-                        Console.WriteLine($"naner-init {NanerConstants.Version}");
+                        Console.WriteLine($"naner-init {GetAssemblyVersion()}");
                         return 0;
 
                     case InitCommandNames.Help:
@@ -100,7 +100,7 @@ class Program
             Logger.Header("Naner Initializer");
             Logger.NewLine();
             Logger.Info("Naner is not initialized yet.");
-            Logger.Info("This will download the latest version of Naner from GitHub.");
+            Logger.Info($"This will download Naner v{updater.GetTargetVersion()} from GitHub.");
             Logger.NewLine();
 
             Console.Write("Initialize Naner now? (Y/n): ");
@@ -345,5 +345,26 @@ class Program
         Console.WriteLine();
         Console.WriteLine("VENDOR MANAGEMENT:");
         Console.WriteLine("  Use 'naner update-vendors' to update PowerShell, Terminal, etc.");
+    }
+
+    /// <summary>
+    /// Gets the assembly version for display purposes.
+    /// </summary>
+    static string GetAssemblyVersion()
+    {
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+
+        // Try InformationalVersion first
+        var infoVersion = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrEmpty(infoVersion))
+        {
+            // Remove any +metadata suffix
+            var plusIndex = infoVersion.IndexOf('+');
+            return plusIndex >= 0 ? infoVersion.Substring(0, plusIndex) : infoVersion;
+        }
+
+        // Fall back to assembly version
+        var version = assembly.GetName().Version;
+        return version != null ? $"{version.Major}.{version.Minor}.{version.Build}" : "0.0.0";
     }
 }
