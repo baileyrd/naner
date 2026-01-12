@@ -1,18 +1,21 @@
+using Naner.Core;
+
 namespace Naner.Init;
 
 /// <summary>
 /// Constants for naner-init command-line command names.
 /// Centralizes command strings to avoid duplication and typos.
+/// Inherits common constants from CommonCommandConstants.
 /// </summary>
 public static class InitCommandNames
 {
-    // Version commands
-    public const string Version = "--version";
-    public const string VersionShort = "-v";
+    // Version commands (from shared constants)
+    public const string Version = CommonCommandConstants.Version;
+    public const string VersionShort = CommonCommandConstants.VersionShort;
 
-    // Help commands
-    public const string Help = "--help";
-    public const string HelpShort = "-h";
+    // Help commands (from shared constants)
+    public const string Help = CommonCommandConstants.Help;
+    public const string HelpShort = CommonCommandConstants.HelpShort;
 
     // Init-specific commands
     public const string Init = "init";
