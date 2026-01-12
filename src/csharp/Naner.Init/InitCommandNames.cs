@@ -21,7 +21,6 @@ public static class InitCommandNames
     public const string Init = "init";
     public const string Update = "update";
     public const string CheckUpdate = "check-update";
-    public const string UpdateVendors = "update-vendors";
 
     /// <summary>
     /// Commands that require console output.
@@ -35,7 +34,6 @@ public static class InitCommandNames
         HelpShort,
         Init,
         Update,
-        CheckUpdate,
-        UpdateVendors
+        CheckUpdate
     };
 }

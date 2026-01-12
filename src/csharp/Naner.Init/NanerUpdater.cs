@@ -16,13 +16,9 @@ public class NanerUpdater
     private const string GithubOwner = "baileyrd";
     private const string GithubRepo = "naner";
     private const string NanerExeName = "naner.exe";
-    private const string NanerConfigName = "naner.json";  // Default config name for downloads
+    private const string NanerBundleName = "naner-bundle.zip";  // Bundle containing config, home, vendor folders
     private const string VersionFileName = ".naner-version";
 
-    /// <summary>
-    /// Supported configuration file names (checked in priority order).
-    /// </summary>
-    private static readonly string[] ConfigFileNames = new[] { "naner.json", "naner.yaml", "naner.yml" };
 
     private readonly string _nanerRoot;
     private readonly string _vendorBinDir;
@@ -38,12 +34,12 @@ public class NanerUpdater
     }
 
     /// <summary>
-    /// Checks if Naner is initialized (has naner.exe).
+    /// Checks if Naner is initialized (has .naner-initialized marker file).
     /// </summary>
     public bool IsInitialized()
     {
-        var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
-        return File.Exists(nanerExePath);
+        var markerFile = Path.Combine(_nanerRoot, ".naner-initialized");
+        return File.Exists(markerFile);
     }
 
     /// <summary>
@@ -110,13 +106,13 @@ public class NanerUpdater
     }
 
     /// <summary>
-    /// Downloads and installs the latest version of Naner.
+    /// Updates naner.exe to the latest version.
     /// </summary>
-    public async Task<bool> InstallOrUpdateNanerAsync(bool isUpdate = false)
+    public async Task<bool> UpdateNanerExeAsync()
     {
         try
         {
-            Logger.Header(isUpdate ? "Updating Naner" : "Installing Naner");
+            Logger.Header("Updating Naner");
             Logger.NewLine();
 
             // Get latest release
@@ -140,7 +136,6 @@ public class NanerUpdater
                 return false;
             }
 
-            // Use API URL if available (for private repos), otherwise browser download URL
             var downloadUrl = nanerAsset.Url ?? nanerAsset.BrowserDownloadUrl;
             if (string.IsNullOrEmpty(downloadUrl))
             {
@@ -148,18 +143,11 @@ public class NanerUpdater
                 return false;
             }
 
-            // Create directories
-            Directory.CreateDirectory(_vendorBinDir);
-            Directory.CreateDirectory(_configDir);
-
             // Download naner.exe
             var tempNanerPath = Path.Combine(_vendorBinDir, $"{NanerExeName}.tmp");
             var nanerPath = Path.Combine(_vendorBinDir, NanerExeName);
 
-            if (!await _githubClient.DownloadAssetAsync(
-                downloadUrl,
-                tempNanerPath,
-                NanerExeName))
+            if (!await _githubClient.DownloadAssetAsync(downloadUrl, tempNanerPath, NanerExeName))
             {
                 return false;
             }
@@ -181,50 +169,18 @@ public class NanerUpdater
             File.Move(tempNanerPath, nanerPath, overwrite: true);
             Logger.Success($"Installed {NanerExeName}");
 
-            // Download naner.json config template (if available and no config exists)
-            // Check for any existing config file (json, yaml, yml)
-            var existingConfig = ConfigFileNames
-                .Select(name => Path.Combine(_configDir, name))
-                .FirstOrDefault(File.Exists);
-
-            if (existingConfig == null)
-            {
-                var configAsset = latestRelease.Assets?.FirstOrDefault(a =>
-                    a.Name != null && a.Name.Equals(NanerConfigName, StringComparison.OrdinalIgnoreCase));
-
-                if (configAsset != null)
-                {
-                    var configDownloadUrl = configAsset.Url ?? configAsset.BrowserDownloadUrl;
-                    if (!string.IsNullOrEmpty(configDownloadUrl))
-                    {
-                        var configPath = Path.Combine(_configDir, NanerConfigName);
-                        Logger.NewLine();
-                        await _githubClient.DownloadAssetAsync(
-                            configDownloadUrl,
-                            configPath,
-                            NanerConfigName);
-                    }
-                }
-            }
-            else
-            {
-                Logger.Debug($"Config file already exists: {existingConfig}", debugMode: false);
-            }
-
             // Save version file
             var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
             File.WriteAllText(versionFile, latestRelease.TagName);
 
             Logger.NewLine();
-            Logger.Success(isUpdate
-                ? $"Naner updated to version {latestRelease.TagName}"
-                : $"Naner installed successfully (version {latestRelease.TagName})");
+            Logger.Success($"Naner updated to version {latestRelease.TagName}");
 
             return true;
         }
         catch (Exception ex)
         {
-            Logger.Failure($"Installation failed: {ex.Message}");
+            Logger.Failure($"Update failed: {ex.Message}");
             return false;
         }
     }
@@ -237,49 +193,92 @@ public class NanerUpdater
         Logger.Header("Initializing Naner");
         Logger.NewLine();
 
-        // Create base directory structure
-        Logger.Status("Creating directory structure...");
         try
         {
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "bin"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "vendor"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "vendor", "bin"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "config"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "home"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "plugins"));
-            Directory.CreateDirectory(Path.Combine(_nanerRoot, "logs"));
+            // Get latest release
+            var latestRelease = await _githubClient.GetLatestReleaseAsync();
+            if (latestRelease == null)
+            {
+                Logger.Failure("Failed to fetch latest release from GitHub");
+                return false;
+            }
 
-            // Create home subdirectories
-            var homeDir = Path.Combine(_nanerRoot, "home");
-            Directory.CreateDirectory(Path.Combine(homeDir, ".ssh"));
-            Directory.CreateDirectory(Path.Combine(homeDir, ".config"));
-            Directory.CreateDirectory(Path.Combine(homeDir, ".config", "git"));
-            Directory.CreateDirectory(Path.Combine(homeDir, ".config", "powershell"));
-            Directory.CreateDirectory(Path.Combine(homeDir, ".vscode"));
-
-            Logger.Success("Directory structure created");
+            Logger.Info($"Latest version: {latestRelease.TagName}");
             Logger.NewLine();
+
+            // Find naner-bundle.zip asset
+            var bundleAsset = latestRelease.Assets?.FirstOrDefault(a =>
+                a.Name != null && a.Name.Equals(NanerBundleName, StringComparison.OrdinalIgnoreCase));
+
+            if (bundleAsset == null)
+            {
+                Logger.Failure($"{NanerBundleName} not found in release assets");
+                return false;
+            }
+
+            var bundleDownloadUrl = bundleAsset.Url ?? bundleAsset.BrowserDownloadUrl;
+            if (string.IsNullOrEmpty(bundleDownloadUrl))
+            {
+                Logger.Failure($"Download URL for {NanerBundleName} is missing");
+                return false;
+            }
+
+            // Download bundle to temp file
+            var tempBundlePath = Path.Combine(_nanerRoot, $"{NanerBundleName}.tmp");
+            if (!await _githubClient.DownloadAssetAsync(bundleDownloadUrl, tempBundlePath, NanerBundleName))
+            {
+                return false;
+            }
+
+            // Extract bundle to naner root
+            Logger.NewLine();
+            Logger.Status("Extracting bundle...");
+            try
+            {
+                ZipFile.ExtractToDirectory(tempBundlePath, _nanerRoot, overwriteFiles: true);
+                Logger.Success("Bundle extracted");
+            }
+            catch (Exception ex)
+            {
+                Logger.Failure($"Failed to extract bundle: {ex.Message}");
+                return false;
+            }
+            finally
+            {
+                // Clean up temp file
+                if (File.Exists(tempBundlePath))
+                {
+                    File.Delete(tempBundlePath);
+                }
+            }
+
+            // Verify naner.exe was included in the bundle
+            var nanerPath = Path.Combine(_vendorBinDir, NanerExeName);
+            if (!File.Exists(nanerPath))
+            {
+                Logger.Failure($"{NanerExeName} not found in bundle (expected at vendor/bin/{NanerExeName})");
+                return false;
+            }
+            Logger.Success($"Found {NanerExeName}");
+
+            // Save version file
+            var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
+            File.WriteAllText(versionFile, latestRelease.TagName);
+
+            // Create initialization marker
+            var markerFile = Path.Combine(_nanerRoot, ".naner-initialized");
+            File.WriteAllText(markerFile, $"# Naner Initialization Marker\n# Created: {DateTime.Now}\n# Version: {latestRelease.TagName}\n");
+
+            Logger.NewLine();
+            Logger.Success($"Naner initialized successfully (version {latestRelease.TagName})");
+
+            return true;
         }
         catch (Exception ex)
         {
-            Logger.Failure($"Failed to create directories: {ex.Message}");
+            Logger.Failure($"Initialization failed: {ex.Message}");
             return false;
         }
-
-        // Download and install naner.exe and config
-        if (!await InstallOrUpdateNanerAsync(isUpdate: false))
-        {
-            return false;
-        }
-
-        // Create initialization marker
-        var markerFile = Path.Combine(_nanerRoot, ".naner-initialized");
-        File.WriteAllText(markerFile, $"# Naner Initialization Marker\n# Created: {DateTime.Now}\n# Version: {GetInstalledVersion()}\n");
-
-        Logger.NewLine();
-        Logger.Success("Naner initialization completed!");
-
-        return true;
     }
 
     /// <summary>

@@ -24,6 +24,7 @@ public static class CommandNames
     // Setup commands
     public const string Init = "init";
     public const string SetupVendors = "setup-vendors";
+    public const string UpdateVendors = "update-vendors";
 
     // Options (from shared constants)
     public const string Debug = CommonCommandConstants.Debug;
@@ -45,6 +46,7 @@ public static class CommandNames
         Diagnose,
         Init,
         SetupVendors,
+        UpdateVendors,
         Debug
     };
 }

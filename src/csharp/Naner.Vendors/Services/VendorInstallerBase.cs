@@ -15,6 +15,8 @@ namespace Naner.Vendors.Services;
 /// </summary>
 public abstract class VendorInstallerBase : IVendorInstaller
 {
+    private const string VendorVersionFileName = ".vendor-version";
+
     protected readonly string NanerRoot;
     protected readonly string VendorDir;
     protected readonly string DownloadDir;
@@ -204,6 +206,53 @@ public abstract class VendorInstallerBase : IVendorInstaller
         {
             Directory.CreateDirectory(DownloadDir);
         }
+    }
+
+    /// <summary>
+    /// Saves the vendor version to a .vendor-version file in the target directory.
+    /// </summary>
+    /// <param name="targetDir">Vendor installation directory</param>
+    /// <param name="version">Version string to save</param>
+    protected void SaveVendorVersion(string targetDir, string? version)
+    {
+        if (string.IsNullOrEmpty(version))
+        {
+            return;
+        }
+
+        try
+        {
+            var versionFile = Path.Combine(targetDir, VendorVersionFileName);
+            File.WriteAllText(versionFile, version);
+        }
+        catch (Exception ex)
+        {
+            // Non-critical: Log and continue
+            Logger.Debug($"Failed to save vendor version: {ex.Message}", debugMode: false);
+        }
+    }
+
+    /// <summary>
+    /// Gets the installed version of a vendor from its .vendor-version file.
+    /// </summary>
+    /// <param name="targetDir">Vendor installation directory</param>
+    /// <returns>Version string or null if not found</returns>
+    protected string? GetVendorVersion(string targetDir)
+    {
+        try
+        {
+            var versionFile = Path.Combine(targetDir, VendorVersionFileName);
+            if (File.Exists(versionFile))
+            {
+                return File.ReadAllText(versionFile).Trim();
+            }
+        }
+        catch
+        {
+            // Ignore errors reading version file
+        }
+
+        return null;
     }
 
     /// <summary>

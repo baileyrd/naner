@@ -51,9 +51,6 @@ class Program
                     case InitCommandNames.CheckUpdate:
                         return await CheckForUpdatesAsync(nanerRoot);
 
-                    case InitCommandNames.UpdateVendors:
-                        return await UpdateVendorsAsync(nanerRoot);
-
                     default:
                         // Pass through to naner.exe
                         break;
@@ -117,7 +114,19 @@ class Program
             Logger.Info("Run 'naner setup-vendors' for more optional tools.");
 
             Logger.NewLine();
-            Logger.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
+            Logger.Success("Naner is ready!");
+            Logger.NewLine();
+
+            // Prompt user to launch or exit
+            Console.Write("Launch Naner now? (Y/n): ");
+            var launchResponse = Console.ReadLine()?.Trim().ToLower();
+
+            if (launchResponse == "" || launchResponse == "y" || launchResponse == "yes")
+            {
+                return updater.LaunchNaner(args);
+            }
+
+            Logger.Info("Run 'naner' or 'naner-init' to launch Naner later.");
             return 0;
         }
 
@@ -186,7 +195,19 @@ class Program
         Logger.Info("Run 'naner setup-vendors' for more optional tools.");
 
         Logger.NewLine();
-        Logger.Success("Naner is ready! Run 'naner' to launch your terminal environment.");
+        Logger.Success("Naner is ready!");
+        Logger.NewLine();
+
+        // Prompt user to launch or exit
+        Console.Write("Launch Naner now? (Y/n): ");
+        var launchResponse = Console.ReadLine()?.Trim().ToLower();
+
+        if (launchResponse == "" || launchResponse == "y" || launchResponse == "yes")
+        {
+            return updater.LaunchNaner(Array.Empty<string>());
+        }
+
+        Logger.Info("Run 'naner' or 'naner-init' to launch Naner later.");
         return 0;
     }
 
@@ -227,7 +248,7 @@ class Program
             return 0;
         }
 
-        return await updater.InstallOrUpdateNanerAsync(isUpdate: true) ? 0 : 1;
+        return await updater.UpdateNanerExeAsync() ? 0 : 1;
     }
 
     /// <summary>
@@ -260,31 +281,6 @@ class Program
     }
 
     /// <summary>
-    /// Handles 'update-vendors' command.
-    /// </summary>
-    static async Task<int> UpdateVendorsAsync(string nanerRoot)
-    {
-        var updater = new NanerUpdater(nanerRoot);
-
-        if (!updater.IsInitialized())
-        {
-            Logger.Failure("Naner is not initialized yet.");
-            Logger.Info("Run 'naner-init' to initialize first.");
-            return 1;
-        }
-
-        Logger.Header("Updating Essential Vendors");
-        Logger.NewLine();
-
-        var vendorDownloader = new EssentialVendorDownloader(nanerRoot, forceUpdate: true);
-        await vendorDownloader.DownloadAllEssentialsAsync();
-
-        Logger.NewLine();
-        Logger.Success("Vendor updates completed!");
-        return 0;
-    }
-
-    /// <summary>
     /// Finds the Naner root directory.
     /// </summary>
     static string FindNanerRoot()
@@ -312,7 +308,6 @@ class Program
         Console.WriteLine("  naner-init init           Initialize Naner (download from GitHub)");
         Console.WriteLine("  naner-init update         Update Naner to the latest version");
         Console.WriteLine("  naner-init check-update   Check if an update is available");
-        Console.WriteLine("  naner-init update-vendors Update all vendor software to latest versions");
         Console.WriteLine("  naner-init [args]         Pass arguments to naner.exe");
         Console.WriteLine();
         Console.WriteLine("OPTIONS:");
@@ -324,6 +319,8 @@ class Program
         Console.WriteLine("  naner-init Unified        # Launch Naner with Unified profile");
         Console.WriteLine("  naner-init --version      # Show version");
         Console.WriteLine("  naner-init update         # Update to latest version");
-        Console.WriteLine("  naner-init update-vendors # Update PowerShell, Terminal, etc.");
+        Console.WriteLine();
+        Console.WriteLine("VENDOR MANAGEMENT:");
+        Console.WriteLine("  Use 'naner update-vendors' to update PowerShell, Terminal, etc.");
     }
 }

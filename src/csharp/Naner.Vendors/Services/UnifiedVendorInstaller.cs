@@ -32,6 +32,16 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
     public override async Task<bool> InstallVendorAsync(string vendorName)
     {
+        return await InstallVendorAsync(vendorName, skipIfExists: true);
+    }
+
+    /// <summary>
+    /// Installs a vendor with optional skip behavior.
+    /// </summary>
+    /// <param name="vendorName">Name of vendor to install</param>
+    /// <param name="skipIfExists">If true, skip installation when vendor already exists</param>
+    private async Task<bool> InstallVendorAsync(string vendorName, bool skipIfExists)
+    {
         if (!_vendorDefinitions.TryGetValue(vendorName, out var vendor))
         {
             Logger.Failure($"Unknown vendor: {vendorName}");
@@ -40,8 +50,8 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
         var targetDir = Path.Combine(VendorDir, vendor.ExtractDir);
 
-        // Skip if already installed
-        if (Directory.Exists(targetDir) && Directory.GetFileSystemEntries(targetDir).Length > 0)
+        // Skip if already installed (when skipIfExists is true)
+        if (skipIfExists && Directory.Exists(targetDir) && Directory.GetFileSystemEntries(targetDir).Length > 0)
         {
             Logger.Info($"Skipping {vendor.Name} (already installed)");
             return true;
@@ -81,7 +91,7 @@ public class UnifiedVendorInstaller : VendorInstallerBase
                 return false;
             }
 
-            // Extract file
+            // Extract file (overwrites existing files)
             Logger.Status($"  Installing {vendor.Name}...");
 
             if (!ExtractArchive(downloadPath, targetDir, vendor.Name))
@@ -92,6 +102,9 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
             // Post-install configuration
             PostInstallConfiguration(vendor.Name, targetDir);
+
+            // Save vendor version file
+            SaveVendorVersion(targetDir, downloadInfo.Version);
 
             Logger.Success($"  Installed {vendor.Name}");
             return true;
@@ -278,6 +291,7 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
     /// <summary>
     /// Installs all vendors defined in the vendor definitions.
+    /// Skips vendors that are already installed.
     /// </summary>
     public async Task<bool> InstallAllVendorsAsync()
     {
@@ -301,6 +315,75 @@ public class UnifiedVendorInstaller : VendorInstallerBase
         Logger.Info("Note: MSYS2 packages (git, make, gcc) will be installed on first terminal launch");
 
         return true;
+    }
+
+    /// <summary>
+    /// Updates all vendors to their latest versions.
+    /// Re-downloads and reinstalls even if already installed.
+    /// </summary>
+    public async Task<bool> UpdateAllVendorsAsync()
+    {
+        Logger.Status("This may take several minutes depending on your connection...");
+        Logger.NewLine();
+
+        EnsureDownloadDirectoryExists();
+
+        foreach (var vendor in _vendorDefinitions.Values)
+        {
+            await UpdateVendorAsync(vendor.Name);
+            Logger.NewLine();
+        }
+
+        CleanupDownloadDirectory();
+
+        return true;
+    }
+
+    /// <summary>
+    /// Updates a single vendor to the latest version.
+    /// For Windows Terminal, extracts over top to preserve LocalState.
+    /// For other vendors, removes existing installation before reinstalling.
+    /// </summary>
+    public async Task<bool> UpdateVendorAsync(string vendorName)
+    {
+        if (!_vendorDefinitions.TryGetValue(vendorName, out var vendor))
+        {
+            Logger.Failure($"Unknown vendor: {vendorName}");
+            return false;
+        }
+
+        var targetDir = Path.Combine(VendorDir, vendor.ExtractDir);
+        var isWindowsTerminal = WindowsTerminalConfigurator.IsWindowsTerminal(vendor.Name);
+
+        if (Directory.Exists(targetDir))
+        {
+            var currentVersion = GetVendorVersion(targetDir);
+
+            if (isWindowsTerminal)
+            {
+                // Windows Terminal: extract over top to preserve LocalState/settings.json
+                Logger.Info($"Updating {vendor.Name}{(currentVersion != null ? $" (v{currentVersion})" : "")}...");
+                Logger.Info($"  Preserving LocalState configuration");
+            }
+            else
+            {
+                // Other vendors: remove and reinstall fresh
+                Logger.Info($"Removing existing {vendor.Name} installation{(currentVersion != null ? $" (v{currentVersion})" : "")}...");
+
+                try
+                {
+                    Directory.Delete(targetDir, true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warning($"Failed to remove existing installation: {ex.Message}");
+                    return false;
+                }
+            }
+        }
+
+        // Install (or overwrite for Windows Terminal)
+        return await InstallVendorAsync(vendorName, skipIfExists: false);
     }
 
     // GitHub API response models
