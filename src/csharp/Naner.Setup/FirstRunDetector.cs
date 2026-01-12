@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using Naner.Core;
 
 namespace Naner.Setup;
 
@@ -8,7 +10,8 @@ namespace Naner.Setup;
 /// </summary>
 public static class FirstRunDetector
 {
-    private const string InitMarkerFile = ".naner-initialized";
+    // Use centralized constant for initialization marker file
+    private const string InitMarkerFile = NanerConstants.InitializationMarkerFile;
 
     /// <summary>
     /// Checks if this is the first run of Naner or if the installation is incomplete.
@@ -37,9 +40,8 @@ public static class FirstRunDetector
             return true; // First run - installation not initialized
         }
 
-        // Check for essential directories
-        var essentialDirs = new[] { "bin", "vendor", "config", "home" };
-        foreach (var dir in essentialDirs)
+        // Check for essential directories (using centralized constant)
+        foreach (var dir in NanerConstants.DirectoryNames.Essential)
         {
             var path = Path.Combine(nanerRoot, dir);
             if (!Directory.Exists(path))
@@ -49,7 +51,7 @@ public static class FirstRunDetector
         }
 
         // Check for config file
-        var configFile = Path.Combine(nanerRoot, "config", "naner.json");
+        var configFile = Path.Combine(nanerRoot, NanerConstants.DirectoryNames.Config, NanerConstants.ConfigFileName);
         if (!File.Exists(configFile))
         {
             return true; // First run - missing configuration
@@ -148,13 +150,15 @@ Do not delete this file unless you want to re-run the setup wizard.
             return false;
         }
 
-        // Check for marker directories
-        var binPath = Path.Combine(path, "bin");
-        var vendorPath = Path.Combine(path, "vendor");
-        var configPath = Path.Combine(path, "config");
+        // Check for core marker directories using centralized constants
+        var coreDirectories = new[]
+        {
+            NanerConstants.DirectoryNames.Bin,
+            NanerConstants.DirectoryNames.Vendor,
+            NanerConstants.DirectoryNames.Config
+        };
 
-        return Directory.Exists(binPath) &&
-               Directory.Exists(vendorPath) &&
-               Directory.Exists(configPath);
+        return coreDirectories.All(dir =>
+            Directory.Exists(Path.Combine(path, dir)));
     }
 }

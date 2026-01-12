@@ -41,16 +41,19 @@ public class QuickSetupStrategy : ISetupStrategy
                 return 1;
             }
 
-            // Download vendors if --with-vendors flag is set
-            if (options.WithVendors && !options.SkipVendors)
+            // Download vendors if VendorMode is Install
+            if (options.VendorMode == VendorInstallMode.Install)
             {
                 Logger.NewLine();
                 Logger.Status("Downloading vendor dependencies...");
                 Logger.NewLine();
 
-                var vendors = VendorDefinitionFactory.GetEssentialVendors();
-                var installer = new UnifiedVendorInstaller(targetPath, vendors);
-                await installer.InstallAllVendorsAsync();
+                // Use factory for vendor installer creation (DRY principle)
+                var installer = VendorInstallerFactory.CreateEssential(targetPath);
+                if (installer is UnifiedVendorInstaller unifiedInstaller)
+                {
+                    await unifiedInstaller.InstallAllVendorsAsync();
+                }
             }
 
             // Create initialization marker
@@ -64,7 +67,8 @@ public class QuickSetupStrategy : ISetupStrategy
             Console.WriteLine("Naner has been initialized successfully!");
             Console.WriteLine();
 
-            if (!options.WithVendors && !options.SkipVendors)
+            // Show vendor installation hint if using default mode (no vendors installed in quick setup)
+            if (options.VendorMode == VendorInstallMode.Default)
             {
                 Console.WriteLine("To download vendor dependencies:");
                 Console.WriteLine("  naner setup-vendors");

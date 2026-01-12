@@ -23,19 +23,37 @@ public interface ISetupStrategy
 }
 
 /// <summary>
+/// Specifies how vendors should be handled during setup.
+/// Replaces contradictory boolean flags with clear, mutually exclusive options.
+/// </summary>
+public enum VendorInstallMode
+{
+    /// <summary>
+    /// Default behavior - vendors installed in interactive mode, skipped in quick mode unless specified.
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// Skip vendor installation entirely.
+    /// </summary>
+    Skip,
+
+    /// <summary>
+    /// Force vendor installation regardless of setup mode.
+    /// </summary>
+    Install
+}
+
+/// <summary>
 /// Options for setup strategies.
 /// </summary>
 public class SetupOptions
 {
     /// <summary>
-    /// Whether to skip vendor installation.
+    /// Specifies how vendors should be handled during setup.
+    /// Uses enum to avoid contradictory boolean flag states.
     /// </summary>
-    public bool SkipVendors { get; set; }
-
-    /// <summary>
-    /// Whether to include vendors in quick setup.
-    /// </summary>
-    public bool WithVendors { get; set; }
+    public VendorInstallMode VendorMode { get; set; } = VendorInstallMode.Default;
 
     /// <summary>
     /// Whether debug mode is enabled.

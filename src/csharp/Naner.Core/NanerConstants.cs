@@ -38,6 +38,17 @@ public static class NanerConstants
         public const string Plugins = "plugins";
         public const string Logs = "logs";
         public const string Downloads = ".downloads";
+
+        /// <summary>
+        /// Essential directories required for a valid Naner installation.
+        /// Used for validation and first-run detection.
+        /// </summary>
+        public static readonly string[] Essential = new[] { Bin, Vendor, Config, Home };
+
+        /// <summary>
+        /// All directories created during setup (includes optional directories).
+        /// </summary>
+        public static readonly string[] All = new[] { Bin, Vendor, VendorBin, Config, Home, Plugins, Logs };
     }
 
     /// <summary>

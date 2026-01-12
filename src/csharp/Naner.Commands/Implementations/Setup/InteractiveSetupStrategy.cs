@@ -24,8 +24,9 @@ public class InteractiveSetupStrategy : ISetupStrategy
         {
             targetPath = Path.GetFullPath(targetPath);
 
-            // Run full interactive setup including vendors
-            var success = await SetupManager.RunInteractiveSetupAsync(targetPath, options.SkipVendors);
+            // Run full interactive setup including vendors (unless explicitly skipped)
+            var skipVendors = options.VendorMode == VendorInstallMode.Skip;
+            var success = await SetupManager.RunInteractiveSetupAsync(targetPath, skipVendors);
             if (!success)
             {
                 return 1;

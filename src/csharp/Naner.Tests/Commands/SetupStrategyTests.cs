@@ -62,31 +62,61 @@ public class SetupStrategyTests
     }
 
     [Fact]
-    public void SetupOptions_DefaultValues_AreCorrect()
+    public void SetupOptions_DefaultVendorMode_IsDefault()
     {
         // Act
         var options = new SetupOptions();
 
         // Assert
-        options.SkipVendors.Should().BeFalse();
-        options.WithVendors.Should().BeFalse();
+        options.VendorMode.Should().Be(VendorInstallMode.Default);
         options.DebugMode.Should().BeFalse();
     }
 
     [Fact]
-    public void SetupOptions_CanSetAllProperties()
+    public void SetupOptions_CanSetVendorModeToSkip()
     {
         // Act
         var options = new SetupOptions
         {
-            SkipVendors = true,
-            WithVendors = true,
+            VendorMode = VendorInstallMode.Skip
+        };
+
+        // Assert
+        options.VendorMode.Should().Be(VendorInstallMode.Skip);
+    }
+
+    [Fact]
+    public void SetupOptions_CanSetVendorModeToInstall()
+    {
+        // Act
+        var options = new SetupOptions
+        {
+            VendorMode = VendorInstallMode.Install
+        };
+
+        // Assert
+        options.VendorMode.Should().Be(VendorInstallMode.Install);
+    }
+
+    [Fact]
+    public void SetupOptions_CanSetDebugMode()
+    {
+        // Act
+        var options = new SetupOptions
+        {
             DebugMode = true
         };
 
         // Assert
-        options.SkipVendors.Should().BeTrue();
-        options.WithVendors.Should().BeTrue();
         options.DebugMode.Should().BeTrue();
+    }
+
+    [Fact]
+    public void VendorInstallMode_HasCorrectValues()
+    {
+        // Assert - Verify enum has expected values
+        VendorInstallMode.Default.Should().Be((VendorInstallMode)0);
+        VendorInstallMode.Skip.Should().Be((VendorInstallMode)1);
+        VendorInstallMode.Install.Should().Be((VendorInstallMode)2);
     }
 }

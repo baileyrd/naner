@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Naner.Commands.Abstractions;
+using Naner.Core;
 
 namespace Naner.Commands.Services;
 
@@ -17,8 +18,8 @@ public class DirectoryVerifier : IDirectoryVerifier
     public void Verify(string nanerRoot)
     {
         Logger.Status("Verifying directory structure:");
-        var dirs = new[] { "bin", "vendor", "config", "home" };
-        foreach (var dir in dirs)
+        // Use centralized constant for essential directories (DRY principle)
+        foreach (var dir in NanerConstants.DirectoryNames.Essential)
         {
             var path = Path.Combine(nanerRoot, dir);
             var exists = Directory.Exists(path);

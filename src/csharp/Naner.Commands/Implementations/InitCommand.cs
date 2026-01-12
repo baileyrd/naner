@@ -80,10 +80,12 @@ public class InitCommand : ICommand
     {
         bool useInteractive = !args.Contains("--minimal") && !args.Contains("--quick");
 
+        // Determine vendor mode from arguments
+        var vendorMode = DetermineVendorMode(args);
+
         var options = new SetupOptions
         {
-            SkipVendors = args.Contains("--skip-vendors") || args.Contains("--no-vendors"),
-            WithVendors = args.Contains("--with-vendors"),
+            VendorMode = vendorMode,
             DebugMode = args.Contains("--debug")
         };
 
@@ -104,5 +106,26 @@ public class InitCommand : ICommand
         }
 
         return (targetPath ?? string.Empty, options, useInteractive);
+    }
+
+    /// <summary>
+    /// Determines the vendor install mode from command-line arguments.
+    /// </summary>
+    /// <param name="args">Command arguments</param>
+    /// <returns>The appropriate VendorInstallMode</returns>
+    private static VendorInstallMode DetermineVendorMode(string[] args)
+    {
+        // Skip takes precedence if both flags somehow specified
+        if (args.Contains("--skip-vendors") || args.Contains("--no-vendors"))
+        {
+            return VendorInstallMode.Skip;
+        }
+
+        if (args.Contains("--with-vendors"))
+        {
+            return VendorInstallMode.Install;
+        }
+
+        return VendorInstallMode.Default;
     }
 }
