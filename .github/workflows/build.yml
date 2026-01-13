@@ -117,6 +117,51 @@ jobs:
             Write-Host "  $relativePath" -ForegroundColor Gray
           }
 
+      - name: Create naner-bundle.zip (for naner-init)
+        shell: pwsh
+        run: |
+          Write-Host "Creating naner-bundle.zip..." -ForegroundColor Cyan
+
+          $bundleDir = ".\dist\bundle"
+          New-Item -Path $bundleDir -ItemType Directory -Force | Out-Null
+
+          # Create required directory structure
+          New-Item -Path "$bundleDir\vendor\bin" -ItemType Directory -Force | Out-Null
+          New-Item -Path "$bundleDir\bin" -ItemType Directory -Force | Out-Null
+          New-Item -Path "$bundleDir\home" -ItemType Directory -Force | Out-Null
+          New-Item -Path "$bundleDir\opt" -ItemType Directory -Force | Out-Null
+
+          # Copy naner.exe to vendor/bin (where naner-init expects it)
+          Copy-Item -Path ".\dist\bin\naner.exe" -Destination "$bundleDir\vendor\bin\" -Force
+
+          # Copy config directory (all files)
+          if (Test-Path ".\config") {
+            Copy-Item -Path ".\config\*" -Destination "$bundleDir\config\" -Recurse -Force
+          }
+
+          # bin directory is created empty (user scripts/tools go here)
+
+          # Copy home directory (all files)
+          if (Test-Path ".\home") {
+            Copy-Item -Path ".\home\*" -Destination "$bundleDir\home\" -Recurse -Force
+          }
+
+          # opt directory is created empty (optional tools go here)
+
+          # List bundle contents
+          Write-Host "Bundle contents:" -ForegroundColor Gray
+          Get-ChildItem -Path $bundleDir -Recurse | ForEach-Object {
+            $relativePath = $_.FullName.Replace((Get-Item $bundleDir).FullName, "")
+            Write-Host "  $relativePath" -ForegroundColor Gray
+          }
+
+          # Create the bundle ZIP
+          Compress-Archive -Path "$bundleDir\*" -DestinationPath ".\dist\naner-bundle.zip" -Force
+          Write-Host "Created: naner-bundle.zip" -ForegroundColor Green
+
+          $size = [math]::Round((Get-Item ".\dist\naner-bundle.zip").Length / 1MB, 2)
+          Write-Host "Size: $size MB" -ForegroundColor Gray
+
       - name: Create ZIP archive
         shell: pwsh
         run: |
@@ -143,7 +188,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            dist/*.zip
+            dist/naner-bundle.zip
+            dist/naner-portable-*.zip
             dist/bin/naner.exe
             dist/bin/naner-init.exe
           draft: false

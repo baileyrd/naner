@@ -374,11 +374,15 @@ public class NanerUpdater
 
         try
         {
+            // Set NANER_ROOT environment variable so naner.exe can find its installation
+            Environment.SetEnvironmentVariable("NANER_ROOT", _nanerRoot, EnvironmentVariableTarget.Process);
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = nanerExePath,
                 WorkingDirectory = _nanerRoot,
-                UseShellExecute = false
+                UseShellExecute = false,  // Required to inherit environment variables
+                CreateNoWindow = true     // Don't create a new console window
             };
 
             // Pass through all arguments
@@ -387,10 +391,10 @@ public class NanerUpdater
                 startInfo.ArgumentList.Add(arg);
             }
 
-            using var process = Process.Start(startInfo);
-            process?.WaitForExit();
+            Process.Start(startInfo);
 
-            return process?.ExitCode ?? 0;
+            // Don't wait - naner.exe is a launcher that spawns Windows Terminal and exits quickly
+            return 0;
         }
         catch (Exception ex)
         {

@@ -21,7 +21,22 @@ public static class PathUtilities
     /// <exception cref="DirectoryNotFoundException">Thrown when Naner root cannot be found.</exception>
     public static string FindNanerRoot(string? startPath = null, int maxDepth = NanerConstants.MaxNanerRootSearchDepth)
     {
-        // Default to current directory if not specified
+        // Check NANER_ROOT environment variable first (highest priority)
+        var envRoot = Environment.GetEnvironmentVariable("NANER_ROOT");
+        if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
+        {
+            // Validate it's a proper naner root
+            var binPath = Path.Combine(envRoot, "bin");
+            var vendorPath = Path.Combine(envRoot, "vendor");
+            var configPath = Path.Combine(envRoot, "config");
+
+            if (Directory.Exists(binPath) && Directory.Exists(vendorPath) && Directory.Exists(configPath))
+            {
+                return envRoot;
+            }
+        }
+
+        // Default to executable directory if not specified
         startPath ??= AppContext.BaseDirectory;
 
         var currentPath = Path.GetFullPath(startPath);
