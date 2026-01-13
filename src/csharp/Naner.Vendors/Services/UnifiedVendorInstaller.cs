@@ -361,9 +361,9 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
             if (isWindowsTerminal)
             {
-                // Windows Terminal: extract over top to preserve LocalState/settings.json
+                // Windows Terminal: extract over top to preserve settings/settings.json
                 Logger.Info($"Updating {vendor.Name}{(currentVersion != null ? $" (v{currentVersion})" : "")}...");
-                Logger.Info($"  Preserving LocalState configuration");
+                Logger.Info($"  Preserving settings configuration");
             }
             else
             {

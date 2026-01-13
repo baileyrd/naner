@@ -35,13 +35,13 @@ public class WindowsTerminalConfigurator
         File.WriteAllText(portableFile, "");
         Logger.Info($"    Created .portable file for portable mode");
 
-        // Create LocalState directory and settings.json with Naner profiles
-        var localStateDir = Path.Combine(targetDir, "LocalState");
-        Directory.CreateDirectory(localStateDir);
+        // Create settings directory and settings.json with Naner profiles
+        var settingsDir = Path.Combine(targetDir, "settings");
+        Directory.CreateDirectory(settingsDir);
 
-        var settingsFile = Path.Combine(localStateDir, "settings.json");
+        var settingsFile = Path.Combine(settingsDir, "settings.json");
         CreateSettings(settingsFile);
-        Logger.Info($"    Created LocalState/settings.json with Naner profiles");
+        Logger.Info($"    Created settings/settings.json with Naner profiles");
     }
 
     /// <summary>

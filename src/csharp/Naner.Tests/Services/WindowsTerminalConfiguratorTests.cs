@@ -65,7 +65,7 @@ public class WindowsTerminalConfiguratorTests : IDisposable
     }
 
     [Fact]
-    public void ConfigurePortableMode_CreatesLocalStateDirectory()
+    public void ConfigurePortableMode_CreatesSettingsDirectory()
     {
         // Arrange
         var targetDir = Path.Combine(_testDir, "WindowsTerminal");
@@ -76,8 +76,8 @@ public class WindowsTerminalConfiguratorTests : IDisposable
         configurator.ConfigurePortableMode(targetDir);
 
         // Assert
-        var localStateDir = Path.Combine(targetDir, "LocalState");
-        Directory.Exists(localStateDir).Should().BeTrue();
+        var settingsDir = Path.Combine(targetDir, "settings");
+        Directory.Exists(settingsDir).Should().BeTrue();
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class WindowsTerminalConfiguratorTests : IDisposable
         configurator.ConfigurePortableMode(targetDir);
 
         // Assert
-        var settingsFile = Path.Combine(targetDir, "LocalState", "settings.json");
+        var settingsFile = Path.Combine(targetDir, "settings", "settings.json");
         File.Exists(settingsFile).Should().BeTrue();
     }
 
