@@ -1,55 +1,74 @@
 {
     "$help": "https://aka.ms/terminal-documentation",
     "$schema": "https://aka.ms/terminal-profiles-schema",
-    "defaultProfile": "{naner-unified}",
-    "copyOnSelect": false,
+    "actions": [],
     "copyFormatting": "none",
+    "copyOnSelect": false,
+    "defaultProfile": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+    "keybindings": [
+        {
+            "id": "Terminal.CopyToClipboard",
+            "keys": "ctrl+c"
+        },
+        {
+            "id": "Terminal.FindText",
+            "keys": "ctrl+shift+f"
+        },
+        {
+            "id": "Terminal.PasteFromClipboard",
+            "keys": "ctrl+v"
+        },
+        {
+            "id": "Terminal.DuplicatePaneAuto",
+            "keys": "alt+shift+d"
+        }
+    ],
+    "newTabMenu": [
+        {
+            "type": "remainingProfiles"
+        }
+    ],
     "profiles": {
         "defaults": {},
         "list": [
             {
-                "guid": "{naner-unified}",
-                "name": "Naner (Unified)",
+                "colorScheme": "Campbell",
                 "commandline": "\"%NANER_ROOT%\\vendor\\powershell\\pwsh.exe\" -NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\"",
-                "startingDirectory": "%USERPROFILE%",
+                "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "hidden": false,
                 "icon": "%NANER_ROOT%\\icons\\naner.ico",
-                "colorScheme": "Campbell",
-                "hidden": false
+                "name": "Naner (Unified)",
+                "startingDirectory": "%USERPROFILE%"
             },
             {
-                "guid": "{naner-powershell}",
-                "name": "Naner PowerShell",
+                "colorScheme": "Campbell",
                 "commandline": "\"%NANER_ROOT%\\vendor\\powershell\\pwsh.exe\" -NoExit -NoLogo -NoProfile -Command \". '%NANER_ROOT%\\home\\.config\\powershell\\profile.ps1'\"",
-                "startingDirectory": "%USERPROFILE%",
+                "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
+                "hidden": false,
                 "icon": "%NANER_ROOT%\\icons\\powershell.ico",
-                "colorScheme": "Campbell",
-                "hidden": false
+                "name": "Naner PowerShell",
+                "startingDirectory": "%USERPROFILE%"
             },
             {
-                "guid": "{naner-bash}",
-                "name": "Naner Bash",
+                "colorScheme": "Campbell",
                 "commandline": "\"%NANER_ROOT%\\vendor\\msys64\\usr\\bin\\bash.exe\" --login -i",
-                "startingDirectory": "~",
+                "guid": "{2c4de342-38b7-51cf-b940-2309a097f518}",
+                "hidden": false,
                 "icon": "%NANER_ROOT%\\icons\\bash.ico",
-                "colorScheme": "Campbell",
-                "hidden": false
+                "name": "Naner Bash",
+                "startingDirectory": "~"
             },
             {
-                "guid": "{naner-cmd}",
-                "name": "Naner CMD",
-                "commandline": "cmd.exe /k",
-                "startingDirectory": "%USERPROFILE%",
-                "icon": "%NANER_ROOT%\\icons\\cmd.ico",
                 "colorScheme": "Campbell",
-                "hidden": false
+                "commandline": "cmd.exe /k",
+                "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
+                "hidden": false,
+                "icon": "%NANER_ROOT%\\icons\\cmd.ico",
+                "name": "Naner CMD",
+                "startingDirectory": "%USERPROFILE%"
             }
         ]
     },
     "schemes": [],
-    "actions": [
-        { "command": { "action": "copy", "singleLine": false }, "keys": "ctrl+c" },
-        { "command": "paste", "keys": "ctrl+v" },
-        { "command": "find", "keys": "ctrl+shift+f" },
-        { "command": { "action": "splitPane", "split": "auto", "splitMode": "duplicate" }, "keys": "alt+shift+d" }
-    ]
+    "themes": []
 }
