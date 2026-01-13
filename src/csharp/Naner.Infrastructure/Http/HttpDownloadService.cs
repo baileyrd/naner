@@ -21,15 +21,15 @@ public class HttpDownloadService : IDisposable
     /// </summary>
     /// <param name="logger">Logger for output messages.</param>
     /// <param name="timeoutMinutes">HTTP timeout in minutes (default: 10).</param>
-    /// <param name="userAgent">User-Agent header (default: Naner/1.0.0).</param>
-    public HttpDownloadService(ILogger logger, int timeoutMinutes = NanerConstants.DefaultHttpTimeoutMinutes, string userAgent = NanerConstants.DefaultUserAgent)
+    /// <param name="userAgent">User-Agent header (default: Naner/{version}).</param>
+    public HttpDownloadService(ILogger logger, int timeoutMinutes = NanerConstants.DefaultHttpTimeoutMinutes, string? userAgent = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _httpClient = new HttpClient
         {
             Timeout = TimeSpan.FromMinutes(timeoutMinutes)
         };
-        _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent);
+        _httpClient.DefaultRequestHeaders.Add("User-Agent", userAgent ?? NanerConstants.DefaultUserAgent);
     }
 
     /// <summary>

@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace Naner.Core;
 
 /// <summary>
@@ -6,9 +8,28 @@ namespace Naner.Core;
 /// </summary>
 public static class NanerConstants
 {
-    public const string Version = "1.0.0";
+    /// <summary>
+    /// Gets the version from assembly metadata (set in Directory.Build.props).
+    /// </summary>
+    public static string Version { get; } = GetAssemblyVersion();
+
     public const string ProductName = "Naner Terminal Launcher";
     public const string PhaseName = "Production Release - Pure C# Implementation";
+
+    private static string GetAssemblyVersion()
+    {
+        var assembly = Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly();
+        var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        // Strip git hash suffix if present (e.g., "0.4.3+abc123" -> "0.4.3")
+        if (infoVersion != null)
+        {
+            var plusIndex = infoVersion.IndexOf('+');
+            return plusIndex > 0 ? infoVersion[..plusIndex] : infoVersion;
+        }
+
+        return assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+    }
 
     public const string InitializationMarkerFile = ".naner-initialized";
     public const string VersionFile = ".naner-version";
@@ -27,7 +48,7 @@ public static class NanerConstants
     {
         public const string Owner = "baileyrd";
         public const string Repo = "naner";
-        public const string UserAgent = "Naner/1.0.0";
+        public static string UserAgent => $"Naner/{Version}";
     }
 
     /// <summary>
@@ -112,5 +133,5 @@ public static class NanerConstants
     /// <summary>
     /// Default User-Agent string for HTTP requests.
     /// </summary>
-    public const string DefaultUserAgent = "Naner/1.0.0";
+    public static string DefaultUserAgent => $"Naner/{Version}";
 }

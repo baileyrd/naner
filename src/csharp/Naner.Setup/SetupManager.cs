@@ -306,7 +306,7 @@ public static class SetupManager
         }
 
         // Create initialization marker
-        FirstRunDetector.CreateInitializationMarker(nanerRoot, "1.0.0", "Production Release");
+        FirstRunDetector.CreateInitializationMarker(nanerRoot, NanerConstants.Version, NanerConstants.PhaseName);
 
         Logger.NewLine();
         Logger.Success("Naner setup complete!");

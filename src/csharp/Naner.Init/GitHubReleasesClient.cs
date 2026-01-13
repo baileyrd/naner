@@ -195,7 +195,7 @@ public class GitHubReleasesClient
         try
         {
             using var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("User-Agent", "Naner-Init/1.0.0");
+            client.DefaultRequestHeaders.Add("User-Agent", NanerConstants.DefaultUserAgent);
             client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
             client.DefaultRequestHeaders.Add("Cache-Control", "no-cache");
 

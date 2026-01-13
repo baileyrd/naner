@@ -40,7 +40,7 @@ public class VersionCommandTests
             // Assert
             var result = output.ToString();
             result.Should().Contain("Naner");
-            result.Should().Contain("1.0.0");
+            result.Should().Contain(NanerConstants.Version);
         }
         finally
         {
