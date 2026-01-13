@@ -25,6 +25,9 @@ public static class PathUtilities
         var envRoot = Environment.GetEnvironmentVariable("NANER_ROOT");
         if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
         {
+            // Normalize: remove trailing directory separator
+            envRoot = envRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
             // Validate it's a proper naner root
             var binPath = Path.Combine(envRoot, "bin");
             var vendorPath = Path.Combine(envRoot, "vendor");
@@ -39,7 +42,7 @@ public static class PathUtilities
         // Default to executable directory if not specified
         startPath ??= AppContext.BaseDirectory;
 
-        var currentPath = Path.GetFullPath(startPath);
+        var currentPath = Path.GetFullPath(startPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var searchedPaths = new System.Collections.Generic.List<string>();
         var depth = 0;
 

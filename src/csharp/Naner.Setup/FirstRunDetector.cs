@@ -94,8 +94,8 @@ Do not delete this file unless you want to re-run the setup wizard.
             return currentDir;
         }
 
-        // Try 2: Executable directory
-        var exeDir = AppContext.BaseDirectory;
+        // Try 2: Executable directory (trim trailing separator)
+        var exeDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (IsValidNanerRoot(exeDir))
         {
             return exeDir;
