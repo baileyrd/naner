@@ -1,9 +1,35 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Naner.Core;
 
 namespace Naner.Setup;
+
+/// <summary>
+/// Reasons why a first-run scenario was detected.
+/// </summary>
+[Flags]
+public enum FirstRunReason
+{
+    None = 0,
+    NanerRootNotFound = 1,
+    MarkerFileMissing = 2,
+    EssentialDirectoryMissing = 4,
+    ConfigFileMissing = 8
+}
+
+/// <summary>
+/// Detailed information about first-run detection results.
+/// </summary>
+public class FirstRunInfo
+{
+    public bool IsFirstRun { get; init; }
+    public FirstRunReason Reasons { get; init; }
+    public string? NanerRoot { get; init; }
+    public List<string> MissingDirectories { get; init; } = new();
+    public List<string> Messages { get; init; } = new();
+}
 
 /// <summary>
 /// Detects first-run scenarios and incomplete Naner installations.
@@ -50,14 +76,94 @@ public static class FirstRunDetector
             }
         }
 
-        // Check for config file
-        var configFile = Path.Combine(nanerRoot, NanerConstants.DirectoryNames.Config, NanerConstants.ConfigFileName);
-        if (!File.Exists(configFile))
+        // Check for config file (any supported format)
+        var configDir = Path.Combine(nanerRoot, NanerConstants.DirectoryNames.Config);
+        var hasConfigFile = NanerConstants.ConfigFileNames.Any(fileName =>
+            File.Exists(Path.Combine(configDir, fileName)));
+        if (!hasConfigFile)
         {
             return true; // First run - missing configuration
         }
 
         return false; // Not first run
+    }
+
+    /// <summary>
+    /// Gets detailed information about why a first-run scenario was detected.
+    /// </summary>
+    /// <param name="nanerRoot">Optional Naner root path. If null, attempts to find it.</param>
+    /// <returns>Detailed first-run information including reasons and missing components.</returns>
+    public static FirstRunInfo GetFirstRunInfo(string? nanerRoot = null)
+    {
+        var reasons = FirstRunReason.None;
+        var messages = new List<string>();
+        var missingDirectories = new List<string>();
+
+        // Try to find Naner root if not provided
+        if (string.IsNullOrEmpty(nanerRoot))
+        {
+            try
+            {
+                nanerRoot = PathUtilities.FindNanerRoot();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                reasons |= FirstRunReason.NanerRootNotFound;
+                messages.Add("Could not locate Naner installation directory (NANER_ROOT)");
+                return new FirstRunInfo
+                {
+                    IsFirstRun = true,
+                    Reasons = reasons,
+                    NanerRoot = null,
+                    Messages = messages,
+                    MissingDirectories = missingDirectories
+                };
+            }
+        }
+
+        // Check for initialization marker file
+        var markerFile = Path.Combine(nanerRoot, InitMarkerFile);
+        if (!File.Exists(markerFile))
+        {
+            reasons |= FirstRunReason.MarkerFileMissing;
+            messages.Add($"Initialization marker file not found: {InitMarkerFile}");
+        }
+
+        // Check for essential directories
+        foreach (var dir in NanerConstants.DirectoryNames.Essential)
+        {
+            var path = Path.Combine(nanerRoot, dir);
+            if (!Directory.Exists(path))
+            {
+                reasons |= FirstRunReason.EssentialDirectoryMissing;
+                missingDirectories.Add(dir);
+            }
+        }
+        if (missingDirectories.Count > 0)
+        {
+            messages.Add($"Missing essential directories: {string.Join(", ", missingDirectories)}");
+        }
+
+        // Check for config file (any supported format)
+        var configDir = Path.Combine(nanerRoot, NanerConstants.DirectoryNames.Config);
+        var hasConfigFile = Directory.Exists(configDir) &&
+            NanerConstants.ConfigFileNames.Any(fileName =>
+                File.Exists(Path.Combine(configDir, fileName)));
+        if (!hasConfigFile)
+        {
+            reasons |= FirstRunReason.ConfigFileMissing;
+            var supportedFormats = string.Join(", ", NanerConstants.ConfigFileNames);
+            messages.Add($"No configuration file found (supported: {supportedFormats})");
+        }
+
+        return new FirstRunInfo
+        {
+            IsFirstRun = reasons != FirstRunReason.None,
+            Reasons = reasons,
+            NanerRoot = nanerRoot,
+            Messages = messages,
+            MissingDirectories = missingDirectories
+        };
     }
 
     /// <summary>

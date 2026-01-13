@@ -168,11 +168,26 @@ class Program
 
     static int HandleFirstRun()
     {
+        // Get detailed first-run information
+        var firstRunInfo = FirstRunDetector.GetFirstRunInfo();
+
         Logger.Header("First Run Detected");
         Console.WriteLine();
-        Console.WriteLine("It looks like this is your first time running Naner,");
-        Console.WriteLine("or the installation is incomplete.");
+
+        // Display what triggered the first-run detection
+        Console.WriteLine("The following issues were detected:");
         Console.WriteLine();
+        foreach (var message in firstRunInfo.Messages)
+        {
+            Console.WriteLine($"  • {message}");
+        }
+        if (firstRunInfo.NanerRoot != null)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"  Checked location: {firstRunInfo.NanerRoot}");
+        }
+        Console.WriteLine();
+
         Logger.Warning("IMPORTANT: Please use 'naner-init' for initialization!");
         Console.WriteLine();
         Console.WriteLine("naner-init provides:");
