@@ -41,9 +41,8 @@ public class HelpTextProvider
     private void ShowCommands()
     {
         Console.WriteLine("COMMANDS:");
-        Console.WriteLine("  init [PATH]                Initialize Naner in specified directory");
-        Console.WriteLine("                             Options: --minimal, --quick, --skip-vendors, --with-vendors");
         Console.WriteLine("  setup-vendors              Download and install vendor dependencies");
+        Console.WriteLine("  update-vendors             Update all vendor dependencies to latest versions");
         Console.WriteLine();
     }
 
@@ -71,15 +70,15 @@ public class HelpTextProvider
     private void ShowExamples()
     {
         Console.WriteLine("EXAMPLES:");
-        Console.WriteLine("  naner.exe init                     # Interactive setup wizard");
-        Console.WriteLine("  naner.exe init --minimal           # Quick setup in current dir");
-        Console.WriteLine("  naner.exe init --minimal --with-vendors  # Setup with auto vendor download");
-        Console.WriteLine("  naner.exe init C:\\MyNaner          # Setup in specific directory");
         Console.WriteLine("  naner.exe                          # Launch default profile");
         Console.WriteLine("  naner.exe --profile PowerShell     # Launch PowerShell profile");
         Console.WriteLine("  naner.exe -p Bash -d C:\\projects   # Launch Bash in specific dir");
         Console.WriteLine("  naner.exe --debug                  # Show detailed diagnostics");
         Console.WriteLine("  naner.exe --diagnose               # Check installation health");
+        Console.WriteLine("  naner.exe setup-vendors            # Install vendor dependencies");
+        Console.WriteLine();
+        Console.WriteLine("INITIALIZATION:");
+        Console.WriteLine("  Use 'naner-init' to initialize or update Naner.");
         Console.WriteLine();
     }
 

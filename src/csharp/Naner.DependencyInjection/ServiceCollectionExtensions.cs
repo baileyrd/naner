@@ -134,9 +134,9 @@ public static class ServiceCollectionExtensions
         // Register built-in commands
         services.AddTransient<ICommand, VersionCommand>();
         services.AddTransient<ICommand, HelpCommand>();
-        services.AddTransient<ICommand, InitCommand>();
         services.AddTransient<ICommand, DiagnosticsCommand>();
         services.AddTransient<ICommand, SetupVendorsCommand>();
+        services.AddTransient<ICommand, UpdateVendorsCommand>();
 
         // Register the command router
         services.AddSingleton<CommandRouter>();

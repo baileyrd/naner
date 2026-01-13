@@ -22,7 +22,6 @@ public static class CommandNames
     public const string Diagnose = "--diagnose";
 
     // Setup commands
-    public const string Init = "init";
     public const string SetupVendors = "setup-vendors";
     public const string UpdateVendors = "update-vendors";
 
@@ -44,7 +43,6 @@ public static class CommandNames
         HelpShort,
         HelpAlternate,
         Diagnose,
-        Init,
         SetupVendors,
         UpdateVendors,
         Debug

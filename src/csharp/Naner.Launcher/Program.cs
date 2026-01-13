@@ -163,9 +163,6 @@ class Program
         }
     }
 
-    // RunInit and RunInitAsync methods moved to InitCommand.cs
-    // This improves SRP by extracting command logic from Program.cs
-
     static int HandleFirstRun()
     {
         // Get detailed first-run information
@@ -188,34 +185,15 @@ class Program
         }
         Console.WriteLine();
 
-        Logger.Warning("IMPORTANT: Please use 'naner-init' for initialization!");
+        Console.WriteLine("Please run 'naner-init' to initialize Naner.");
         Console.WriteLine();
         Console.WriteLine("naner-init provides:");
         Console.WriteLine("  • Automatic download of latest Naner from GitHub");
         Console.WriteLine("  • Automatic updates when new versions are available");
         Console.WriteLine("  • Simpler setup process");
         Console.WriteLine();
-        Console.WriteLine("Would you like to:");
-        Console.WriteLine("  1. Exit and run 'naner-init' (recommended)");
-        Console.WriteLine("  2. Run legacy setup wizard");
-        Console.WriteLine("  3. Quick setup in current directory (legacy)");
-        Console.WriteLine();
-        Console.Write("Enter choice (1-3) [1]: ");
 
-        var choice = Console.ReadLine()?.Trim();
-        if (string.IsNullOrEmpty(choice))
-        {
-            choice = "1";
-        }
-
-        // Use InitCommand for option 2 and 3
-        return choice switch
-        {
-            "1" => 0,
-            "2" => new InitCommand().Execute(Array.Empty<string>()),
-            "3" => new InitCommand().Execute(new[] { "--minimal" }),
-            _ => 0
-        };
+        return 0;
     }
 
     // RunSetupVendors and RunSetupVendorsAsync moved to SetupVendorsCommand.cs
