@@ -95,10 +95,19 @@ public static class NanerConstants
     /// </summary>
     public static class VendorNames
     {
+        // Essential vendors
         public const string SevenZip = "7-Zip";
         public const string PowerShell = "PowerShell";
         public const string WindowsTerminal = "Windows Terminal";
         public const string MSYS2 = "MSYS2 (Git/Bash)";
+
+        // Optional vendors
+        public const string NodeJS = "Node.js";
+        public const string Miniconda = "Miniconda";
+        public const string Go = "Go";
+        public const string Rust = "Rust";
+        public const string Ruby = "Ruby";
+        public const string DotNetSDK = ".NET SDK";
     }
 
     /// <summary>

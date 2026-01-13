@@ -31,7 +31,8 @@ public class CommandRouter : IDisposable
             [CommandNames.HelpShort] = new HelpCommand(),
             [CommandNames.HelpAlternate] = new HelpCommand(),
             [CommandNames.Diagnose] = new DiagnosticsCommand(),
-            [CommandNames.UpdateVendors] = new UpdateVendorsCommand()
+            [CommandNames.UpdateVendors] = new UpdateVendorsCommand(),
+            [CommandNames.Install] = new InstallVendorsCommand()
         };
     }
 

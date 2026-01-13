@@ -23,6 +23,7 @@ public static class CommandNames
 
     // Vendor commands
     public const string UpdateVendors = "update-vendors";
+    public const string Install = "install";
 
     // Options (from shared constants)
     public const string Debug = CommonCommandConstants.Debug;
@@ -43,6 +44,7 @@ public static class CommandNames
         HelpAlternate,
         Diagnose,
         UpdateVendors,
+        Install,
         Debug
     };
 }

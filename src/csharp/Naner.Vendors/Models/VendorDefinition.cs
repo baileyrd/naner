@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Naner.Vendors.Models;
 
 /// <summary>
@@ -6,7 +8,12 @@ namespace Naner.Vendors.Models;
 public class VendorDefinition
 {
     public string Name { get; set; } = "";
+    public string Key { get; set; } = "";
+    public string Description { get; set; } = "";
     public string ExtractDir { get; set; } = "";
+    public bool Enabled { get; set; }
+    public bool Required { get; set; }
+    public List<string> Dependencies { get; set; } = new();
     public VendorSourceType SourceType { get; set; }
 
     // For static URLs
