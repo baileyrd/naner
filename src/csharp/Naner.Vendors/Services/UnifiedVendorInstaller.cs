@@ -91,10 +91,10 @@ public class UnifiedVendorInstaller : VendorInstallerBase
                 return false;
             }
 
-            // Extract file (overwrites existing files)
+            // Extract file or run installer (overwrites existing files)
             Logger.Status($"  Installing {vendor.Name}...");
 
-            if (!ExtractArchive(downloadPath, targetDir, vendor.Name))
+            if (!ExtractArchive(downloadPath, targetDir, vendor.Name, vendor.InstallerArgs))
             {
                 Logger.Warning($"Failed to install {vendor.Name}, skipping...");
                 return false;

@@ -23,12 +23,15 @@ public class ArchiveExtractorService
     /// Creates a new ArchiveExtractorService.
     /// </summary>
     /// <param name="sevenZipPath">Optional path to 7z.exe (required for .tar.xz).</param>
-    public ArchiveExtractorService(string? sevenZipPath = null)
+    /// <param name="installerArgs">Optional custom installer arguments for .exe files.</param>
+    /// <param name="vendorHint">Optional vendor hint for determining default installer args.</param>
+    public ArchiveExtractorService(string? sevenZipPath = null, List<string>? installerArgs = null, string? vendorHint = null)
     {
         _extractors = new List<IArchiveExtractor>
         {
             new ZipExtractor(),
-            new MsiExtractor()
+            new MsiExtractor(),
+            new ExeInstallerExtractor(installerArgs, vendorHint)
         };
 
         // Only add TarXzExtractor if 7-Zip is available

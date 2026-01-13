@@ -34,6 +34,10 @@ public class VendorDefinition
 
     // Checksum verification
     public ChecksumInfo? Checksum { get; set; }
+
+    // For executable installers
+    public string? InstallType { get; set; }
+    public List<string>? InstallerArgs { get; set; }
 }
 
 public enum VendorSourceType

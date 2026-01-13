@@ -176,6 +176,10 @@ public class VendorConfigurationLoader
                 }
             }
 
+            // Parse installer configuration
+            definition.InstallType = entry.InstallType;
+            definition.InstallerArgs = entry.InstallerArgs;
+
             definitions.Add(definition);
         }
 

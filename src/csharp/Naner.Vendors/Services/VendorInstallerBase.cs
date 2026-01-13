@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -170,8 +171,16 @@ public abstract class VendorInstallerBase : IVendorInstaller
     /// </summary>
     protected bool ExtractArchive(string archivePath, string targetDir, string vendorName)
     {
+        return ExtractArchive(archivePath, targetDir, vendorName, null);
+    }
+
+    /// <summary>
+    /// Extracts an archive using the appropriate extractor strategy with optional installer args.
+    /// </summary>
+    protected bool ExtractArchive(string archivePath, string targetDir, string vendorName, List<string>? installerArgs)
+    {
         var sevenZipPath = Path.Combine(VendorDir, "7zip", "7z.exe");
-        var extractorService = new ArchiveExtractorService(sevenZipPath);
+        var extractorService = new ArchiveExtractorService(sevenZipPath, installerArgs, vendorName);
 
         return extractorService.ExtractArchive(archivePath, targetDir, vendorName);
     }
