@@ -140,14 +140,16 @@ jobs:
             Copy-Item -Path ".\config\*" -Destination "$bundleDir\config\" -Recurse -Force
           }
 
-          # bin directory is created empty (user scripts/tools go here)
+          # bin directory - add placeholder so it's included in zip
+          New-Item -Path "$bundleDir\bin\.gitkeep" -ItemType File -Force | Out-Null
 
           # Copy home directory (all files)
           if (Test-Path ".\home") {
             Copy-Item -Path ".\home\*" -Destination "$bundleDir\home\" -Recurse -Force
           }
 
-          # opt directory is created empty (optional tools go here)
+          # opt directory - add placeholder so it's included in zip
+          New-Item -Path "$bundleDir\opt\.gitkeep" -ItemType File -Force | Out-Null
 
           # List bundle contents
           Write-Host "Bundle contents:" -ForegroundColor Gray
