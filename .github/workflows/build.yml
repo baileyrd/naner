@@ -87,36 +87,6 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -o ./dist/bin
 
-      - name: Create distribution package
-        shell: pwsh
-        run: |
-          Write-Host "Creating distribution package..." -ForegroundColor Cyan
-
-          $distDir = ".\dist\naner-portable"
-          New-Item -Path $distDir -ItemType Directory -Force | Out-Null
-
-          # Copy executables
-          Copy-Item -Path ".\dist\bin\naner.exe" -Destination "$distDir\" -Force
-          Copy-Item -Path ".\dist\bin\naner-init.exe" -Destination "$distDir\" -Force
-          Copy-Item -Path ".\dist\bin\.naner-version" -Destination "$distDir\" -Force
-
-          # Copy config files
-          if (Test-Path ".\config") {
-            Copy-Item -Path ".\config" -Destination "$distDir\config" -Recurse -Force
-          }
-
-          # Copy documentation
-          if (Test-Path ".\README.md") {
-            Copy-Item -Path ".\README.md" -Destination "$distDir\" -Force
-          }
-
-          # List contents
-          Write-Host "Distribution contents:" -ForegroundColor Gray
-          Get-ChildItem -Path $distDir -Recurse | ForEach-Object {
-            $relativePath = $_.FullName.Replace((Get-Item $distDir).FullName, "")
-            Write-Host "  $relativePath" -ForegroundColor Gray
-          }
-
       - name: Create naner-bundle.zip (for naner-init)
         shell: pwsh
         run: |
@@ -165,25 +135,11 @@ jobs:
           $size = [math]::Round((Get-Item ".\dist\naner-bundle.zip").Length / 1MB, 2)
           Write-Host "Size: $size MB" -ForegroundColor Gray
 
-      - name: Create ZIP archive
-        shell: pwsh
-        run: |
-          Write-Host "Creating ZIP archive..." -ForegroundColor Cyan
-
-          $version = "${{ steps.get_version.outputs.version }}"
-          $zipName = "naner-portable-$version.zip"
-
-          Compress-Archive -Path ".\dist\naner-portable\*" -DestinationPath ".\dist\$zipName" -Force
-          Write-Host "Created: $zipName" -ForegroundColor Green
-
-          $size = [math]::Round((Get-Item ".\dist\$zipName").Length / 1MB, 2)
-          Write-Host "Size: $size MB" -ForegroundColor Gray
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: naner-portable-${{ steps.get_version.outputs.version }}
-          path: dist/*.zip
+          name: naner-bundle-${{ steps.get_version.outputs.version }}
+          path: dist/naner-bundle.zip
           retention-days: 90
 
       - name: Create Release
@@ -192,7 +148,6 @@ jobs:
         with:
           files: |
             dist/naner-bundle.zip
-            dist/naner-portable-*.zip
             dist/bin/naner.exe
             dist/bin/naner-init.exe
           draft: false
@@ -210,7 +165,7 @@ jobs:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: naner-portable-*
+          pattern: naner-bundle-*
           path: artifacts
 
       - name: Validate ZIP structure
@@ -231,79 +186,36 @@ jobs:
             $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_validate_$([Guid]::NewGuid())"
             Expand-Archive -Path $zip.FullName -DestinationPath $tempExtract
 
-            # Different validation for different ZIP types
-            if ($zip.Name -eq "naner-bundle.zip") {
-              # Bundle validation - check for naner-init expected structure
-              $requiredItems = @(
-                "vendor\bin\naner.exe",
-                "config\vendors.json",
-                "bin",
-                "home",
-                "opt"
-              )
+            # Bundle validation - check for naner-init expected structure
+            $requiredItems = @(
+              "vendor\bin\naner.exe",
+              "config\vendors.json",
+              "bin",
+              "home",
+              "opt"
+            )
 
-              $missing = @()
-              foreach ($item in $requiredItems) {
-                $fullPath = Join-Path $tempExtract $item
-                if (-not (Test-Path $fullPath)) {
-                  $missing += $item
-                }
+            $missing = @()
+            foreach ($item in $requiredItems) {
+              $fullPath = Join-Path $tempExtract $item
+              if (-not (Test-Path $fullPath)) {
+                $missing += $item
               }
-
-              if ($missing.Count -gt 0) {
-                Write-Host "  [X] Missing required items:" -ForegroundColor Red
-                $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-                Remove-Item $tempExtract -Recurse -Force
-                exit 1
-              } else {
-                Write-Host "  [OK] All required items present" -ForegroundColor Green
-              }
-
-              # Check naner.exe size
-              $nanerExe = Join-Path $tempExtract "vendor\bin\naner.exe"
-              $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
-              Write-Host "  vendor/bin/naner.exe: $nanerSize MB" -ForegroundColor Gray
-
-            } else {
-              # Portable ZIP validation
-              $requiredItems = @(
-                "naner.exe",
-                "naner-init.exe",
-                ".naner-version",
-                "config\vendors.json"
-              )
-
-              $missing = @()
-              foreach ($item in $requiredItems) {
-                $fullPath = Join-Path $tempExtract $item
-                if (-not (Test-Path $fullPath)) {
-                  $missing += $item
-                }
-              }
-
-              if ($missing.Count -gt 0) {
-                Write-Host "  [X] Missing required files:" -ForegroundColor Red
-                $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-                Remove-Item $tempExtract -Recurse -Force
-                exit 1
-              } else {
-                Write-Host "  [OK] All required files present" -ForegroundColor Green
-              }
-
-              # Verify executables
-              $nanerExe = Join-Path $tempExtract "naner.exe"
-              $initExe = Join-Path $tempExtract "naner-init.exe"
-
-              $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
-              $initSize = [math]::Round((Get-Item $initExe).Length / 1MB, 2)
-
-              Write-Host "  naner.exe: $nanerSize MB" -ForegroundColor Gray
-              Write-Host "  naner-init.exe: $initSize MB" -ForegroundColor Gray
-
-              # Check version file content
-              $versionContent = Get-Content (Join-Path $tempExtract ".naner-version") -Raw
-              Write-Host "  Version: $($versionContent.Trim())" -ForegroundColor Gray
             }
+
+            if ($missing.Count -gt 0) {
+              Write-Host "  [X] Missing required items:" -ForegroundColor Red
+              $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+              Remove-Item $tempExtract -Recurse -Force
+              exit 1
+            } else {
+              Write-Host "  [OK] All required items present" -ForegroundColor Green
+            }
+
+            # Check naner.exe size
+            $nanerExe = Join-Path $tempExtract "vendor\bin\naner.exe"
+            $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
+            Write-Host "  vendor/bin/naner.exe: $nanerSize MB" -ForegroundColor Gray
 
             Remove-Item $tempExtract -Recurse -Force
           }
