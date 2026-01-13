@@ -231,44 +231,79 @@ jobs:
             $tempExtract = Join-Path ([System.IO.Path]::GetTempPath()) "naner_validate_$([Guid]::NewGuid())"
             Expand-Archive -Path $zip.FullName -DestinationPath $tempExtract
 
-            # Check for required files
-            $requiredItems = @(
-              "naner.exe",
-              "naner-init.exe",
-              ".naner-version",
-              "config\vendors.json"
-            )
+            # Different validation for different ZIP types
+            if ($zip.Name -eq "naner-bundle.zip") {
+              # Bundle validation - check for naner-init expected structure
+              $requiredItems = @(
+                "vendor\bin\naner.exe",
+                "config\vendors.json",
+                "bin",
+                "home",
+                "opt"
+              )
 
-            $missing = @()
-            foreach ($item in $requiredItems) {
-              $fullPath = Join-Path $tempExtract $item
-              if (-not (Test-Path $fullPath)) {
-                $missing += $item
+              $missing = @()
+              foreach ($item in $requiredItems) {
+                $fullPath = Join-Path $tempExtract $item
+                if (-not (Test-Path $fullPath)) {
+                  $missing += $item
+                }
               }
-            }
 
-            if ($missing.Count -gt 0) {
-              Write-Host "  [X] Missing required files:" -ForegroundColor Red
-              $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-              Remove-Item $tempExtract -Recurse -Force
-              exit 1
+              if ($missing.Count -gt 0) {
+                Write-Host "  [X] Missing required items:" -ForegroundColor Red
+                $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+                Remove-Item $tempExtract -Recurse -Force
+                exit 1
+              } else {
+                Write-Host "  [OK] All required items present" -ForegroundColor Green
+              }
+
+              # Check naner.exe size
+              $nanerExe = Join-Path $tempExtract "vendor\bin\naner.exe"
+              $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
+              Write-Host "  vendor/bin/naner.exe: $nanerSize MB" -ForegroundColor Gray
+
             } else {
-              Write-Host "  [OK] All required files present" -ForegroundColor Green
+              # Portable ZIP validation
+              $requiredItems = @(
+                "naner.exe",
+                "naner-init.exe",
+                ".naner-version",
+                "config\vendors.json"
+              )
+
+              $missing = @()
+              foreach ($item in $requiredItems) {
+                $fullPath = Join-Path $tempExtract $item
+                if (-not (Test-Path $fullPath)) {
+                  $missing += $item
+                }
+              }
+
+              if ($missing.Count -gt 0) {
+                Write-Host "  [X] Missing required files:" -ForegroundColor Red
+                $missing | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+                Remove-Item $tempExtract -Recurse -Force
+                exit 1
+              } else {
+                Write-Host "  [OK] All required files present" -ForegroundColor Green
+              }
+
+              # Verify executables
+              $nanerExe = Join-Path $tempExtract "naner.exe"
+              $initExe = Join-Path $tempExtract "naner-init.exe"
+
+              $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
+              $initSize = [math]::Round((Get-Item $initExe).Length / 1MB, 2)
+
+              Write-Host "  naner.exe: $nanerSize MB" -ForegroundColor Gray
+              Write-Host "  naner-init.exe: $initSize MB" -ForegroundColor Gray
+
+              # Check version file content
+              $versionContent = Get-Content (Join-Path $tempExtract ".naner-version") -Raw
+              Write-Host "  Version: $($versionContent.Trim())" -ForegroundColor Gray
             }
-
-            # Verify executables are valid PE files
-            $nanerExe = Join-Path $tempExtract "naner.exe"
-            $initExe = Join-Path $tempExtract "naner-init.exe"
-
-            $nanerSize = [math]::Round((Get-Item $nanerExe).Length / 1MB, 2)
-            $initSize = [math]::Round((Get-Item $initExe).Length / 1MB, 2)
-
-            Write-Host "  naner.exe: $nanerSize MB" -ForegroundColor Gray
-            Write-Host "  naner-init.exe: $initSize MB" -ForegroundColor Gray
-
-            # Check version file content
-            $versionContent = Get-Content (Join-Path $tempExtract ".naner-version") -Raw
-            Write-Host "  Version: $($versionContent.Trim())" -ForegroundColor Gray
 
             Remove-Item $tempExtract -Recurse -Force
           }
