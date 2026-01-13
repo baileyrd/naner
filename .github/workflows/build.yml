@@ -127,6 +127,7 @@ jobs:
 
           # Create required directory structure
           New-Item -Path "$bundleDir\vendor\bin" -ItemType Directory -Force | Out-Null
+          New-Item -Path "$bundleDir\config" -ItemType Directory -Force | Out-Null
           New-Item -Path "$bundleDir\bin" -ItemType Directory -Force | Out-Null
           New-Item -Path "$bundleDir\home" -ItemType Directory -Force | Out-Null
           New-Item -Path "$bundleDir\opt" -ItemType Directory -Force | Out-Null
