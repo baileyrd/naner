@@ -101,6 +101,39 @@ public static class NanerConstants
         public const string MSYS2 = "MSYS2 (Git/Bash)";
     }
 
+    /// <summary>
+    /// Fallback URLs for vendor downloads when dynamic resolution fails.
+    /// These are used as a safety net and should be updated periodically.
+    /// Primary source of truth is config/vendors.json.
+    /// </summary>
+    public static class VendorFallbackUrls
+    {
+        public const string SevenZip = "https://www.7-zip.org/a/7z2408-x64.msi";
+        public const string PowerShell = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.zip";
+        public const string WindowsTerminal = "https://github.com/microsoft/terminal/releases/download/v1.21.2361.0/Microsoft.WindowsTerminal_1.21.2361.0_x64.zip";
+        public const string MSYS2 = "https://repo.msys2.org/distrib/x86_64/msys2-base-x86_64-20240727.tar.xz";
+    }
+
+    /// <summary>
+    /// Web scraping configuration for vendors that don't have APIs.
+    /// </summary>
+    public static class VendorWebScrape
+    {
+        public static class SevenZip
+        {
+            public const string Url = "https://www.7-zip.org/download.html";
+            public const string Pattern = @"href=""(a/7z\d+-x64\.msi)""";
+            public const string BaseUrl = "https://www.7-zip.org";
+        }
+
+        public static class MSYS2
+        {
+            public const string Url = "https://repo.msys2.org/distrib/x86_64/";
+            public const string Pattern = @"href=""(msys2-base-x86_64-\d+\.tar\.xz)""";
+            public const string BaseUrl = "https://repo.msys2.org/distrib/x86_64/";
+        }
+    }
+
     // ===== HTTP Configuration =====
 
     /// <summary>

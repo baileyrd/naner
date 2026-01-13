@@ -13,11 +13,7 @@ namespace Naner.Init;
 /// </summary>
 public class NanerUpdater
 {
-    private const string GithubOwner = "baileyrd";
-    private const string GithubRepo = "naner";
-    private const string NanerExeName = "naner.exe";
     private const string NanerBundleName = "naner-bundle.zip";  // Bundle containing config, home, vendor folders
-    private const string VersionFileName = ".naner-version";
 
     private readonly string _nanerRoot;
     private readonly string _vendorBinDir;
@@ -30,7 +26,7 @@ public class NanerUpdater
         _nanerRoot = nanerRoot;
         _vendorBinDir = Path.Combine(_nanerRoot, "vendor", "bin");
         _configDir = Path.Combine(_nanerRoot, "config");
-        _githubClient = new GitHubReleasesClient(GithubOwner, GithubRepo);
+        _githubClient = new GitHubReleasesClient(NanerConstants.GitHub.Owner, NanerConstants.GitHub.Repo);
         _initVersion = GetNanerInitVersion();
     }
 
@@ -82,7 +78,7 @@ public class NanerUpdater
     /// </summary>
     public string? GetInstalledVersion()
     {
-        var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
+        var versionFile = Path.Combine(_vendorBinDir, NanerConstants.VersionFile);
         if (File.Exists(versionFile))
         {
             try
@@ -97,7 +93,7 @@ public class NanerUpdater
         }
 
         // Fallback: try to get version from naner.exe itself
-        var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
+        var nanerExePath = Path.Combine(_vendorBinDir, NanerConstants.Executables.Naner);
         if (File.Exists(nanerExePath))
         {
             try
@@ -165,26 +161,26 @@ public class NanerUpdater
 
             // Find naner.exe asset
             var nanerAsset = targetRelease.Assets?.FirstOrDefault(a =>
-                a.Name != null && a.Name.Equals(NanerExeName, StringComparison.OrdinalIgnoreCase));
+                a.Name != null && a.Name.Equals(NanerConstants.Executables.Naner, StringComparison.OrdinalIgnoreCase));
 
             if (nanerAsset == null)
             {
-                Logger.Failure($"{NanerExeName} not found in release assets");
+                Logger.Failure($"{NanerConstants.Executables.Naner} not found in release assets");
                 return false;
             }
 
             var downloadUrl = nanerAsset.Url ?? nanerAsset.BrowserDownloadUrl;
             if (string.IsNullOrEmpty(downloadUrl))
             {
-                Logger.Failure($"Download URL for {NanerExeName} is missing");
+                Logger.Failure($"Download URL for {NanerConstants.Executables.Naner} is missing");
                 return false;
             }
 
             // Download naner.exe
-            var tempNanerPath = Path.Combine(_vendorBinDir, $"{NanerExeName}.tmp");
-            var nanerPath = Path.Combine(_vendorBinDir, NanerExeName);
+            var tempNanerPath = Path.Combine(_vendorBinDir, $"{NanerConstants.Executables.Naner}.tmp");
+            var nanerPath = Path.Combine(_vendorBinDir, NanerConstants.Executables.Naner);
 
-            if (!await _githubClient.DownloadAssetAsync(downloadUrl, tempNanerPath, NanerExeName))
+            if (!await _githubClient.DownloadAssetAsync(downloadUrl, tempNanerPath, NanerConstants.Executables.Naner))
             {
                 return false;
             }
@@ -204,10 +200,10 @@ public class NanerUpdater
             }
 
             File.Move(tempNanerPath, nanerPath, overwrite: true);
-            Logger.Success($"Installed {NanerExeName}");
+            Logger.Success($"Installed {NanerConstants.Executables.Naner}");
 
             // Save version file
-            var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
+            var versionFile = Path.Combine(_vendorBinDir, NanerConstants.VersionFile);
             File.WriteAllText(versionFile, targetRelease.TagName);
 
             Logger.NewLine();
@@ -292,16 +288,16 @@ public class NanerUpdater
             }
 
             // Verify naner.exe was included in the bundle
-            var nanerPath = Path.Combine(_vendorBinDir, NanerExeName);
+            var nanerPath = Path.Combine(_vendorBinDir, NanerConstants.Executables.Naner);
             if (!File.Exists(nanerPath))
             {
-                Logger.Failure($"{NanerExeName} not found in bundle (expected at vendor/bin/{NanerExeName})");
+                Logger.Failure($"{NanerConstants.Executables.Naner} not found in bundle (expected at vendor/bin/{NanerConstants.Executables.Naner})");
                 return false;
             }
-            Logger.Success($"Found {NanerExeName}");
+            Logger.Success($"Found {NanerConstants.Executables.Naner}");
 
             // Save version file
-            var versionFile = Path.Combine(_vendorBinDir, VersionFileName);
+            var versionFile = Path.Combine(_vendorBinDir, NanerConstants.VersionFile);
             File.WriteAllText(versionFile, targetRelease.TagName);
 
             // Create initialization marker
@@ -325,7 +321,7 @@ public class NanerUpdater
     /// </summary>
     public int RunVendorUpdate()
     {
-        var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
+        var nanerExePath = Path.Combine(_vendorBinDir, NanerConstants.Executables.Naner);
 
         if (!File.Exists(nanerExePath))
         {
@@ -363,7 +359,7 @@ public class NanerUpdater
     /// </summary>
     public int LaunchNaner(string[] args)
     {
-        var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
+        var nanerExePath = Path.Combine(_vendorBinDir, NanerConstants.Executables.Naner);
 
         if (!File.Exists(nanerExePath))
         {

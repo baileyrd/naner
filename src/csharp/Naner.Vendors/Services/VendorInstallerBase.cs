@@ -127,9 +127,9 @@ public abstract class VendorInstallerBase : IVendorInstaller
             var totalBytes = response.Content.Headers.ContentLength ?? 0;
 
             await using var contentStream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, NanerConstants.HttpDownloadBufferSize, true);
 
-            var buffer = new byte[8192];
+            var buffer = new byte[NanerConstants.HttpDownloadBufferSize];
             long totalRead = 0;
             int bytesRead;
             var lastPercent = -1;
