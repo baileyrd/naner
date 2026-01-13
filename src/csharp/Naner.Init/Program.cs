@@ -134,7 +134,7 @@ class Program
             // Note about optional additional tools
             Logger.NewLine();
             Logger.Info("Additional development tools can be installed later.");
-            Logger.Info("Run 'naner setup-vendors' for more optional tools.");
+            Logger.Info("Run 'naner update-vendors' to update vendor tools.");
 
             Logger.NewLine();
             Logger.Success("Naner is ready!");
@@ -216,7 +216,7 @@ class Program
         // Note about optional additional tools
         Logger.NewLine();
         Logger.Info("Additional development tools can be installed later.");
-        Logger.Info("Run 'naner setup-vendors' for more optional tools.");
+        Logger.Info("Run 'naner update-vendors' to update vendor tools.");
 
         Logger.NewLine();
         Logger.Success("Naner is ready!");

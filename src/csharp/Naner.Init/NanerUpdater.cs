@@ -321,9 +321,9 @@ public class NanerUpdater
     }
 
     /// <summary>
-    /// Runs vendor setup by calling naner.exe setup-vendors.
+    /// Runs vendor update by calling naner.exe update-vendors.
     /// </summary>
-    public int RunVendorSetup()
+    public int RunVendorUpdate()
     {
         var nanerExePath = Path.Combine(_vendorBinDir, NanerExeName);
 
@@ -344,7 +344,7 @@ public class NanerUpdater
                 RedirectStandardError = false
             };
 
-            startInfo.ArgumentList.Add("setup-vendors");
+            startInfo.ArgumentList.Add("update-vendors");
 
             using var process = Process.Start(startInfo);
             process?.WaitForExit();

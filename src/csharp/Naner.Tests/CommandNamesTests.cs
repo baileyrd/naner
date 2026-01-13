@@ -20,8 +20,7 @@ public class CommandNamesTests
         CommandNames.HelpShort.Should().NotBeNullOrEmpty();
         CommandNames.HelpAlternate.Should().NotBeNullOrEmpty();
         CommandNames.Diagnose.Should().NotBeNullOrEmpty();
-        CommandNames.Init.Should().NotBeNullOrEmpty();
-        CommandNames.SetupVendors.Should().NotBeNullOrEmpty();
+        CommandNames.UpdateVendors.Should().NotBeNullOrEmpty();
         CommandNames.Debug.Should().NotBeNullOrEmpty();
     }
 
@@ -51,16 +50,9 @@ public class CommandNamesTests
     }
 
     [Fact]
-    public void CommandNames_Init_HasCorrectValue()
+    public void CommandNames_UpdateVendors_HasCorrectValue()
     {
         // Arrange & Assert
-        CommandNames.Init.Should().Be("init");
-    }
-
-    [Fact]
-    public void CommandNames_SetupVendors_HasCorrectValue()
-    {
-        // Arrange & Assert
-        CommandNames.SetupVendors.Should().Be("setup-vendors");
+        CommandNames.UpdateVendors.Should().Be("update-vendors");
     }
 }

@@ -7,7 +7,7 @@ namespace Naner.Commands.Implementations;
 
 /// <summary>
 /// Command for updating vendor dependencies to their latest versions.
-/// Unlike setup-vendors, this will re-download even if already installed.
+/// This will re-download vendors even if already installed.
 /// </summary>
 public class UpdateVendorsCommand : ICommand
 {

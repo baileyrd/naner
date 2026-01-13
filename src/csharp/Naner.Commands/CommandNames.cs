@@ -21,8 +21,7 @@ public static class CommandNames
     // Diagnostic commands
     public const string Diagnose = "--diagnose";
 
-    // Setup commands
-    public const string SetupVendors = "setup-vendors";
+    // Vendor commands
     public const string UpdateVendors = "update-vendors";
 
     // Options (from shared constants)
@@ -43,7 +42,6 @@ public static class CommandNames
         HelpShort,
         HelpAlternate,
         Diagnose,
-        SetupVendors,
         UpdateVendors,
         Debug
     };

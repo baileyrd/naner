@@ -42,8 +42,7 @@ public class CommandRouterTests : IDisposable
     [InlineData("-h")]
     [InlineData("/?")]
     [InlineData("--diagnose")]
-    [InlineData("init")]
-    [InlineData("setup-vendors")]
+    [InlineData("update-vendors")]
     public void CommandRouter_Route_RecognizesRegisteredCommands(string command)
     {
         // Arrange
@@ -96,8 +95,7 @@ public class CommandRouterTests : IDisposable
     [InlineData("-h", true)]
     [InlineData("/?", true)]
     [InlineData("--diagnose", true)]
-    [InlineData("init", true)]
-    [InlineData("setup-vendors", true)]
+    [InlineData("update-vendors", true)]
     [InlineData("--debug", true)]
     [InlineData("unknown", false)]
     [InlineData("launch", false)]
@@ -130,9 +128,9 @@ public class CommandRouterTests : IDisposable
     public void CommandRouter_NeedsConsole_IsCaseInsensitive()
     {
         // Arrange
-        var argsLower = new[] { "init" };
-        var argsUpper = new[] { "INIT" };
-        var argsMixed = new[] { "Init" };
+        var argsLower = new[] { "update-vendors" };
+        var argsUpper = new[] { "UPDATE-VENDORS" };
+        var argsMixed = new[] { "Update-Vendors" };
 
         // Act
         var resultLower = CommandRouter.NeedsConsole(argsLower);
@@ -140,9 +138,9 @@ public class CommandRouterTests : IDisposable
         var resultMixed = CommandRouter.NeedsConsole(argsMixed);
 
         // Assert
-        resultLower.Should().BeTrue("lowercase 'init' should need console");
-        resultUpper.Should().BeTrue("uppercase 'INIT' should need console");
-        resultMixed.Should().BeTrue("mixed case 'Init' should need console");
+        resultLower.Should().BeTrue("lowercase 'update-vendors' should need console");
+        resultUpper.Should().BeTrue("uppercase 'UPDATE-VENDORS' should need console");
+        resultMixed.Should().BeTrue("mixed case 'Update-Vendors' should need console");
     }
 
     [Fact]
@@ -155,8 +153,7 @@ public class CommandRouterTests : IDisposable
             "--version", "-v",
             "--help", "-h", "/?",
             "--diagnose",
-            "init",
-            "setup-vendors"
+            "update-vendors"
         };
 
         // Act & Assert

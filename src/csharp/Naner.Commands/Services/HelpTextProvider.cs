@@ -41,7 +41,6 @@ public class HelpTextProvider
     private void ShowCommands()
     {
         Console.WriteLine("COMMANDS:");
-        Console.WriteLine("  setup-vendors              Download and install vendor dependencies");
         Console.WriteLine("  update-vendors             Update all vendor dependencies to latest versions");
         Console.WriteLine();
     }
@@ -75,7 +74,7 @@ public class HelpTextProvider
         Console.WriteLine("  naner.exe -p Bash -d C:\\projects   # Launch Bash in specific dir");
         Console.WriteLine("  naner.exe --debug                  # Show detailed diagnostics");
         Console.WriteLine("  naner.exe --diagnose               # Check installation health");
-        Console.WriteLine("  naner.exe setup-vendors            # Install vendor dependencies");
+        Console.WriteLine("  naner.exe update-vendors           # Update vendor dependencies");
         Console.WriteLine();
         Console.WriteLine("INITIALIZATION:");
         Console.WriteLine("  Use 'naner-init' to initialize or update Naner.");

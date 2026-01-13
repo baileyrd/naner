@@ -135,7 +135,6 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ICommand, VersionCommand>();
         services.AddTransient<ICommand, HelpCommand>();
         services.AddTransient<ICommand, DiagnosticsCommand>();
-        services.AddTransient<ICommand, SetupVendorsCommand>();
         services.AddTransient<ICommand, UpdateVendorsCommand>();
 
         // Register the command router

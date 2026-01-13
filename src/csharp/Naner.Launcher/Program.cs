@@ -195,10 +195,4 @@ class Program
 
         return 0;
     }
-
-    // RunSetupVendors and RunSetupVendorsAsync moved to SetupVendorsCommand.cs
-    // This improves SRP by extracting command logic from Program.cs
-
-    // NeedsConsole method removed - use CommandRouter.NeedsConsole() instead
-    // This eliminates duplication between Program.cs and CommandRouter.cs
 }

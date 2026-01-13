@@ -299,7 +299,7 @@ public static class SetupManager
             else
             {
                 Logger.Info("Skipping vendor downloads.");
-                Logger.Info("You can download vendors later with: naner setup-vendors");
+                Logger.Info("You can update vendors later with: naner update-vendors");
             }
 
             Logger.NewLine();
