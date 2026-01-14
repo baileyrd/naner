@@ -198,7 +198,7 @@ public class VendorConfigurationLoader
             "github" => VendorSourceType.GitHub,
             "web-scrape" => VendorSourceType.WebScrape,
             "static" => VendorSourceType.StaticUrl,
-            "golang-api" => VendorSourceType.StaticUrl, // Treat as static with fallback
+            "golang-api" => VendorSourceType.GolangApi,
             "nodejs-api" => VendorSourceType.NodeJsApi,
             _ => VendorSourceType.StaticUrl
         };

@@ -47,7 +47,8 @@ public enum VendorSourceType
     StaticUrl,
     GitHub,
     WebScrape,
-    NodeJsApi
+    NodeJsApi,
+    GolangApi
 }
 
 public class WebScrapeConfig

@@ -140,6 +140,7 @@ public class UnifiedVendorInstaller : VendorInstallerBase
                 VendorSourceType.GitHub => await FetchFromGitHubAsync(vendor),
                 VendorSourceType.WebScrape => await FetchFromWebScrapeAsync(vendor),
                 VendorSourceType.NodeJsApi => await FetchFromNodeJsApiAsync(),
+                VendorSourceType.GolangApi => await FetchFromGolangApiAsync(),
                 _ => null
             };
 
@@ -326,6 +327,47 @@ public class UnifiedVendorInstaller : VendorInstallerBase
     }
 
     /// <summary>
+    /// Fetches download info from Go distribution API.
+    /// </summary>
+    private async Task<VendorDownloadInfo?> FetchFromGolangApiAsync()
+    {
+        var response = await HttpClient.GetAsync("https://go.dev/dl/?mode=json");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        var releases = JsonSerializer.Deserialize<List<GolangRelease>>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        // Get first stable release
+        var latest = releases?.FirstOrDefault(r => r.Stable);
+        if (latest?.Version == null || latest.Files == null)
+        {
+            return null;
+        }
+
+        // Find Windows amd64 zip archive
+        var file = latest.Files.FirstOrDefault(f =>
+            f.Os == "windows" && f.Arch == "amd64" && f.Kind == "archive");
+
+        if (file?.Filename == null)
+        {
+            return null;
+        }
+
+        return new VendorDownloadInfo
+        {
+            Url = $"https://go.dev/dl/{file.Filename}",
+            FileName = file.Filename,
+            Version = latest.Version
+        };
+    }
+
+    /// <summary>
     /// Extracts version number from filename.
     /// </summary>
     private string ExtractVersionFromFileName(string fileName)
@@ -469,6 +511,34 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
         [JsonPropertyName("lts")]
         public object? Lts { get; set; }
+    }
+
+    // Go API response models
+    private class GolangRelease
+    {
+        [JsonPropertyName("version")]
+        public string? Version { get; set; }
+
+        [JsonPropertyName("stable")]
+        public bool Stable { get; set; }
+
+        [JsonPropertyName("files")]
+        public List<GolangFile>? Files { get; set; }
+    }
+
+    private class GolangFile
+    {
+        [JsonPropertyName("filename")]
+        public string? Filename { get; set; }
+
+        [JsonPropertyName("os")]
+        public string? Os { get; set; }
+
+        [JsonPropertyName("arch")]
+        public string? Arch { get; set; }
+
+        [JsonPropertyName("kind")]
+        public string? Kind { get; set; }
     }
 }
 
