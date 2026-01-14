@@ -78,20 +78,14 @@ public class VendorConfigurationLoaderTests
     }
 
     [Fact]
-    public void LoadVendors_ReturnsDefaultVendors_WhenConfigurationExists()
+    public void LoadVendors_ParsesConfigFile_WhenConfigurationExists()
     {
-        // Note: This test demonstrates that the loader gracefully falls back to
-        // defaults even when a config file exists. The real vendors.json has a complex
-        // schema that our simple VendorDefinition model doesn't fully match.
-        // This is by design - the loader is resilient and always provides vendors.
-
         // Arrange
         var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         var configDir = Path.Combine(tempDir, "config");
         Directory.CreateDirectory(configDir);
         var vendorsFile = Path.Combine(configDir, "vendors.json");
 
-        // Use the actual vendors.json schema which our loader may not fully parse
         var json = @"{
   ""$schema"": ""./vendors-schema.json"",
   ""vendors"": {
@@ -111,11 +105,11 @@ public class VendorConfigurationLoaderTests
             // Act
             var vendors = loader.LoadVendors();
 
-            // Assert - Should fall back to default vendors (4 vendors)
+            // Assert - Should parse the config file successfully
             vendors.Should().NotBeNull();
-            vendors.Should().HaveCount(4); // Default vendors
-            vendors.Should().Contain(v => v.Name == "7-Zip");
-            vendors.Should().Contain(v => v.Name == "PowerShell");
+            vendors.Should().HaveCount(1);
+            vendors.Should().Contain(v => v.Name == "Test");
+            vendors.Should().Contain(v => v.Key == "TestVendor");
         }
         finally
         {

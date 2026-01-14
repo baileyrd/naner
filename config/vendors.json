@@ -102,11 +102,9 @@
       "required": false,
       "dependencies": ["SevenZip"],
       "releaseSource": {
-        "type": "github",
-        "repo": "nodejs/node",
-        "assetPattern": "*win-x64.zip",
+        "type": "nodejs-api",
         "fallback": {
-          "version": "20.11.0",
+          "version": "v20.11.0",
           "url": "https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip",
           "fileName": "node-v20.11.0-win-x64.zip",
           "size": "~30"

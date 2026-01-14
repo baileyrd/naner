@@ -169,10 +169,12 @@ public class VendorConfigurationLoader
                         break;
                 }
 
-                // Set fallback URL
+                // Set fallback info
                 if (source.Fallback != null)
                 {
                     definition.FallbackUrl = source.Fallback.Url;
+                    definition.FallbackVersion = source.Fallback.Version;
+                    definition.FallbackFileName = source.Fallback.FileName;
                 }
             }
 
@@ -197,6 +199,7 @@ public class VendorConfigurationLoader
             "web-scrape" => VendorSourceType.WebScrape,
             "static" => VendorSourceType.StaticUrl,
             "golang-api" => VendorSourceType.StaticUrl, // Treat as static with fallback
+            "nodejs-api" => VendorSourceType.NodeJsApi,
             _ => VendorSourceType.StaticUrl
         };
     }

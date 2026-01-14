@@ -134,13 +134,28 @@ public class UnifiedVendorInstaller : VendorInstallerBase
     {
         try
         {
-            return vendor.SourceType switch
+            var result = vendor.SourceType switch
             {
                 VendorSourceType.StaticUrl => FetchFromStaticUrl(vendor),
                 VendorSourceType.GitHub => await FetchFromGitHubAsync(vendor),
                 VendorSourceType.WebScrape => await FetchFromWebScrapeAsync(vendor),
+                VendorSourceType.NodeJsApi => await FetchFromNodeJsApiAsync(),
                 _ => null
             };
+
+            // If dynamic fetch returned null, try fallback
+            if (result == null && !string.IsNullOrEmpty(vendor.FallbackUrl))
+            {
+                Logger.Info($"  No matching release found, using fallback URL");
+                return new VendorDownloadInfo
+                {
+                    Url = vendor.FallbackUrl,
+                    FileName = vendor.FallbackFileName ?? Path.GetFileName(vendor.FallbackUrl),
+                    Version = vendor.FallbackVersion ?? "fallback"
+                };
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
@@ -152,8 +167,8 @@ public class UnifiedVendorInstaller : VendorInstallerBase
                 return new VendorDownloadInfo
                 {
                     Url = vendor.FallbackUrl,
-                    FileName = Path.GetFileName(vendor.FallbackUrl),
-                    Version = "fallback"
+                    FileName = vendor.FallbackFileName ?? Path.GetFileName(vendor.FallbackUrl),
+                    Version = vendor.FallbackVersion ?? "fallback"
                 };
             }
 
@@ -269,6 +284,44 @@ public class UnifiedVendorInstaller : VendorInstallerBase
             Url = fullUrl,
             FileName = fileName,
             Version = ExtractVersionFromFileName(fileName)
+        };
+    }
+
+    /// <summary>
+    /// Fetches download info from Node.js distribution API.
+    /// </summary>
+    private async Task<VendorDownloadInfo?> FetchFromNodeJsApiAsync()
+    {
+        var response = await HttpClient.GetAsync("https://nodejs.org/dist/index.json");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        var releases = JsonSerializer.Deserialize<List<NodeJsRelease>>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        // Get latest release that has win-x64-zip available
+        var latest = releases?.FirstOrDefault(r =>
+            r.Files != null && r.Files.Contains("win-x64-zip"));
+
+        if (latest?.Version == null)
+        {
+            return null;
+        }
+
+        // Node.js download URL pattern: https://nodejs.org/dist/v20.11.0/node-v20.11.0-win-x64.zip
+        var fileName = $"node-{latest.Version}-win-x64.zip";
+        var url = $"https://nodejs.org/dist/{latest.Version}/{fileName}";
+
+        return new VendorDownloadInfo
+        {
+            Url = url,
+            FileName = fileName,
+            Version = latest.Version
         };
     }
 
@@ -403,6 +456,19 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
         [JsonPropertyName("browser_download_url")]
         public string? BrowserDownloadUrl { get; set; }
+    }
+
+    // Node.js API response model
+    private class NodeJsRelease
+    {
+        [JsonPropertyName("version")]
+        public string? Version { get; set; }
+
+        [JsonPropertyName("files")]
+        public List<string>? Files { get; set; }
+
+        [JsonPropertyName("lts")]
+        public object? Lts { get; set; }
     }
 }
 

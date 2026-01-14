@@ -31,6 +31,8 @@ public class VendorDefinition
 
     // Fallback
     public string? FallbackUrl { get; set; }
+    public string? FallbackVersion { get; set; }
+    public string? FallbackFileName { get; set; }
 
     // Checksum verification
     public ChecksumInfo? Checksum { get; set; }
@@ -44,7 +46,8 @@ public enum VendorSourceType
 {
     StaticUrl,
     GitHub,
-    WebScrape
+    WebScrape,
+    NodeJsApi
 }
 
 public class WebScrapeConfig
