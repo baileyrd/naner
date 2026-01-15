@@ -57,6 +57,9 @@ public class ConsoleManager
         {
             _isAttached = true;
             ReinitializeConsoleStreams();
+            // Write a newline to move past the shell prompt that was already displayed
+            // This is necessary because the parent shell returned to prompt before we attached
+            System.Console.WriteLine();
             return true;
         }
 
@@ -77,14 +80,22 @@ public class ConsoleManager
     /// </summary>
     private static void ReinitializeConsoleStreams()
     {
-        // Reopen stdout
+        // Reopen stdout with explicit Windows line endings
         var stdOut = System.Console.OpenStandardOutput();
-        var stdOutWriter = new StreamWriter(stdOut, System.Console.OutputEncoding) { AutoFlush = true };
+        var stdOutWriter = new StreamWriter(stdOut, System.Console.OutputEncoding)
+        {
+            AutoFlush = true,
+            NewLine = "\r\n"  // Ensure Windows-style line endings for attached console
+        };
         System.Console.SetOut(stdOutWriter);
 
-        // Reopen stderr
+        // Reopen stderr with explicit Windows line endings
         var stdErr = System.Console.OpenStandardError();
-        var stdErrWriter = new StreamWriter(stdErr, System.Console.OutputEncoding) { AutoFlush = true };
+        var stdErrWriter = new StreamWriter(stdErr, System.Console.OutputEncoding)
+        {
+            AutoFlush = true,
+            NewLine = "\r\n"  // Ensure Windows-style line endings for attached console
+        };
         System.Console.SetError(stdErrWriter);
 
         // Reopen stdin
