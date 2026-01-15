@@ -13,7 +13,7 @@ namespace Naner.Archives.Services;
 
 /// <summary>
 /// Service for extracting various archive formats using the Strategy pattern.
-/// Supports .zip, .tar.xz, .msi, and other formats.
+/// Supports .zip, .7z, .tar.xz, .msi, and other formats.
 /// </summary>
 public class ArchiveExtractorService
 {
@@ -34,10 +34,11 @@ public class ArchiveExtractorService
             new ExeInstallerExtractor(installerArgs, vendorHint)
         };
 
-        // Only add TarXzExtractor if 7-Zip is available
+        // Only add 7-Zip based extractors if 7-Zip is available
         if (!string.IsNullOrEmpty(sevenZipPath) && File.Exists(sevenZipPath))
         {
             _extractors.Add(new TarXzExtractor(sevenZipPath));
+            _extractors.Add(new SevenZipExtractor(sevenZipPath));
         }
     }
 

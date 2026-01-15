@@ -182,12 +182,12 @@
       "releaseSource": {
         "type": "github",
         "repo": "oneclick/rubyinstaller2",
-        "assetPattern": "rubyinstaller-devkit-*-x64.7z",
+        "assetPattern": "rubyinstaller-*-x64.7z",
         "fallback": {
-          "version": "3.2.3-1",
-          "url": "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.2.3-1/rubyinstaller-devkit-3.2.3-1-x64.7z",
-          "fileName": "rubyinstaller-devkit-3.2.3-1-x64.7z",
-          "size": "~180"
+          "version": "4.0.0-1",
+          "url": "https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-4.0.0-1/rubyinstaller-4.0.0-1-x64.7z",
+          "fileName": "rubyinstaller-4.0.0-1-x64.7z",
+          "size": "~30"
         }
       },
       "postInstallFunction": "Ruby.PostInstall"
