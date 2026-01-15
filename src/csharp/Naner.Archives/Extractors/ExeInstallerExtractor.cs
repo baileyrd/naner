@@ -52,6 +52,9 @@ public class ExeInstallerExtractor : IArchiveExtractor
                 RedirectStandardError = true
             };
 
+            // Set environment variables for installers that need them
+            SetInstallerEnvironment(startInfo, archivePath, targetDir, vendorName);
+
             using var process = Process.Start(startInfo);
             if (process == null)
             {
@@ -121,5 +124,27 @@ public class ExeInstallerExtractor : IArchiveExtractor
         // Default: try common silent install flags
         // Many NSIS installers use /S, InnoSetup uses /VERYSILENT
         return $"/S /D=\"{targetDir}\"";
+    }
+
+    /// <summary>
+    /// Sets environment variables needed by specific installers.
+    /// </summary>
+    private void SetInstallerEnvironment(ProcessStartInfo startInfo, string installerPath, string targetDir, string vendorName)
+    {
+        var fileName = Path.GetFileName(installerPath).ToLowerInvariant();
+        var vendor = vendorName.ToLowerInvariant();
+
+        // Rust/rustup needs RUSTUP_HOME and CARGO_HOME to install to custom location
+        if (fileName.Contains("rustup") || vendor.Contains("rust"))
+        {
+            var rustupHome = Path.Combine(targetDir, ".rustup");
+            var cargoHome = Path.Combine(targetDir, ".cargo");
+
+            startInfo.Environment["RUSTUP_HOME"] = rustupHome;
+            startInfo.Environment["CARGO_HOME"] = cargoHome;
+
+            Logger.Debug($"    RUSTUP_HOME={rustupHome}", debugMode: false);
+            Logger.Debug($"    CARGO_HOME={cargoHome}", debugMode: false);
+        }
     }
 }
