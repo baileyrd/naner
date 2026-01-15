@@ -75,11 +75,33 @@ public class UnifiedVendorInstaller : VendorInstallerBase
             EnsureDownloadDirectoryExists();
             var downloadPath = Path.Combine(DownloadDir, downloadInfo.FileName);
 
-            // Download file
+            // Download file - try fallback if primary download fails
             if (!await DownloadFileAsync(downloadInfo.Url, downloadPath))
             {
-                Logger.Warning($"Failed to download {vendor.Name}, skipping...");
-                return false;
+                // Try fallback URL if available
+                if (!string.IsNullOrEmpty(vendor.FallbackUrl))
+                {
+                    Logger.Info($"  Primary download failed, trying fallback version...");
+                    downloadInfo = new VendorDownloadInfo
+                    {
+                        Url = vendor.FallbackUrl,
+                        FileName = vendor.FallbackFileName ?? Path.GetFileName(vendor.FallbackUrl),
+                        Version = vendor.FallbackVersion ?? "fallback"
+                    };
+                    downloadPath = Path.Combine(DownloadDir, downloadInfo.FileName);
+                    Logger.Status($"  Downloading {downloadInfo.FileName}...");
+
+                    if (!await DownloadFileAsync(downloadInfo.Url, downloadPath))
+                    {
+                        Logger.Warning($"Failed to download {vendor.Name}, skipping...");
+                        return false;
+                    }
+                }
+                else
+                {
+                    Logger.Warning($"Failed to download {vendor.Name}, skipping...");
+                    return false;
+                }
             }
 
             Logger.Success($"  Downloaded {downloadInfo.FileName}");
@@ -141,6 +163,7 @@ public class UnifiedVendorInstaller : VendorInstallerBase
                 VendorSourceType.WebScrape => await FetchFromWebScrapeAsync(vendor),
                 VendorSourceType.NodeJsApi => await FetchFromNodeJsApiAsync(),
                 VendorSourceType.GolangApi => await FetchFromGolangApiAsync(),
+                VendorSourceType.DotNetApi => await FetchFromDotNetApiAsync(),
                 _ => null
             };
 
@@ -368,6 +391,47 @@ public class UnifiedVendorInstaller : VendorInstallerBase
     }
 
     /// <summary>
+    /// Fetches download info from .NET distribution API.
+    /// Gets the latest LTS SDK version.
+    /// </summary>
+    private async Task<VendorDownloadInfo?> FetchFromDotNetApiAsync()
+    {
+        var response = await HttpClient.GetAsync("https://dotnetcli.azureedge.net/dotnet/release-metadata/releases-index.json");
+        if (!response.IsSuccessStatusCode)
+        {
+            return null;
+        }
+
+        var json = await response.Content.ReadAsStringAsync();
+        var index = JsonSerializer.Deserialize<DotNetReleasesIndex>(json, new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        // Get the first LTS release that is not EOL (support-phase = "active")
+        var ltsRelease = index?.ReleasesIndex?.FirstOrDefault(r =>
+            r.ReleaseType == "lts" && r.SupportPhase == "active");
+
+        if (ltsRelease?.LatestSdk == null)
+        {
+            return null;
+        }
+
+        // .NET SDK download URL pattern: https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.102/dotnet-sdk-10.0.102-win-x64.zip
+        // Note: Using builds.dotnet.microsoft.com instead of dotnetcli.azureedge.net for better download reliability
+        var version = ltsRelease.LatestSdk;
+        var fileName = $"dotnet-sdk-{version}-win-x64.zip";
+        var url = $"https://builds.dotnet.microsoft.com/dotnet/Sdk/{version}/{fileName}";
+
+        return new VendorDownloadInfo
+        {
+            Url = url,
+            FileName = fileName,
+            Version = version
+        };
+    }
+
+    /// <summary>
     /// Extracts version number from filename.
     /// </summary>
     private string ExtractVersionFromFileName(string fileName)
@@ -539,6 +603,28 @@ public class UnifiedVendorInstaller : VendorInstallerBase
 
         [JsonPropertyName("kind")]
         public string? Kind { get; set; }
+    }
+
+    // .NET API response models
+    private class DotNetReleasesIndex
+    {
+        [JsonPropertyName("releases-index")]
+        public List<DotNetChannel>? ReleasesIndex { get; set; }
+    }
+
+    private class DotNetChannel
+    {
+        [JsonPropertyName("channel-version")]
+        public string? ChannelVersion { get; set; }
+
+        [JsonPropertyName("latest-sdk")]
+        public string? LatestSdk { get; set; }
+
+        [JsonPropertyName("release-type")]
+        public string? ReleaseType { get; set; }
+
+        [JsonPropertyName("support-phase")]
+        public string? SupportPhase { get; set; }
     }
 }
 

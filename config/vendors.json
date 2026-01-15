@@ -200,15 +200,12 @@
       "required": false,
       "dependencies": [],
       "releaseSource": {
-        "type": "static",
-        "version": "8.0.403",
-        "url": "https://dotnetcli.azureedge.net/dotnet/Sdk/8.0.403/dotnet-sdk-8.0.403-win-x64.zip",
-        "fileName": "dotnet-sdk-8.0.403-win-x64.zip",
+        "type": "dotnet-api",
         "fallback": {
-          "version": "8.0.403",
-          "url": "https://dotnetcli.azureedge.net/dotnet/Sdk/8.0.403/dotnet-sdk-8.0.403-win-x64.zip",
-          "fileName": "dotnet-sdk-8.0.403-win-x64.zip",
-          "size": "~230"
+          "version": "10.0.102",
+          "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.102/dotnet-sdk-10.0.102-win-x64.zip",
+          "fileName": "dotnet-sdk-10.0.102-win-x64.zip",
+          "size": "~290"
         }
       },
       "postInstallFunction": "DotNetSDK.PostInstall"

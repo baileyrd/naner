@@ -200,6 +200,7 @@ public class VendorConfigurationLoader
             "static" => VendorSourceType.StaticUrl,
             "golang-api" => VendorSourceType.GolangApi,
             "nodejs-api" => VendorSourceType.NodeJsApi,
+            "dotnet-api" => VendorSourceType.DotNetApi,
             _ => VendorSourceType.StaticUrl
         };
     }
