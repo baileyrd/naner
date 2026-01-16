@@ -31,4 +31,20 @@ public class LaunchOptions
     [Option('v', "version", Required = false,
         HelpText = "Display version information")]
     public bool Version { get; set; }
+
+    [Option("setup-only", Required = false,
+        HelpText = "Setup environment without launching terminal (outputs nothing, sets process env)")]
+    public bool SetupOnly { get; set; }
+
+    [Option("export-env", Required = false,
+        HelpText = "Export environment setup commands for shell integration")]
+    public bool ExportEnv { get; set; }
+
+    [Option('f', "format", Required = false, Default = "powershell",
+        HelpText = "Output format for --export-env (powershell, bash, cmd)")]
+    public string Format { get; set; } = "powershell";
+
+    [Option("no-comments", Required = false,
+        HelpText = "Omit comments from --export-env output (useful when piping to Invoke-Expression)")]
+    public bool NoComments { get; set; }
 }
