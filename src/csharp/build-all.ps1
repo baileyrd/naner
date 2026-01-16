@@ -11,7 +11,9 @@ param(
 
     [switch]$InitOnly,
 
-    [switch]$NanerOnly
+    [switch]$NanerOnly,
+
+    [switch]$IncrementVersion
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,6 +24,7 @@ $InitProjectPath = "$PSScriptRoot\Naner.Init\Naner.Init.csproj"
 $NanerOutputPath = "$PSScriptRoot\..\..\vendor\bin"
 $InitOutputPath = "$PSScriptRoot\..\..\vendor\bin"
 $DotNetExe = "$PSScriptRoot\..\..\vendor\dotnet-sdk\dotnet.exe"
+$DirectoryBuildPropsPath = "$PSScriptRoot\Directory.Build.props"
 
 # Check for system dotnet if vendor dotnet not found
 if (-not (Test-Path $DotNetExe)) {
@@ -45,6 +48,41 @@ function Write-Status { param($msg) Write-Host "[*] $msg" -ForegroundColor Cyan 
 function Write-Success { param($msg) Write-Host "[+] $msg" -ForegroundColor Green }
 function Write-Failure { param($msg) Write-Host "[-] $msg" -ForegroundColor Red }
 
+# Function to increment patch version in Directory.Build.props
+function Update-PatchVersion {
+    if (-not (Test-Path $DirectoryBuildPropsPath)) {
+        Write-Failure "Directory.Build.props not found at $DirectoryBuildPropsPath"
+        return $false
+    }
+
+    $content = Get-Content $DirectoryBuildPropsPath -Raw
+
+    # Extract current version
+    if ($content -match '<Version>(\d+)\.(\d+)\.(\d+)</Version>') {
+        $major = [int]$Matches[1]
+        $minor = [int]$Matches[2]
+        $patch = [int]$Matches[3]
+        $oldVersion = "$major.$minor.$patch"
+        $newPatch = $patch + 1
+        $newVersion = "$major.$minor.$newPatch"
+
+        Write-Status "Incrementing version: $oldVersion -> $newVersion"
+
+        # Replace all version occurrences
+        $content = $content -replace "<Version>$oldVersion</Version>", "<Version>$newVersion</Version>"
+        $content = $content -replace "<AssemblyVersion>$oldVersion\.0</AssemblyVersion>", "<AssemblyVersion>$newVersion.0</AssemblyVersion>"
+        $content = $content -replace "<FileVersion>$oldVersion\.0</FileVersion>", "<FileVersion>$newVersion.0</FileVersion>"
+        $content = $content -replace "<InformationalVersion>$oldVersion</InformationalVersion>", "<InformationalVersion>$newVersion</InformationalVersion>"
+
+        Set-Content $DirectoryBuildPropsPath -Value $content -NoNewline
+        Write-Success "Version updated to $newVersion"
+        return $true
+    } else {
+        Write-Failure "Could not parse version from Directory.Build.props"
+        return $false
+    }
+}
+
 Write-Host ""
 Write-Host "Naner C# Build Script - Build All" -ForegroundColor Cyan
 Write-Host "==================================" -ForegroundColor Cyan
@@ -52,6 +90,14 @@ Write-Host ""
 
 Write-Success "Using .NET SDK: $DotNetExe"
 Write-Host ""
+
+# Increment version if requested
+if ($IncrementVersion) {
+    if (-not (Update-PatchVersion)) {
+        exit 1
+    }
+    Write-Host ""
+}
 
 # Function to build a project
 function Build-Project {
