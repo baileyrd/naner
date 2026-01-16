@@ -1,18 +1,6 @@
 name: Tests
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths:
-      - 'src/csharp/**'
-      - 'tests/**'
-      - '.github/workflows/test.yml'
-  pull_request:
-    branches: [ main, develop ]
-    paths:
-      - 'src/csharp/**'
-      - 'tests/**'
-      - '.github/workflows/test.yml'
   workflow_call:
   workflow_dispatch:
 
