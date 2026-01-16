@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using CommandLine;
 using Naner.Configuration;
+using Naner.Configuration.Abstractions;
+using Naner.Core;
 using Naner.Launcher;
 using Naner.Launcher.Models;
 using Naner.Vendors.Services;
@@ -16,7 +19,8 @@ class Program
         // Determine if we need console output
         // Use singleton ConsoleManager for consistent state tracking
         bool needsConsole = CommandRouter.NeedsConsole(args) || FirstRunDetector.IsFirstRun() ||
-                           args.Any(a => a.ToLower() == "--debug");
+                           args.Any(a => a.ToLower() == "--debug") ||
+                           args.Any(a => a.ToLower() == "--export-env");
 
         if (needsConsole)
         {
@@ -127,6 +131,19 @@ class Program
                 Logger.Debug($"PATH (first 150 chars)={unifiedPath.Substring(0, Math.Min(150, unifiedPath.Length))}...", true);
             }
 
+            // Handle --export-env: output environment setup commands and exit
+            if (opts.ExportEnv)
+            {
+                return HandleExportEnv(config, unifiedPath, opts.Format, opts.NoComments);
+            }
+
+            // Handle --setup-only: environment is already configured, just exit
+            if (opts.SetupOnly)
+            {
+                Logger.Debug("Setup-only mode: environment configured, exiting without launching terminal", opts.Debug);
+                return 0;
+            }
+
             // 4. Determine profile to launch
             var profileName = opts.Profile ?? config.DefaultProfile;
             Logger.Debug($"Selected profile: {profileName}", opts.Debug);
@@ -159,6 +176,54 @@ class Program
         {
             Logger.Failure($"Fatal error: {ex.Message}");
             Logger.Debug(ex.ToString(), opts.Debug);
+            return 1;
+        }
+    }
+
+    static int HandleExportEnv(NanerConfig config, string unifiedPath, string format, bool noComments)
+    {
+        try
+        {
+            var shellFormat = EnvironmentExporter.ParseFormat(format);
+
+            // Collect all environment variables that were set
+            var envVars = new Dictionary<string, string>();
+
+            // Add core Naner variables
+            var nanerRoot = Environment.GetEnvironmentVariable("NANER_ROOT");
+            if (!string.IsNullOrEmpty(nanerRoot))
+                envVars["NANER_ROOT"] = nanerRoot;
+
+            var nanerEnv = Environment.GetEnvironmentVariable("NANER_ENVIRONMENT");
+            if (!string.IsNullOrEmpty(nanerEnv))
+                envVars["NANER_ENVIRONMENT"] = nanerEnv;
+
+            var nanerHome = Environment.GetEnvironmentVariable("NANER_HOME");
+            if (!string.IsNullOrEmpty(nanerHome))
+                envVars["NANER_HOME"] = nanerHome;
+
+            var home = Environment.GetEnvironmentVariable("HOME");
+            if (!string.IsNullOrEmpty(home))
+                envVars["HOME"] = home;
+
+            // Add configured environment variables
+            foreach (var (key, value) in config.Environment.EnvironmentVariables)
+            {
+                var expandedValue = Environment.GetEnvironmentVariable(key);
+                if (!string.IsNullOrEmpty(expandedValue))
+                    envVars[key] = expandedValue;
+            }
+
+            // Generate and output the export commands
+            // TrimEnd removes trailing newline to avoid empty line errors when piped to Invoke-Expression
+            var output = EnvironmentExporter.Export(envVars, unifiedPath, shellFormat, noComments);
+            Console.Write(output.TrimEnd());
+
+            return 0;
+        }
+        catch (ArgumentException ex)
+        {
+            Logger.Failure(ex.Message);
             return 1;
         }
     }

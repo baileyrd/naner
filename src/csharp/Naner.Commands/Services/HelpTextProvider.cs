@@ -65,6 +65,12 @@ public class HelpTextProvider
         Console.WriteLine("  -h, --help                 Display this help message");
         Console.WriteLine("  --diagnose                 Run diagnostic checks");
         Console.WriteLine();
+        Console.WriteLine("SHELL INTEGRATION:");
+        Console.WriteLine("  --setup-only               Setup environment without launching terminal");
+        Console.WriteLine("  --export-env               Export environment as shell commands");
+        Console.WriteLine("  -f, --format <FORMAT>      Output format for --export-env:");
+        Console.WriteLine("                             powershell (default), bash, cmd");
+        Console.WriteLine();
     }
 
     /// <summary>
@@ -81,6 +87,17 @@ public class HelpTextProvider
         Console.WriteLine("  naner.exe update-vendors           # Update vendor dependencies");
         Console.WriteLine("  naner.exe install --list           # List available vendors");
         Console.WriteLine("  naner.exe install ruby nodejs      # Install Ruby and Node.js");
+        Console.WriteLine();
+        Console.WriteLine("SHELL INTEGRATION EXAMPLES:");
+        Console.WriteLine("  naner.exe --export-env             # Output PowerShell env commands");
+        Console.WriteLine("  naner.exe --export-env -f bash     # Output Bash export commands");
+        Console.WriteLine("  naner.exe --export-env -f cmd      # Output CMD SET commands");
+        Console.WriteLine();
+        Console.WriteLine("  # PowerShell: Source Naner environment");
+        Console.WriteLine("  Invoke-Expression (naner.exe --export-env)");
+        Console.WriteLine();
+        Console.WriteLine("  # Bash: Source Naner environment");
+        Console.WriteLine("  eval \"$(naner.exe --export-env -f bash)\"");
         Console.WriteLine();
         Console.WriteLine("INITIALIZATION:");
         Console.WriteLine("  Use 'naner-init' to initialize or update Naner.");

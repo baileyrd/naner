@@ -23,7 +23,16 @@ public class ConsoleManager
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr GetConsoleWindow();
 
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GetStdHandle(int nStdHandle);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint GetFileType(IntPtr hFile);
+
     private const int ATTACH_PARENT_PROCESS = -1;
+    private const int STD_OUTPUT_HANDLE = -11;
+    private const uint FILE_TYPE_CHAR = 0x0002;  // Console/character device
+    private const uint FILE_TYPE_PIPE = 0x0003;  // Pipe (redirected)
 
     private static readonly Lazy<ConsoleManager> _instance = new(() => new ConsoleManager());
 
@@ -41,12 +50,41 @@ public class ConsoleManager
     public bool HasConsole => GetConsoleWindow() != IntPtr.Zero;
 
     /// <summary>
+    /// Checks if stdout is being captured by the parent process.
+    /// For a WinExe app, if we have a valid stdout handle before attaching to a console,
+    /// it means the parent process has set up redirection (pipe or file).
+    /// In this case, we should NOT call AttachConsole as it would bypass the capture.
+    /// </summary>
+    public bool IsStdoutCaptured
+    {
+        get
+        {
+            var handle = GetStdHandle(STD_OUTPUT_HANDLE);
+            // For a WinExe with no console, handle is typically INVALID_HANDLE_VALUE (-1) or null.
+            // If we have a VALID handle (not -1, not 0), the parent set up redirection for us.
+            if (handle == IntPtr.Zero || handle == new IntPtr(-1))
+                return false;
+
+            // We have a valid handle - parent is capturing our output
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Ensures a console is attached for output.
     /// Tries to attach to parent console first, then allocates a new one if needed.
     /// </summary>
     /// <returns>True if console is available, false otherwise.</returns>
     public bool EnsureConsoleAttached()
     {
+        // If stdout is being captured by parent (piped or redirected), don't attach to console.
+        // AttachConsole would bypass the capture and write directly to the parent console,
+        // which breaks scenarios like: pwsh -Command "& naner.exe --export-env | Invoke-Expression"
+        if (IsStdoutCaptured)
+        {
+            return true;  // Output will go through the existing pipe/redirect
+        }
+
         if (HasConsole)
         {
             return true;

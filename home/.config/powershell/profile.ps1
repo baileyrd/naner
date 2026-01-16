@@ -3,6 +3,9 @@
 # Default profile for Naner terminal environment
 # ============================================================================
 
+# Override $PROFILE to point to this file instead of the default location
+$global:PROFILE = "$env:NANER_ROOT\home\.config\powershell\profile.ps1"
+
 # Suppress startup banner (optional - comment out to show vendor status)
 # Set to $true to show detailed startup info, $false for minimal startup
 $ShowNanerBanner = $false
