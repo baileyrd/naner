@@ -114,3 +114,17 @@ home/.gem/doc/
 home/.gem/extensions/
 home/.gem/specifications/
 home/.gem/bin/
+nul
+*.exe
+*.exe
+vendor/bin/naner-init.exe
+vendor/bin/Naner.Archives.pdb
+vendor/bin/Naner.Commands.pdb
+vendor/bin/Naner.Configuration.Abstractions.pdb
+vendor/bin/Naner.Configuration.pdb
+vendor/bin/Naner.Core.pdb
+vendor/bin/Naner.DependencyInjection.pdb
+vendor/bin/naner.exe
+vendor/bin/Naner.Infrastructure.pdb
+vendor/bin/Naner.Setup.pdb
+vendor/bin/Naner.Vendors.pdb

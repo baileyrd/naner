@@ -60,7 +60,7 @@ public class ConsoleLogger : ILogger
     public void Warning(string message)
     {
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine($"[!] {message}");
+        Console.Error.WriteLine($"[!] {message}");
         Console.ResetColor();
     }
 
